@@ -132,12 +132,9 @@ informa la causa. Los demás códigos dicen, en un diagrama de Gantt:
 
 ## Disposición y exportación
 
-Los informan `layoutDiagram()` de `@meltemi/diagrams-layout` y `meltemi-diagrams export`, no `compile()`. Los
-ejemplos de `corpus/invalid/layout.*.meltemi` los comprueba el paquete de disposición, y
-`corpus/invalid/export.no-diagram.meltemi`, las pruebas de la CLI. `layout.engine-failed` no tiene
-ejemplo en el corpus, porque ELK no falla con diagramas válidos; lo cubre una prueba unitaria con un
-motor que falla. Los modos de disposición, las restricciones y las comprobaciones de composición se
-describen en [layout.md](layout.md).
+Los informan `layoutDiagram()` de `@meltemi/diagrams-layout` y `meltemi-diagrams export`, no `compile()`.
+Los modos de disposición, las restricciones y las comprobaciones de composición se describen en
+[layout.md](layout.md).
 
 | Código                          | Gravedad | Plantilla del mensaje                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

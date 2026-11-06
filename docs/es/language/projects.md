@@ -212,9 +212,9 @@ luego `<ns>.<id>`. Una referencia a un bloque del tipo equivocado nombra el tipo
 La línea de comandos lo usa automáticamente:
 
 ```bash
-pnpm mdg validate architecture/
+mdg validate architecture/
 ```
 
 ```bash
-pnpm mdg export architecture/diagrams/checkout.meltemi
+mdg export architecture/diagrams/checkout.meltemi
 ```

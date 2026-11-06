@@ -5,9 +5,8 @@
 Una `story` cuenta un diagrama paso a paso: escenas que revelan, resaltan, recorren y dibujan
 partes de él, mueven la cámara y cambian a otra vista del mismo sistema. Una historia nunca cambia
 sus diagramas; los dibuja fotograma a fotograma con el mismo reloj determinista que los efectos
-de movimiento ([motion.md](motion.md), decisión 0023), así que el lienzo, un fotograma exportado
-en un instante y, más adelante, el reproductor y los videos muestran el mismo estado en el mismo
-instante.
+de movimiento ([motion.md](motion.md)), así que el lienzo, los fotogramas exportados, el
+reproductor y los videos muestran el mismo estado en el mismo instante.
 
 ```text
 story purchase for checkout {
@@ -161,16 +160,16 @@ diagrama importado cuya importación no se resuelve la informa la importación, 
 
 ## Exportaciones
 
-| Comando                                                                   | Resultado                                                   |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `pnpm mdg export purchase.meltemi --story purchase`                       | `purchase.purchase.svg`, el final de la historia            |
-| `pnpm mdg export purchase.meltemi --story purchase --at 500ms`            | el fotograma a los 500 ms                                   |
-| `pnpm mdg export purchase.meltemi --story purchase --format html`         | `purchase.purchase.html`, el reproductor HTML               |
-| `pnpm mdg export purchase.meltemi --story purchase --at 3s --format png`  | el fotograma a los 3 s en PNG (o `pdf`)                     |
-| `pnpm mdg export purchase.meltemi --story purchase --format mp4`          | la historia completa como video de 1080p (o `webm`, `gif`)  |
-| `pnpm mdg export purchase.meltemi --story purchase --scenes`              | `purchase.purchase.overview.svg` y uno por escena           |
-| `pnpm mdg export purchase.meltemi --story purchase --scenes --format pdf` | `purchase.purchase.pdf`, una página por escena              |
-| `pnpm mdg export flows.meltemi --stories`                                 | `flows.stories.html`, todas las historias en un reproductor |
+| Comando                                                              | Resultado                                                   |
+| -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `mdg export purchase.meltemi --story purchase`                       | `purchase.purchase.svg`, el final de la historia            |
+| `mdg export purchase.meltemi --story purchase --at 500ms`            | el fotograma a los 500 ms                                   |
+| `mdg export purchase.meltemi --story purchase --format html`         | `purchase.purchase.html`, el reproductor HTML               |
+| `mdg export purchase.meltemi --story purchase --at 3s --format png`  | el fotograma a los 3 s en PNG (o `pdf`)                     |
+| `mdg export purchase.meltemi --story purchase --format mp4`          | la historia completa como video de 1080p (o `webm`, `gif`)  |
+| `mdg export purchase.meltemi --story purchase --scenes`              | `purchase.purchase.overview.svg` y uno por escena           |
+| `mdg export purchase.meltemi --story purchase --scenes --format pdf` | `purchase.purchase.pdf`, una página por escena              |
+| `mdg export flows.meltemi --stories`                                 | `flows.stories.html`, todas las historias en un reproductor |
 
 `--story` escribe un fotograma, así que no se puede combinar con `--diagram`, `--scenario` ni
 `--motion animated`; `--out` admite un archivo o una carpeta existente, y `--stdout` imprime el SVG.

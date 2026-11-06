@@ -8,7 +8,7 @@ canvas, animated, and exported for documents, slides, the web and video.
 ## Start
 
 - [Getting started](getting-started.md): install, a first project, the canvas and the exports.
-- [Features](features.md): everything 1.0 does, by area.
+- [Features](features.md): the product's capabilities, by area.
 - [Gallery](../gallery/README.md) and the [purchase example](../examples/purchase/README.md).
 - [Compatibility and known limitations](compatibility.md).
 
@@ -57,10 +57,8 @@ canvas, animated, and exported for documents, slides, the web and video.
 - [The editor for VS Code](editor.md): language features and the canvas.
 - [The web app](web-app.md): everything in a browser tab, and projects in the cloud when you
   sign in, shared by link, with people, worked on together live and published as web pages.
-- [The cloud service](cloud.md): the Worker behind the hosted web app, with its optional
-  account, API tokens, the command line's sign-in and projects kept in the cloud: rooms, versions,
-  thumbnails and quotas; sharing and permissions; the presence the room relays; and publishing on a
-  host of its own.
+- [The cloud service](cloud.md): optional accounts, API tokens, cloud projects, versions,
+  collaboration, sharing and publishing, with the HTTP and MCP API reference.
 - [The HTML player](player.md) and [the catalog](catalog.md).
 - [Importing Mermaid](import/mermaid.md) and [PlantUML](import/plantuml.md): what each construct
   becomes.
@@ -69,5 +67,4 @@ canvas, animated, and exported for documents, slides, the web and video.
 ## Compatibility and updates
 
 - [Compatibility and known limitations](compatibility.md), including supported exports and hosts.
-- [Performance](performance.md): limits and measured behaviour.
 - [Changelog](../CHANGELOG.md): changes in each release.

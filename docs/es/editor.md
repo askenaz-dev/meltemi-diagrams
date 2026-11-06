@@ -7,24 +7,21 @@ posterior). También pone un lienzo junto al código. El texto sigue siendo la f
 acción en el lienzo es una pequeña edición del mismo documento. Deshacer, rehacer, guardar, el
 indicador de cambios sin guardar y Git funcionan exactamente igual que con el texto.
 
-El lienzo es el paquete `@meltemi/diagrams-canvas`; la app web (`docs/web-app.md`) monta el
-mismo lienzo en una página web, así que lo que esta página dice de él también vale allí.
+La [app web](web-app.md) comparte el mismo lienzo, por lo que sus herramientas de dibujo y sus
+funciones del lenguaje funcionan de la misma manera.
 
 ## Instalación
 
-Genera el paquete e instálalo:
+Instala **Meltemi Diagrams for VS Code** de **meltemi** desde Extensiones, o ejecuta:
 
 ```bash
-pnpm vscode:package
+code --install-extension meltemi.meltemi-diagrams-vscode
 ```
 
-```bash
-code --install-extension packages/vscode/meltemi-diagrams.vsix
-```
-
-Para volver atrás, desinstálala desde la vista Extensiones. Para trabajar en la propia extensión,
-presiona F5 con **Run Meltemi Diagrams**. Eso la compila y abre un Host de desarrollo de
-extensiones sobre `examples/`.
+Los derivados de VS Code pueden instalarla desde Open VSX. Para instalar manualmente, descarga
+el VSIX adjunto a la [última versión](https://github.com/askenaz-dev/meltemi-diagrams/releases/latest)
+y elige **Extensiones: Instalar desde VSIX…** en la paleta de comandos. Usa el menú de la extensión
+en Extensiones para desactivarla, desinstalarla o instalar otra versión publicada.
 
 ## Los paneles
 

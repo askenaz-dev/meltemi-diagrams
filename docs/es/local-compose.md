@@ -213,5 +213,4 @@ de compartir, sesiones de invitados y publicación; devuelven `local.feature-una
 cambian nada en este modo. Sus controles no aparecen en el editor. La sincronización ordinaria
 entre tu navegador y los agentes sigue activa.
 
-El servicio alojado y su autenticación son independientes. Las [instrucciones manuales de
-desarrollo](cloud.md#ejecutarlo-en-local) siguen disponibles para trabajar en esa implementación.
+El servicio alojado y su cuenta son independientes de este espacio de trabajo local.

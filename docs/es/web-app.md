@@ -2,47 +2,21 @@
 
 [English](../web-app.md)
 
-Meltemi Diagrams funciona en una página web: las plantillas, el código junto al mismo lienzo
-que la extensión de VS Code y todas las exportaciones, sin instalar nada y sin necesidad de cuenta.
-Todo se ejecuta en el navegador; nada de lo que escribes se envía a ningún sitio (decisión 0031).
-Servida por el [servicio en la nube](cloud.md), la página ofrece además una cuenta opcional
-([la cuenta](#la-cuenta)) y, con ella, proyectos guardados en la nube
-([proyectos en la nube](#proyectos-en-la-nube)), que se pueden compartir
-([compartir un proyecto](#compartir-un-proyecto)), trabajar en ellos juntos, en vivo, con las
-personas con quienes se comparten ([trabajar juntos](#trabajar-juntos)) y publicar como página web
-([publicar un proyecto](#publicar-un-proyecto)). El enlace a un proyecto compartido lo abre para que
-cualquiera lo mire, sin cuenta ([ver un proyecto compartido](#ver-un-proyecto-compartido)); sin
-cuenta, nada más cambia.
+Crea diagramas `.meltemi` con código junto a un lienzo visual y expórtalos para documentos,
+presentaciones o la web. Un proyecto del navegador no necesita cuenta y conserva su contenido en
+ese navegador hasta que lo descargues o compartas. Los proyectos en la nube y las sesiones
+compartidas o en vivo se comunican con el servicio, incluso si entras como invitado sin cuenta.
 
-## Compilarlo y servirlo
+Una cuenta opcional de Meltemi permite guardar proyectos entre dispositivos, colaborar y publicar
+catálogos. Para usar el editor y agentes en tu máquina, elige el
+[espacio de trabajo Docker local](local-compose.md). Esta guía explica las herramientas comunes
+a ambos editores y las funciones de la cuenta alojada.
 
-```bash
-pnpm playground:build
-```
+## Abrir el editor
 
-La compilación escribe un sitio estático en `packages/playground/dist/`: `index.html`, los scripts,
-las hojas de estilo, `templates.json`, las fuentes, los datos de Tabler, los entornos de ejecución
-que se escriben en las exportaciones HTML, `NOTICES.md`, `api/session`, la respuesta que da un
-servidor estático a la única solicitud que la página hace a una API (`{"user":null}`: nadie ha
-iniciado sesión), y `_headers`, las dos cabeceras que la plataforma de recursos del servicio en la
-nube da a cada archivo de la página (`frame-ancestors 'self'` y `nosniff`; un servidor estático lo
-sirve como un archivo más), y `agent-setup/` con `es/agent-setup/`, la página estática que explica
-cómo dar la skill a los agentes de programación
-([dibujar con agentes de programación](agents.md)), junto a su hoja de estilo y a
-`agent-setup/prompt.md`, el prompt de configuración de la línea de comandos. Cualquier servidor
-estático lo sirve; durante el desarrollo,
-`pnpm preview` sirve el repositorio en `http://localhost:4173/packages/playground/dist/`. La página
-alojada es `https://diagrams.meltemi.dev`: el [servicio en la nube](cloud.md) sirve la misma
-compilación con una cuenta encima (`pnpm cloud:dev` en local), desplegada desde `main` por el flujo
-de despliegue. La página inicia la sesión en
-`https://id.meltemi.dev`; al compilar, fija `PLAYGROUND_IDENTITY` al origen de otro servicio de
-identidad para cambiarlo, y el `form-action` de la política lo sigue.
-
-```bash
-pnpm playground:test-browser
-```
-
-compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome instalado.
+Abre [Meltemi Diagrams](https://diagrams.meltemi.dev). Elige una plantilla o importa un proyecto,
+edita el texto o el lienzo y descarga un archivo de proyecto para conservar tu propia copia.
+No hace falta compilar el código fuente.
 
 ## Lo que hace
 
@@ -63,15 +37,9 @@ compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome ins
 | Publicar  | El catálogo de un proyecto en la nube como página web en una dirección propia ([publicar un proyecto](#publicar-un-proyecto)).                                                                                                                                                                                                                                                                                                                                      |
 | Idioma    | Inglés y español: la página sigue el idioma del navegador hasta que se elige uno en el menú del globo de la cabecera.                                                                                                                                                                                                                                                                                                                                               |
 
-Mientras la página carga, y siempre que el lienzo no tiene nada que dibujar (un proyecto sin
-archivos, `project.json` o un archivo que no es una fuente `.meltemi`), la página luce el mar de la
-familia Meltemi, `@meltemi/ocean`: puntos del mar se elevan y se enlazan en un pequeño flujo
-mientras la flota de marcas de Meltemi navega sobre él, en los colores claros u oscuros de la propia
-página. Se reproduce una vez y queda en reposo antes de 5 segundos, así que nada se mueve durante
-más tiempo, y nunca aparece detrás de un diagrama. Nunca retrasa el inicio: su código (unos 10 KB
-comprimidos) se carga aparte del editor, solo cuando se muestra, y no hace ninguna petición. Cuando
-el sistema pide movimiento reducido, se dibuja una sola vez, en reposo. Las páginas de
-configuración de agentes muestran el mismo mar como imagen fija, sin script.
+Mientras la página carga o el lienzo no tiene nada que dibujar, una breve animación del mar
+marca el estado vacío. Queda en reposo antes de cinco segundos y nunca aparece detrás de un
+diagrama. Con movimiento reducido habilitado, se mantiene estática.
 
 ### Teclas del código
 
@@ -371,17 +339,13 @@ agentes, bajo su descripción.
 
 ## La cuenta
 
-La cuenta es opcional y pertenece al [servicio en la nube](cloud.md), no a la página: la página solo
-la ofrece cuando la sirve el Worker de `packages/cloud`. Servida por un servidor estático, como
-`pnpm preview`, nada cambia. Al arrancar, la página le pregunta a su propio origen, una vez, quién
-ha iniciado sesión. Un servidor estático responde con el `{"user":null}` que escribió la
-compilación; cualquier otra respuesta que la página no pueda usar, o ninguna, también significa que
-nadie ha iniciado sesión, sin decir nada. Como la página pregunta una sola vez, lo que un
-administrador habilite en tu cuenta se ve en la siguiente carga.
+La app alojada ofrece una [cuenta Meltemi](cloud.md) opcional. Permite guardar proyectos en la nube,
+gestionar tokens y conectar agentes, mientras tu proyecto del navegador sigue separado. El espacio
+Docker local no necesita cuenta Meltemi y no muestra enlaces a la cuenta central ni a la administración.
 
 **Sin sesión iniciada**, el final de la cabecera tiene un enlace **Iniciar sesión**. Va al servicio
 de identidad, `id.meltemi.dev`, y te devuelve a la página en la que estabas; antes de salir, la
-página guarda tu proyecto en el navegador. Todo lo demás funciona como antes y no se envía nada.
+página guarda tu proyecto en el navegador. Iniciar sesión no sube automáticamente ese proyecto.
 
 **Con la sesión iniciada**, la cabecera muestra tu avatar y tu nombre, con entradas separadas para tu cuenta Meltemi, los ajustes del producto y la administración:
 
@@ -417,12 +381,10 @@ sección a otra; Escape y el botón de cerrar vuelven a la página.
 | **Uso**                     | Tus proyectos y tu almacenamiento frente a sus límites, y los límites de los archivos, el tamaño y las versiones de un proyecto y de una imagen                                                                                                                                                                                                                               |
 | **Zona de peligro**         | Eliminar la cuenta: lo que borra, y el camino a la página del servicio de identidad donde lo confirmas                                                                                                                                                                                                                                                                        |
 
-Inicios de sesión y Dispositivos son lo que guarda el servicio de identidad; la página le pregunta a
-su propio origen, cuyo Worker le pregunta al servicio de identidad en tu nombre
-([los datos de identidad](cloud.md#los-datos-de-identidad)). Cuando no se puede contactar con el
-servicio de identidad, las dos secciones lo dicen, con **Reintentar** y un enlace a su página de la
-cuenta; las demás secciones siguen funcionando. Un dispositivo cuya sesión cierras sigue
-funcionando en este producto hasta una hora, hasta que el Worker vuelve a comprobar su sesión.
+**Inicios de sesión** y **Dispositivos** gestionan los proveedores vinculados y las sesiones activas.
+Si no cargan, usa **Reintentar** o abre **Cuenta Meltemi**; los demás ajustes del producto siguen
+disponibles. Un dispositivo cuya sesión cierras puede conservar su sesión de producto en caché
+durante hasta una hora.
 
 Dos cosas salen de la página, en la misma pestaña, y vuelven a la sección de la que salieron:
 vincular un proveedor (GitHub y Google muestran sus propias páginas) y eliminar la cuenta (lo
@@ -993,91 +955,18 @@ desarrollo la dirección está bajo `/_published/` en el propio origen del servi
 
 ## Privacidad y seguridad
 
-La política de seguridad de contenido de la página solo permite scripts, estilos, fuentes, imágenes
-y conexiones de su propio origen, además de `data:` y `blob:` para las imágenes dibujadas; sin
-cuenta, ninguna solicitud sale de ella, y la prueba en el navegador lo comprueba para cada función.
-La cuenta añade dos cosas a la política y no quita nada. `img-src` también permite
-`https://avatars.githubusercontent.com` y `https://*.googleusercontent.com`, donde los proveedores
-de inicio de sesión guardan los avatares, así que el avatar de quien ha iniciado sesión es la única
-imagen que el navegador puede cargar de otro origen. `form-action`, que era `'none'`, es `'self'`
-más el origen del servicio de identidad para el que se compiló la página, para que el formulario
-**Cerrar sesión** pueda enviarse a él. `connect-src` sigue siendo `'self'`: iniciar sesión es una
-navegación, no una solicitud que haga la página. Los proyectos en la nube tampoco añaden nada a la
-política: la página habla con su propio origen, con solicitudes normales y un WebSocket a su propio
-host (`/rooms/<id>`). Las imágenes y las fuentes de un proyecto en la nube llegan a la página como
-bytes que el servicio sirve en una sandbox y como descargas
-([imágenes y fuentes](cloud.md#imágenes-y-fuentes)), así que un script dentro de un SVG subido no se
-ejecuta en ningún sitio. Compartir, ver y publicar tampoco añaden nada: la página de un lector lee
-el proyecto con solicitudes normales a su propio origen, y publicar envía el HTML del catálogo al
-servicio como una más; las imágenes de las personas del diálogo de compartir se dibujan solo desde
-los hosts que la política ya permite. Trabajar juntos tampoco añade nada: la presencia viaja por el
-mismo socket, y el nombre y la imagen de cada persona vienen de la sala, se muestran como texto y
-con la misma regla para las imágenes, y no se guardan en ningún sitio
-([seguridad](security.md#proyectos-en-la-nube)). Una página publicada se sirve desde un dominio
-propio, nunca desde el origen de la página ([seguridad](security.md#compartir-y-publicar)). Nada de
-un proyecto o de un enlace se ejecuta: se compilan con los límites de `docs/security.md`. La página no tiene asistencia de IA: necesitaría la
-clave de un proveedor en una página web y solicitudes al proveedor; la CLI y el editor sí la tienen
-(`docs/assist.md`).
+Un proyecto del navegador se queda allí hasta que elijas compartirlo, descargarlo o subirlo.
+Los proyectos en la nube, los compartidos y las sesiones en vivo se comunican con el servicio,
+incluidos los invitados sin cuenta. La [guía de seguridad](security.md) explica los límites de acceso y tamaño.
 
-## Cómo está construido
+La app carga código, fuentes e iconos desde su propio host. El inicio de sesión navega por el
+servicio de cuentas de Meltemi; un avatar puede cargarse desde GitHub o Google. Los archivos del
+proyecto y las imágenes/fuentes subidas se obtienen por el servicio, con comprobaciones de acceso
+y descargas en una sandbox.
 
-- El lienzo es `@meltemi/diagrams-canvas`, compartido con la webview de la extensión; la página
-  hace el papel de la extensión (aplica los planes, lleva las revisiones, responde a las solicitudes
-  del lienzo).
-- El explorador es `src/explorer/`: `tree-model.ts` (el árbol, las filas que recorren las teclas y
-  las reglas de los nombres, los movimientos y las copias, sin DOM), `tree.ts` (el árbol WAI-ARIA,
-  redibujado por clave para que el foco, el desplazamiento y una carpeta que se abre sobrevivan a los
-  cambios del proyecto), `explorer.ts` (el panel y sus acciones), `switcher.ts` (la cabecera y el
-  panel Proyectos), `new-project.ts`, `import.ts` y `dialogs.ts`. Un movimiento pasa por
-  `Studio.moveFiles`, que reescribe las importaciones con `moveFileEdits` de
-  `@meltemi/diagrams-editor` y anota el movimiento en la pila propia del historial; los dibujos de las
-  tarjetas de plantillas se hacen al compilar el sitio (`thumbnails.mjs`).
-- Los proyectos viven en memoria (`MemoryHost`, un `ProjectHost` bajo `/playground`) y se compilan
-  con `ProjectSessions` de `@meltemi/diagrams-editor`, con los lectores de fuentes y de Tabler de la
-  página y el worker de ELK incluido.
-- Las fuentes y los datos de iconos se obtienen del propio origen de la página la primera vez que se
-  leen; la página vuelve a analizar cuando llegan, y las exportaciones esperan a todos los archivos
-  que leen.
-- El codificador de GIF, los generadores de WebM y MP4 y el lector y el generador de ZIP forman
-  parte de la página (`packages/playground/src/encode/`, `src/zip.ts`); no se descarga nada más.
-- La cuenta es `src/cloud/`: la sesión que la página pide una vez (`session.ts`), el enlace de
-  inicio de sesión y el menú de la cuenta de la cabecera (`account.ts`) y el diálogo de tokens de
-  API (`tokens-dialog.ts`, sobre `tokens-model.ts` y `tokens.ts`, que no necesitan DOM). La página
-  funciona igual diga lo que diga el servicio; nunca falla por su respuesta.
-- Los proyectos en la nube también están en `src/cloud/`. `client.ts` hace las llamadas al servicio y
-  ninguna lanza un error. `projects-model.ts` es la lista en la nube del panel del explorador, y
-  `versions.ts` el
-  panel de versiones sobre `versions-model.ts`; ninguno de los dos modelos necesita DOM.
-  `project.ts` es un proyecto abierto: su documento Yjs (`doc.ts`), el binding que ata el documento
-  al `Studio` (`binding.ts`), el socket a la sala (`room.ts`), su copia en IndexedDB
-  (`persistence.ts`) y el estado de la conexión (`status.ts`). `thumbnails.ts` y
-  `thumbnail-render.ts` hacen y envían la vista previa, `address.ts` lee y escribe `?project=`, y
-  `controller.ts` lo mantiene todo junto para el panel y el shell. El `Studio` gana un listener
-  `change`, `replaceText` para los cambios que llegan de fuera y `canUndo` y `canRedo`, y delega
-  deshacer en el binding mientras hay un proyecto en la nube abierto. La única dependencia en tiempo
-  de ejecución que añaden los proyectos en la nube es `yjs` (MIT, en `NOTICES.md`); la página
-  mantiene el navegador, el socket, IndexedDB y el reloj detrás de interfaces pequeñas, así que las
-  pruebas simulan todos ellos.
-- Compartir, ver y publicar también están en `src/cloud/`. `share.ts` dibuja el diálogo de compartir
-  sobre `share-model.ts`, cuyo `shareView` es el único lugar que decide qué se muestra a cada rol (un
-  control que una persona no puede usar no se dibuja), y `share-api.ts`, las llamadas; `publish.ts`,
-  `publish-model.ts` y `publish-api.ts` hacen lo mismo con la publicación, construyendo la página con
-  `projectCatalog` (`src/exports/files.ts`), la compilación que comparte la descarga del catálogo.
-  Ver es `view-mode.ts` (el modo), `snapshot.ts` (la lectura de quien no ha iniciado sesión),
-  `link.ts` (abrir una dirección y aceptar una invitación), `view-actions.ts` (las copias y la
-  recarga), `view-bar.ts` (la insignia de la cabecera y el aviso de recarga) y `view-page.ts`, que
-  los une. `Studio.setReadOnly` rechaza toda edición en el único lugar por el que pasan las
-  ediciones, `CodePane.setReadOnly` y el shell protegen el resto, el binding no envía ninguna
-  actualización como lector, y `canvas-settings.ts` da al lienzo `readOnly` en su mensaje `settings`
-  ([la guía del editor](editor.md)).
-- La presencia también está en `src/cloud/`. `presence.ts` es lo que un proyecto cuenta a la sala
-  sobre su persona (el archivo abierto, el cursor como posiciones relativas de Yjs, la selección del
-  lienzo) con la limitación (throttle) de 250 ms y el latido, y lo que la sala dice de los demás;
-  `presence-wire.ts` es el formato de los mensajes de tipo 2 ([presencia](cloud.md#presencia-awareness))
-  y el único lugar que lee el contenido de un par; `presence-model.ts` decide, contra el documento
-  tal como está ahora, a quién lista la cabecera, qué cursores dibuja el panel de código y qué se le
-  cuenta al lienzo; `presence-geometry.ts` dice dónde está una posición en el panel. Ninguno de esos
-  cuatro necesita DOM. `presence-bar.ts` dibuja la lista de la cabecera, `presence-overlay.ts` los
-  cursores y selecciones sobre el código, y `presence-mount.ts` los une al shell; `room.ts` lleva
-  los mensajes de tipo 2 en ambos sentidos, y el lienzo dibuja el resto a partir de un mensaje
-  `presence` ([la guía del editor](editor.md)).
+Los enlaces con fragmento contienen datos del proyecto después de `#`; quien reciba el enlace
+completo puede leerlos. Los catálogos publicados usan el dominio separado `meltemi.page`. El código
+fuente se incluye solo si lo habilitas en los ajustes del catálogo; revisa qué publicas antes de compartir su dirección.
+
+El editor del navegador no tiene un chat de IA integrado. Usa la [asistencia de IA](assist.md) en
+la CLI o VS Code, o conecta tu [agente con skill/MCP](agents.md) para trabajar en el mismo proyecto.

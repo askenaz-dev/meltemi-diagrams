@@ -4,8 +4,7 @@
 
 Esta es la referencia de la sintaxis que implementa `@meltemi/diagrams-language` y de los
 vocabularios `flow`, `free`, `sequence`, `c4` y `gantt` y los bloques `model` que valida
-`@meltemi/diagrams-model`. Sigue la propuesta del 9 de octubre de 2026 y las decisiones 0001 a 0004,
-0018 a 0020 y 0066. Los cambios en el lenguaje siguen la
+`@meltemi/diagrams-model`. Los cambios en el lenguaje siguen la
 [política de cambios del lenguaje](policy.md), y el
 [conjunto de pruebas de conformidad](conformance.md) fija lo que significan los archivos.
 
@@ -248,8 +247,7 @@ elemento tiene como máximo un `place` y un `size`, y cada relación como máxim
 `label`. Las restricciones se aplican a cajas, notas y marcas, no a grupos; un elemento aparece
 como máximo una vez en cada una.
 
-Las relaciones sin `as <id>` reciben la clave `<from>-><to>#<n>` en el modelo y en el JSON
-(decisión 0004).
+Las relaciones sin `as <id>` reciben la clave `<from>-><to>#<n>` en el modelo y en el JSON.
 
 `link <diagram>.<element>` en un bloque de elemento o de grupo registra que el elemento representa
 un elemento de otro diagrama: del mismo archivo, o a través de una importación, como
@@ -461,11 +459,3 @@ Los tiempos llevan `ms` o `s`, de `0ms` a `600s`; `focus` y `camera` aceptan `al
 (obligatoria), `size`, `scale`, `background`, `at`, `motion`, `theme`, `fonts`, `scenario`, `link`,
 `fps`, `duration`, `file`, y `autoplay`, `loop` y `embed` para HTML. Cada opción se aplica solo a
 algunos formatos ([export.md](export.md)).
-
-## Aún sin decidir
-
-Se aplaza a una decisión de la gramática 0.3, después de los prototipos de la etapa 2:
-
-- La semántica de los grupos: si los grupos crean espacios de nombres y cómo interactúan las
-  referencias calificadas con el cambio de nombre.
-- Si las cláusulas encadenadas pueden empezar en la línea siguiente a la `}` de cierre.

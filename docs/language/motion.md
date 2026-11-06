@@ -6,8 +6,8 @@
 connector, a dash that moves along a line or an outline, a pulse that draws attention to a box, or
 a trace that fills a connector from its start to its end.
 Effects never move or resize anything; they are drawn above the static picture. Every effect runs
-on one deterministic clock, so an animated export, a frame at a chosen time and, later, stories
-and videos show the same state at the same instant (decision 0022).
+on one deterministic clock, so animated exports, chosen frames, stories and videos show the same
+state at the same instant.
 
 ```text
 diagram checkout: flow {
@@ -89,12 +89,12 @@ other overlays are drawn above everything.
 
 ## Exports
 
-| Command                                           | Result                                                                                        |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `pnpm mdg export sheet.meltemi`                   | the static picture, without effects                                                           |
-| `pnpm mdg export sheet.meltemi --motion animated` | the animated SVG profile, below                                                               |
-| `pnpm mdg export sheet.meltemi --at 1.5s`         | the picture at 1.5 s: particles, dashes, halos and traces where they are                      |
-| `pnpm mdg export sheet.meltemi --format html`     | an HTML player of the effects, with play, pause and a static view ([player.md](../player.md)) |
+| Command                                      | Result                                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `mdg export sheet.meltemi`                   | the static picture, without effects                                                           |
+| `mdg export sheet.meltemi --motion animated` | the animated SVG profile, below                                                               |
+| `mdg export sheet.meltemi --at 1.5s`         | the picture at 1.5 s: particles, dashes, halos and traces where they are                      |
+| `mdg export sheet.meltemi --format html`     | an HTML player of the effects, with play, pause and a static view ([player.md](../player.md)) |
 
 The animated SVG profile is an explicit subset: one `<style>` element with CSS keyframes on
 `opacity`, `offset-path`/`offset-distance`, `stroke-dasharray`/`stroke-dashoffset` and

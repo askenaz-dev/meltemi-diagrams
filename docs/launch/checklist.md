@@ -36,9 +36,9 @@ repository, and everything runs as GitHub pipelines.
       the R2 bucket `meltemi-diagrams-blobs`, the Secrets Store with `FORMS_SECRET`,
       `IDENTITY_EVENTS_SECRET` and `ADMIN_SUBS`, and this repository's `production` environment.
 - [ ] **The identity package on npm.** `@meltemi/identity` published; `packages/cloud` depends on it
-      instead of the local link ([cloud](../cloud.md#the-identity-package)).
+      instead of the local link ([cloud](../internal/cloud-implementation.md#the-identity-package)).
 - [ ] **The first deployment.** `deploy.yml` green; then the family's Terraform attaches
-      `diagrams.meltemi.dev` and `meltemi.page` ([cloud](../cloud.md#deploying)).
+      `diagrams.meltemi.dev` and `meltemi.page` ([cloud](../internal/cloud-implementation.md#deploying)).
 - [ ] **Smoke test.** Sign in at `https://diagrams.meltemi.dev`, `mdg login`, push a project, open
       its link in another browser, edit it from two browsers, publish a page to
       `https://meltemi.page/<handle>/<page>/`, take it down as administrator (after your `sub` is in

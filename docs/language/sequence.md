@@ -37,7 +37,7 @@ diagram payment: sequence {
 }
 ```
 
-Sequence diagrams compile into the same model as flow and free diagrams (decision 0019):
+Sequence diagrams compile into the same model as flow and free diagrams:
 participants are elements, participant boxes are groups and messages are relations. Ids,
 labels, descriptions, `class`, `style`, `rule`, `animate`, `link`, themes, presets, canvases and
 the brand frame work as in the other profiles. Their own statements are below.

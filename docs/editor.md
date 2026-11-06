@@ -7,23 +7,21 @@ later). It also puts a canvas beside the code. The text stays the source of trut
 the canvas is a small edit to the same document. Undo, redo, save, dirty state and Git work exactly
 as they do for the text.
 
-The canvas is the `@meltemi/diagrams-canvas` package; the web app (`docs/web-app.md`)
-mounts the same canvas in a web page, so what this page says about it holds there too.
+The [web app](web-app.md) shares the same canvas, so its drawing tools and language features work
+the same way there.
 
 ## Installing
 
-Build the package and install it:
+Install **Meltemi Diagrams for VS Code** by **meltemi** from the Extensions view, or run:
 
 ```bash
-pnpm vscode:package
+code --install-extension meltemi.meltemi-diagrams-vscode
 ```
 
-```bash
-code --install-extension packages/vscode/meltemi-diagrams.vsix
-```
-
-Uninstall it from the Extensions view to roll back. To work on the extension itself, press F5 with
-**Run Meltemi Diagrams**. That builds it and opens an Extension Development Host on `examples/`.
+VS Code forks can install it from Open VSX. For a manual installation, download the VSIX attached
+to the [latest release](https://github.com/askenaz-dev/meltemi-diagrams/releases/latest), then
+choose **Extensions: Install from VSIX…** in the Command Palette. Use the extension's menu in the
+Extensions view to disable, uninstall or install another published version.
 
 ## The panes
 

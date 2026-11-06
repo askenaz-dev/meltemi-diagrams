@@ -116,7 +116,7 @@ in `assets/licenses.json`. A theme uses them by name (`font "'Company Sans', san
 | `system`   | font names only; viewers use the first installed font                                                            | the smallest files, when fonts are installed |
 
 ```bash
-pnpm mdg export sheet.meltemi --fonts outlined
+mdg export sheet.meltemi --fonts outlined
 ```
 
 In `embedded` files, characters only the complete fonts have (arrows, for example) are not part of

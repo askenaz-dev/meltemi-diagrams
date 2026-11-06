@@ -5,10 +5,10 @@
 `meltemi-diagrams build catalog` turns a project into one HTML file that people can open from a
 disk, a share, an attachment or any static host, without a network: the project's diagrams and
 stories by folder, with the player, search, links between diagrams and the architecture model's
-entities. The same sources give the same file (decision 0027).
+entities. The same sources give the same file.
 
 ```bash
-pnpm mdg build catalog architecture
+mdg build catalog architecture
 ```
 
 ```text
@@ -17,13 +17,13 @@ Wrote architecture/catalog/index.html (3 diagrams, 1 story, 6 entities; 289 KB)
 
 ## Building
 
-| Command                                           | Writes                                                         |
-| ------------------------------------------------- | -------------------------------------------------------------- |
-| `pnpm mdg build catalog`                          | the catalog of the project of the working folder               |
-| `pnpm mdg build catalog architecture/`            | `architecture/catalog/index.html`, or where `catalog.out` says |
-| `pnpm mdg build catalog architecture/ --out site` | `site/index.html`; a path ending in `.html` names the file     |
-| `pnpm mdg build catalog --title "Shop"`           | with another title than `catalog.title` or the project name    |
-| `pnpm mdg build catalog --source`                 | with the text of each catalogued file                          |
+| Command                                      | Writes                                                         |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| `mdg build catalog`                          | the catalog of the project of the working folder               |
+| `mdg build catalog architecture/`            | `architecture/catalog/index.html`, or where `catalog.out` says |
+| `mdg build catalog architecture/ --out site` | `site/index.html`; a path ending in `.html` names the file     |
+| `mdg build catalog --title "Shop"`           | with another title than `catalog.title` or the project name    |
+| `mdg build catalog --source`                 | with the text of each catalogued file                          |
 
 The path is a project folder or a file inside one. The command prints the diagnostics of the
 catalogued files, leaves out (and names) diagrams and stories that cannot be drawn, and says what

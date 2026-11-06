@@ -2,7 +2,7 @@
 
 [English](../cli.md)
 
-`meltemi-diagrams` (alias `mdg`; `pnpm mdg` desde el código fuente) cubre la vida de un proyecto:
+`meltemi-diagrams` (alias `mdg`) cubre la vida de un proyecto:
 crearlo, verlo en vista previa, validarlo, darle formato, importar, exportar, publicar un catálogo,
 revisar los cambios y guardar una copia en la nube. Todos los comandos admiten `--help`. Las rutas
 de los mensajes son relativas a la carpeta de trabajo; nada de lo que un comando imprime o escribe
@@ -65,13 +65,13 @@ códigos, los códigos de salida y las claves de `--format json` son iguales en 
 confirmaciones aceptan `y` y `yes`, además de `s`, `si` y `sí`.
 
 ```bash
-pnpm mdg export architecture --lang es --out site
+mdg export architecture --lang es --out site
 ```
 
 ## Empezar: `init`
 
 ```bash
-pnpm mdg init architecture --template purchase
+mdg init architecture --template purchase
 ```
 
 `init` escribe `project.json` (el nombre de la carpeta, o `--name`; la versión del lenguaje; el
@@ -99,7 +99,7 @@ existente, `init --ci <service>` solo escribe el flujo de trabajo.
 ## Vista previa: `preview`
 
 ```bash
-pnpm mdg preview architecture --open
+mdg preview architecture --open
 ```
 
 El catálogo del proyecto se sirve en `http://127.0.0.1:4317/` (`--port`, o `0` para un puerto
@@ -114,14 +114,14 @@ vivo de un archivo ([editor.md](editor.md)).
 
 `validate`, `format`, `import`, `export` y `build catalog` admiten una carpeta:
 
-| Comando                                              | Hace                                                                           |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `pnpm mdg validate architecture --strict`            | todos los archivos del proyecto, `project.json` y los recursos                 |
-| `pnpm mdg format architecture --check`               | lista los archivos que cambiarían                                              |
-| `pnpm mdg import legacy --out architecture/imported` | todos los `.mmd`, `.puml` y `.md` dentro de `legacy`, conservando las carpetas |
-| `pnpm mdg export architecture --out site`            | todos los diagramas de todos los archivos, como `site/<folders>/<file>.svg`    |
-| `pnpm mdg export architecture --format png`          | lo mismo en PNG, junto a cada archivo, en una sola sesión del navegador        |
-| `pnpm mdg export architecture --profiles`            | todos los perfiles `export` de todos los archivos                              |
+| Comando                                         | Hace                                                                           |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| `mdg validate architecture --strict`            | todos los archivos del proyecto, `project.json` y los recursos                 |
+| `mdg format architecture --check`               | lista los archivos que cambiarían                                              |
+| `mdg import legacy --out architecture/imported` | todos los `.mmd`, `.puml` y `.md` dentro de `legacy`, conservando las carpetas |
+| `mdg export architecture --out site`            | todos los diagramas de todos los archivos, como `site/<folders>/<file>.svg`    |
+| `mdg export architecture --format png`          | lo mismo en PNG, junto a cada archivo, en una sola sesión del navegador        |
+| `mdg export architecture --profiles`            | todos los perfiles `export` de todos los archivos                              |
 
 En una carpeta, los archivos sin diagramas (modelos, temas, historias) se pasan por alto, y
 `--diagram`, `--story`, `--stories`, `--scenes`, `--scenario` y `--stdout` se rechazan: eligen
@@ -138,7 +138,7 @@ ese, para cada diagrama de la ejecución y cada formato, `--profiles` incluido, 
 hecho por un trabajo de CI es el mismo todos los días:
 
 ```bash
-pnpm mdg export plan.meltemi --today 2026-07-15
+mdg export plan.meltemi --today 2026-07-15
 ```
 
 Sin ella, el día es la fecha local de la máquina, que leen todos los comandos y el host de
@@ -151,7 +151,7 @@ para uno de secuencia: lo omite, y con `--diagram` nombrándolo lo dice y termin
 ## JSON del modelo: `convert --to json`
 
 ```bash
-pnpm mdg convert diagrams/overview.meltemi --to json
+mdg convert diagrams/overview.meltemi --to json
 ```
 
 escribe `diagrams/overview.model.json`, el modelo del archivo en el formato de intercambio
@@ -164,7 +164,7 @@ uno libre ([libre](language/free.md)).
 ## Revisión: `review`
 
 ```bash
-pnpm mdg review architecture --base main --out review
+mdg review architecture --base main --out review
 ```
 
 `review` compara un proyecto, una carpeta o un archivo con una versión anterior y lista lo que
@@ -294,12 +294,12 @@ habla con el servicio, salvo `review --base cloud`.
 ### El ciclo del desarrollador
 
 ```bash
-pnpm mdg login                              # una vez por equipo y servicio
-pnpm mdg push architecture --create         # crea el proyecto de la nube y lo anota en project.json
-pnpm mdg push architecture                  # después: lista lo que difiere, pregunta, envía
-pnpm mdg review architecture --base cloud   # lo que alguien cambió en la página, por id
-pnpm mdg pull architecture                  # trae esos archivos a la carpeta
-pnpm mdg publish architecture --slug shop   # genera el catálogo y lo publica
+mdg login                              # una vez por equipo y servicio
+mdg push architecture --create         # crea el proyecto de la nube y lo anota en project.json
+mdg push architecture                  # después: lista lo que difiere, pregunta, envía
+mdg review architecture --base cloud   # lo que alguien cambió en la página, por id
+mdg pull architecture                  # trae esos archivos a la carpeta
+mdg publish architecture --slug shop   # genera el catálogo y lo publica
 ```
 
 `push --create` escribe un ajuste `cloud` en `project.json`
@@ -314,7 +314,7 @@ o sin forzarlo.
 ### Iniciar sesión: `login`, `logout` y `whoami`
 
 ```bash
-pnpm mdg login
+mdg login
 ```
 
 `login` crea un token de API para este equipo en cuatro pasos:
@@ -341,11 +341,11 @@ usado o de más de cinco minutos), demasiados intentos fallidos (`cli.rate`), un
 20 tokens (`quota.tokens`: revoca uno en la página) y un token que no se pudo guardar
 (`login.not-stored`: se revoca de nuevo) fallan con el código de salida 1 y no guardan nada.
 
-En un equipo sin navegador, crea un token en el diálogo de **Tokens de API** de la página y envíalo
+En un equipo sin navegador, crea un token en **Tokens de API**, desde el menú de la cuenta de la app web, y envíalo
 por una tubería:
 
 ```bash
-printf '%s' "$TOKEN" | pnpm mdg login --token
+printf '%s' "$TOKEN" | mdg login --token
 ```
 
 `--token` lee el token de la entrada estándar, nunca de un argumento, así que no queda en el
@@ -406,7 +406,7 @@ sobrescribe. Es el único lugar donde se escribe un token.
 ### Reflejar una carpeta: `push`
 
 ```bash
-pnpm mdg push architecture --create
+mdg push architecture --create
 ```
 
 `push [folder] [--create [--name <n>]] [--project <id>] [--force] [--check] [--strict] [--host <url>]`
@@ -493,7 +493,7 @@ respuesta para los dos casos.
 ### Traer un proyecto de vuelta: `pull`
 
 ```bash
-pnpm mdg pull k4c2w7x5q3y6m2n5r7d4 architecture
+mdg pull k4c2w7x5q3y6m2n5r7d4 architecture
 ```
 
 `pull [<id>] [folder] [--version <n>] [--force] [--host <url>]` escribe los archivos de un proyecto
@@ -530,7 +530,7 @@ que des el id la próxima vez. Termina con un resumen como
 ### Publicar: `publish`
 
 ```bash
-pnpm mdg publish architecture --slug shop --handle ana
+mdg publish architecture --slug shop --handle ana
 ```
 
 `publish [folder] [--slug <name>] [--handle <name>] [--project <id>] [--force] [--strict]` y
@@ -685,7 +685,7 @@ inglés; [errores del servicio](cloud.md#errores)):
 ## Integración continua
 
 ```bash
-pnpm mdg init architecture --ci github
+mdg init architecture --ci github
 ```
 
 escribe `.github/workflows/meltemi-diagrams.yml` en la raíz del repositorio con la ruta del
@@ -702,7 +702,7 @@ reemplazan.
 ### Enviar a la nube en cada fusión
 
 ```bash
-pnpm mdg init architecture --ci github --cloud
+mdg init architecture --ci github --cloud
 ```
 
 agrega un trabajo más al flujo de trabajo, lo último del archivo: en un push a la rama
@@ -720,8 +720,8 @@ proyecto. El flujo de trabajo de
 GitHub arranca solo con los push a `main`, así que edita las `branches` de `on:` si tu rama
 predeterminada se llama de otro modo.
 
-Crea el token para el trabajo en el diálogo de **Tokens de API** de la página, que lo muestra una
-sola vez, y guárdalo en los secretos del repositorio. Un token actúa como tú en todo lo que permite
+Crea el token para el trabajo en **Tokens de API**, desde el menú de la cuenta de la app web.
+Se muestra una sola vez; guárdalo en los secretos del repositorio. Un token actúa como tú en todo lo que permite
 la API y no está limitado a un proyecto: ponle el nombre del repositorio y revócalo si el secreto se
 filtra.
 

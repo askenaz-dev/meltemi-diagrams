@@ -199,9 +199,9 @@ kind names the kind it found.
 The command line uses it automatically:
 
 ```bash
-pnpm mdg validate architecture/
+mdg validate architecture/
 ```
 
 ```bash
-pnpm mdg export architecture/diagrams/checkout.meltemi
+mdg export architecture/diagrams/checkout.meltemi
 ```

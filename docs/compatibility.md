@@ -2,47 +2,48 @@
 
 [Español](es/compatibility.md)
 
-What Meltemi Diagrams 1.0 runs on, what it reads and writes, and what it does not do. "Verified"
-means checked by the repository's tests or verification runs on the reference machine
-([decision 0032](decisions/0032-reference-machine-and-quality-gates.md)); the results are in
-[quality/results.md](quality/results.md).
+Supported environments, file formats and current limitations. These requirements describe the
+product; dated benchmark and verification reports are maintained separately in the repository.
 
 ## Runtime
 
-| Component         | Supported                                           | Verified                                                                     |
-| ----------------- | --------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Node.js           | 22.12 or later (ES modules)                         | Node 24.15 on Windows 11                                                     |
-| Operating systems | Windows, macOS and Linux                            | Windows 11; see the limitations below                                        |
-| Package managers  | npm, pnpm and Yarn install the published packages   | pnpm 10 (offline install of the release check)                               |
-| CI                | GitHub Actions and GitLab CI (`init --ci`), Node 22 | the workflow files are generated and tested; not run on a hosted service yet |
+| Component         | Requirements                                                                                         |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| Node.js           | 22.12 or later for the CLI and JavaScript packages (ES modules)                                      |
+| Operating systems | Windows, macOS and Linux with a supported Node runtime                                               |
+| Package managers  | The published packages can be installed with npm, pnpm or Yarn; the getting-started examples use npm |
+| CI                | `init --ci github` and `init --ci gitlab` generate validation/export workflows for your project      |
 
-Nothing needs a server or an account. Network is used only for optional AI assistance, with the
-provider and key you configure ([assist](assist.md)), and for the optional account that the
-app offers when the [cloud service](cloud.md) serves it.
+Local validation, layout and SVG export work without a server or a Meltemi account after
+installation. Cloud storage, collaboration, publishing and account MCP connections use the
+service; optional [AI assistance](assist.md) connects to the provider you configure. The web app
+loads its own code, fonts and icon packs from its host. Local Docker usage is documented in
+[the local workspace guide](local-compose.md).
 
 ## Browsers and FFmpeg
 
-PNG, PDF and video are captured by a browser installed on the machine, found automatically or
-named with `MELTEMI_BROWSER`; video is encoded by an installed FFmpeg, found on the path or named
-with `MELTEMI_FFMPEG`. Nothing is downloaded.
+CLI PNG, PDF and video exports use an installed Edge, Chrome or Chromium, found automatically
+or selected with `MELTEMI_BROWSER`. Video also uses an installed FFmpeg, found on the path or
+selected with `MELTEMI_FFMPEG`. Export does not install these tools for you.
 
-| Use                                                         | Supported                                         | Verified                                                                 |
-| ----------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------ |
-| Captures (PNG, PDF, video frames)                           | Microsoft Edge, Google Chrome, Chromium           | Edge 155, Chrome 154                                                     |
-| Video encoding                                              | FFmpeg with libx264 (MP4), libvpx-vp9 (WebM), GIF | FFmpeg 6.1.1                                                             |
-| Opening exports (SVG, PNG, player, catalog, MP4, WebM, GIF) | current Edge, Chrome, Firefox and Safari          | Edge 155, Chrome 154, Firefox 157 ([browsers](verification/browsers.md)) |
-| The web app                                                 | current Edge, Chrome, Firefox and Safari          | Edge 155, Chrome 154, Firefox 157; Safari not verified                   |
+| Use                                                 | Requirements                                                                              |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| CLI captures (PNG, PDF, video frames)               | Microsoft Edge, Google Chrome or Chromium                                                 |
+| CLI video encoding                                  | FFmpeg with libx264 for MP4, libvpx-vp9 for WebM, and GIF support                         |
+| Viewing SVG, PNG, player, catalog and video exports | A current browser with support for that media format                                      |
+| The web app                                         | A current Edge, Chrome, Firefox or Safari; available video formats depend on its encoders |
 
-The web app records WebM and MP4 with the browser's WebCodecs encoders; a browser without one
-disables the format and shows the command that makes it. GIF needs no encoder.
+The web app records WebM and MP4 with the browser's WebCodecs encoders. When an encoder is
+unavailable, it disables that format and shows the CLI command that can create it. GIF needs
+no video encoder.
 
 ## Editors
 
-| Editor                                                | Supported                                                                                                         | Verified                   |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| Visual Studio Code                                    | 1.95 or later                                                                                                     | 1.141 (`pnpm vscode:test`) |
-| VS Code forks (VSCodium, Cursor, Windsurf and others) | through Open VSX or the `.vsix`, with the same engine                                                             | not verified               |
-| Other editors                                         | the command line and `meltemi-diagrams preview`; the language services are a library (`@meltemi/diagrams-editor`) | —                          |
+| Editor             | Requirements                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Visual Studio Code | 1.95 or later; install `meltemi.meltemi-diagrams-vscode`                                                                     |
+| VS Code forks      | A compatible extension API; install through Open VSX or the release VSIX. Compatibility also depends on the fork             |
+| Other editors      | Edit `.meltemi` text and use `mdg validate`, `mdg export` and `mdg preview`; tools can also embed `@meltemi/diagrams-editor` |
 
 ## Files
 
@@ -73,46 +74,26 @@ Every construct of an imported diagram is reported as mapped, approximated or dr
 
 ## Slide and office applications
 
-Exports are checked by hand in PowerPoint, Keynote and Google Slides with the verification kit;
-the owner records the results per application, version and format in
-[office applications](verification/office-apps.md). Expected from the formats themselves:
+Choose an export format your destination application accepts. PNG is useful for a picture with a
+fixed appearance; SVG and PDF retain vector shapes and text where the destination supports them.
+Keep the `.meltemi` source so you can revise the diagram and export it again.
 
-- Google Slides takes PNG and GIF pictures, and video only from Google Drive or YouTube.
-- No slide application runs the HTML player inside a slide; share it as a file or a link, or embed
-  the fragment in a web page.
+The HTML player is a web page: share its file or link, or embed its fragment in a web page.
+Meltemi does not turn that player into an interactive slide object.
 
 ## Known limitations
 
-Outside 1.0, as the proposal decides:
-
-- synthetic voice and AI-generated video;
-- universal import (draw.io, Lucidchart, Visio and other editors' files);
-- export to PPTX and conversion to editable PowerPoint shapes.
-
-Realtime collaboration (several people editing the same file at once) was outside 1.0 too and is
-not a limitation any more: the web app's cloud projects have it
-([working together](web-app.md#working-together)). What it does not do:
-
-- It needs the cloud service, and a project in an account. The people who join need none: a
-  visitor of a shared link follows live, and a guest of the owner's live session edits without an
-  account ([live sessions](web-app.md#live-sessions)). The VS Code extension and the command line
-  show no presence, though a push through the API or the command line reaches the people in a room
-  live.
-- A room holds twenty connections, and ten without an account from one network; the twenty-first
-  waits and tries again. A live session lasts a day at most.
-- A guest cannot add images or fonts, make versions, share or publish: those need an account.
-- There is no following another person's view, and no comments, chat or voice.
-
-In 1.0:
-
-- macOS and Linux run the same code paths as Windows (browser and FFmpeg discovery included) but
-  have not been verified on a machine; the reference results come from Windows 11.
-- PDF from the web app goes through the browser's print dialog (choose **Save as PDF**); the
-  command line writes PDF directly.
-- Transparent video (WebM with alpha) is made by the command line only.
-- GIF uses one palette of 256 colours for the whole animation.
-- The catalog and the player show what was exported; they do not edit.
-- AI assistance needs a provider key and sends the context it shows you first; everything else
-  works offline.
-- Video and PNG captures need a Chromium-based browser installed; Firefox is verified for viewing
-  exports, not for capturing them.
+- Meltemi does not provide synthetic voice, AI-generated video, PPTX export or editable PowerPoint shapes.
+- Imports cover the documented Mermaid and PlantUML constructs. There is no importer for draw.io,
+  Lucidchart or Visio files; see the [coverage tables](#import-coverage).
+- Collaborative editing works in service-backed projects: hosted cloud projects or the
+  [local Docker workspace](local-compose.md). It does not add live presence to a standalone
+  folder in VS Code or the CLI, although a CLI/API push reaches an open cloud project.
+- A hosted room holds at most 20 connections, with at most 10 anonymous connections from one
+  network. An owner's live session lets guests edit without an account and lasts at most a day.
+  Guests cannot upload images/fonts, create versions, share or publish.
+- There is no following another person's view, comments, chat or voice.
+- PDF from the web app uses the browser's print dialog (**Save as PDF**); the CLI writes PDF directly.
+- Transparent video (WebM with alpha) is available through the CLI.
+- If the hosted MCP renderer answers `renderer.unavailable`, use the
+  [local MCP server](agents.md#through-the-local-server) for account projects or the Docker workspace.

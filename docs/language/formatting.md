@@ -7,11 +7,11 @@ separate action: visual edits in the editor change only the tokens they need and
 file.
 
 ```bash
-pnpm mdg format diagrams/checkout.meltemi
+mdg format diagrams/checkout.meltemi
 ```
 
 ```bash
-pnpm mdg format --check architecture/
+mdg format --check architecture/
 ```
 
 ## Rules

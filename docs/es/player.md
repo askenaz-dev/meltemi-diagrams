@@ -4,22 +4,22 @@
 
 El reproductor reproduce una historia, varias historias de un mismo dibujo, o un diagrama y sus
 efectos, en cualquier navegador: sin
-conexión, desde un solo archivo HTML, con los controles que pide la propuesta (pausa, progreso,
-selección de escena, movimiento reducido y una vista estática) y compatibilidad completa con el
+conexión, desde un solo archivo HTML, con controles de pausa, progreso, selección de escena,
+movimiento reducido y una vista estática, y compatibilidad completa con el
 teclado y los lectores de pantalla. Dibuja cada fotograma con las mismas funciones que
 `meltemi-diagrams export` y el lienzo, así que la imagen en un instante dado es la misma en todas
-partes (decisión 0024). Alrededor del fotograma, nunca dentro, el reproductor deja explorar el
+partes. Alrededor del fotograma, nunca dentro, el reproductor deja explorar el
 dibujo: zoom y desplazamiento, tarjetas al pasar el puntero, un panel de detalles, y abrir lo que
-contiene una caja con un doble clic o su signo más (decisión 0047).
+contiene una caja con un doble clic o su signo más.
 
 ## Generar un reproductor
 
-| Comando                                                                   | Resultado                                             |
-| ------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `pnpm mdg export purchase.meltemi --format html --story purchase`         | `purchase.purchase.html`, una página completa         |
-| `pnpm mdg export purchase.meltemi --format html --story purchase --embed` | un fragmento para pegar en una página                 |
-| `pnpm mdg export checkout.meltemi --format html`                          | `checkout.html`, el diagrama y sus efectos `animate`  |
-| `pnpm mdg export flows.meltemi --format html --stories`                   | `flows.stories.html`, todas las historias del archivo |
+| Comando                                                              | Resultado                                             |
+| -------------------------------------------------------------------- | ----------------------------------------------------- |
+| `mdg export purchase.meltemi --format html --story purchase`         | `purchase.purchase.html`, una página completa         |
+| `mdg export purchase.meltemi --format html --story purchase --embed` | un fragmento para pegar en una página                 |
+| `mdg export checkout.meltemi --format html`                          | `checkout.html`, el diagrama y sus efectos `animate`  |
+| `mdg export flows.meltemi --format html --stories`                   | `flows.stories.html`, todas las historias del archivo |
 
 La página de un diagrama también lleva todas las vistas que alcanza un desglose desde él en el
 proyecto (la vista de contenedores de un sistema, la de componentes de un contenedor, los diagramas

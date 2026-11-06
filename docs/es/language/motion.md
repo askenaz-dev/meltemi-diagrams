@@ -8,8 +8,8 @@ pulso que atrae la atención hacia una caja, o un recorrido que llena un conecto
 hasta su final.
 Los efectos nunca mueven ni cambian el tamaño de nada; se dibujan encima del dibujo estático. Todos
 los efectos se ejecutan con un único reloj determinista, así que una exportación animada, un
-fotograma en un instante elegido y, más adelante, las historias y los videos muestran el mismo
-estado en el mismo instante (decisión 0022).
+fotograma en un instante elegido, las historias y los videos muestran el mismo estado en el
+mismo instante.
 
 ```text
 diagram checkout: flow {
@@ -94,12 +94,12 @@ siga siendo legible; las demás superposiciones se dibujan encima de todo.
 
 ## Exportaciones
 
-| Comando                                           | Resultado                                                                                                   |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `pnpm mdg export sheet.meltemi`                   | el dibujo estático, sin efectos                                                                             |
-| `pnpm mdg export sheet.meltemi --motion animated` | el perfil de SVG animado, descrito más abajo                                                                |
-| `pnpm mdg export sheet.meltemi --at 1.5s`         | el dibujo a los 1,5 s: partículas, trazos, halos y recorridos donde estén en ese instante                   |
-| `pnpm mdg export sheet.meltemi --format html`     | un reproductor HTML de los efectos, con reproducir, pausar y una vista estática ([player.md](../player.md)) |
+| Comando                                      | Resultado                                                                                                   |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `mdg export sheet.meltemi`                   | el dibujo estático, sin efectos                                                                             |
+| `mdg export sheet.meltemi --motion animated` | el perfil de SVG animado, descrito más abajo                                                                |
+| `mdg export sheet.meltemi --at 1.5s`         | el dibujo a los 1,5 s: partículas, trazos, halos y recorridos donde estén en ese instante                   |
+| `mdg export sheet.meltemi --format html`     | un reproductor HTML de los efectos, con reproducir, pausar y una vista estática ([player.md](../player.md)) |
 
 El perfil de SVG animado es un subconjunto explícito: un elemento `<style>` con fotogramas clave CSS
 sobre `opacity`, `offset-path`/`offset-distance`, `stroke-dasharray`/`stroke-dashoffset` y

@@ -30,7 +30,7 @@ change to a text file. That file is what makes diagrams reviewable, reusable and
 
 ## Starting
 
-There is no importer for draw.io, Lucidchart or Visio files: universal import is outside 1.0
+There is no importer for draw.io, Lucidchart or Visio files
 ([compatibility](../compatibility.md)). Start from a template instead, in the
 [web app](../web-app.md) without installing anything, or locally:
 

@@ -4,7 +4,7 @@
 
 `toJson(compile(text))` in `@meltemi/diagrams-model` turns a compilation into JSON for other tools:
 `meltemi-diagrams convert <file> --to json` writes it (`docs/cli.md`), the web app downloads it,
-and layout engines and tests read it. The format name is `model-json` and this page
+and layout engines and other applications read it. The format name is `model-json` and this page
 describes version `0.1`. A breaking change increases the version.
 
 ## Rules
@@ -17,7 +17,7 @@ describes version `0.1`. A breaking change increases the version.
   came in 1.10.0, `pen` and `list` on elements, `tags` on elements and relations, and `spacing`,
   `side`, `returns` and the `events` of messages, and `scenes` on export profiles, in 1.11.0,
   `task` on elements and `gantt` on diagrams in 1.11.16, and the version stays `0.1`.
-- Every diagram profile compiles; `story` and `export` blocks are not in the JSON yet.
+- Every diagram profile compiles; top-level `stories` and `exports` hold the corresponding blocks.
 
 ## Document
 
@@ -277,8 +277,7 @@ keys come after all the others: `task` on every element and `gantt` on every dia
 | `today`                                     | object or null | `{ "date" }`, the date written or null when `today` writes none; null without the statement.                         |
 | `span`                                      | object or null | `{ "start", "end" }` as ISO text: the earliest start to the latest end; null when nothing is dated.                  |
 
-`corpus/valid/gantt/roadmap.model.json` is the JSON of the roadmap of [gantt.md](gantt.md#a-worked-example)
-and is checked by the test suite.
+`corpus/valid/gantt/roadmap.model.json` is the JSON of the roadmap of [gantt.md](gantt.md#a-worked-example).
 
 ### Stories
 
@@ -341,5 +340,4 @@ null for options not written ([export.md](export.md)).
 
 ## Example
 
-`corpus/valid/checkout.model.json` is the JSON of `corpus/valid/checkout.meltemi` and is checked by
-the test suite.
+`corpus/valid/checkout.model.json` is the JSON of `corpus/valid/checkout.meltemi`.
