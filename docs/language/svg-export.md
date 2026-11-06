@@ -2,9 +2,10 @@
 
 [Español](../es/language/svg-export.md)
 
-`meltemi-diagrams export <file.meltemi>` renders every `flow` and `free` diagram of a file to SVG. This page describes what
-the exporter draws, how it chooses positions it was not given, and what the SVG contains. The
-pipeline is `compile()` in `@meltemi/diagrams-model`, `layoutDiagram()` in `@meltemi/diagrams-layout` (model to vector scene)
+`meltemi-diagrams export <file.meltemi>` renders every `flow`, `free`, `sequence`, `c4` and `gantt`
+diagram of a file to SVG by default. This page describes what the exporter draws, how it chooses
+positions it was not given, and what the SVG contains. The pipeline is `compile()` in
+`@meltemi/diagrams-model`, `layoutDiagram()` in `@meltemi/diagrams-layout` (model to vector scene)
 and `renderSvg()` in `@meltemi/diagrams-render` (scene to text).
 
 ```bash
@@ -12,8 +13,9 @@ mdg export examples/purchase/diagrams/architecture.meltemi
 ```
 
 Options: `--diagram <id>` exports one diagram, `--out <path>` names the file (one diagram) or an
-existing directory, `--stdout` prints one diagram, `--format svg` is the only format today. The
-output is named `<file>.svg`, or `<file>.<diagram-id>.svg` when the file holds several diagrams.
+existing directory, and `--stdout` prints one diagram. `--format svg` selects SVG explicitly;
+other formats and their requirements are described in the [export guide](export.md). The output is
+named `<file>.svg`, or `<file>.<diagram-id>.svg` when the file holds several diagrams.
 With `--stdout`, diagnostics go to stderr so that stdout holds only the SVG. Exit codes follow
 `meltemi-diagrams validate`: 0, 1 with error diagnostics, 2 for usage errors.
 

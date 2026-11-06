@@ -2,9 +2,10 @@
 
 [English](../../language/svg-export.md)
 
-`meltemi-diagrams export <file.meltemi>` dibuja en SVG cada diagrama `flow` y `free` de un archivo.
-Esta página describe lo que dibuja el exportador, cómo elige las posiciones que no se le dieron y lo
-que contiene el SVG. El proceso es `compile()` en `@meltemi/diagrams-model`, `layoutDiagram()` en
+`meltemi-diagrams export <file.meltemi>` dibuja en SVG de forma predeterminada cada diagrama `flow`,
+`free`, `sequence`, `c4` y `gantt` de un archivo. Esta página describe lo que dibuja el exportador,
+cómo elige las posiciones que no se le dieron y lo que contiene el SVG. El proceso es `compile()`
+en `@meltemi/diagrams-model`, `layoutDiagram()` en
 `@meltemi/diagrams-layout` (del modelo a la escena vectorial) y `renderSvg()` en
 `@meltemi/diagrams-render` (de la escena al texto).
 
@@ -13,7 +14,8 @@ mdg export examples/purchase/diagrams/architecture.meltemi
 ```
 
 Opciones: `--diagram <id>` exporta un diagrama, `--out <path>` nombra el archivo (un diagrama) o un
-directorio existente, `--stdout` imprime un diagrama, `--format svg` es el único formato por ahora.
+directorio existente y `--stdout` imprime un diagrama. `--format svg` selecciona SVG explícitamente;
+los demás formatos y sus requisitos se describen en la [guía de exportación](export.md).
 La salida se llama `<file>.svg`, o `<file>.<diagram-id>.svg` cuando el archivo contiene varios
 diagramas. Con `--stdout`, los diagnósticos van a stderr para que stdout contenga solo el SVG. Los
 códigos de salida siguen a `meltemi-diagrams validate`: 0, 1 con diagnósticos de error, 2 para
