@@ -24,14 +24,23 @@
 // host does not answer (named, before any step), and 0 otherwise. Nothing that grants access is
 // printed or written.
 
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SDK } from "./agent.js";
 import { startLocalServers, type LocalServers } from "./local.js";
 import {
   MANUAL_CRITERIA,
+  HOSTED_STEP_COUNT,
   RunLog,
+  completeHostedRun,
   runSteps,
   summarise,
   type Capabilities,
@@ -39,6 +48,10 @@ import {
 } from "./harness.js";
 import { probeUntil, targetFrom, type Probe, type Target } from "./host.js";
 import { newState, STEPS, type SuiteState } from "./steps.js";
+import { fixtureSecrets, parseOAuthFixtures, type OAuthFixtures } from "./oauth-fixture-format.js";
+import { recordFixtureClient } from "./oauth-fixture-registration.js";
+import { assertPrivateFixtureFile } from "./oauth-fixtures-private-file.js";
+import { fixtureOutputAliases } from "./oauth-fixture-output.js";
 
 /** The repository, from this file (`packages/acceptance/src/mcp/run.ts`): the suite loads no engine. */
 const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -46,6 +59,8 @@ const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
 const env = process.env;
 const inActions = env["GITHUB_ACTIONS"] === "true";
 const local = process.argv.includes("--local");
+const requireComplete = process.argv.includes("--require-complete");
+const probeOnly = process.argv.includes("--probe");
 
 /** A value of the environment, trimmed, or undefined when it is empty (GitHub's unset secret). */
 const read = (name: string) => env[name]?.trim() || undefined;
@@ -61,25 +76,17 @@ function annotate(kind: "notice" | "error", title: string, message: string): voi
 }
 
 const target = targetFrom(env);
-if (!target) {
-  fail(
-    "Set MELTEMI_ORIGIN (or MELTEMI_MCP_URL) to the service's address, such as https://staging.diagrams.meltemi.dev.",
-  );
-}
-
-if (process.argv.includes("--probe")) {
-  const probed = await probeUntil(target, 6, 5_000);
-  if (env["GITHUB_OUTPUT"]) appendFileSync(env["GITHUB_OUTPUT"], `answers=${probed.answers}\n`);
-  // The workflow says what a host that does not answer means for it (a notice on staging).
-  console.log(
-    `${target.origin} ${probed.answers ? "answers" : "does not answer"} (${probed.why}).`,
-  );
-  process.exit(0);
-}
 
 const resultsFile = resolve(
   read("MELTEMI_RESULTS") ?? join(REPO_ROOT, ".test-output", "mcp-acceptance", "results.json"),
 );
+const fixtureFile = read("MELTEMI_OAUTH_FIXTURES");
+
+if (
+  fixtureFile &&
+  fixtureOutputAliases(fixtureFile, [resultsFile, join(dirname(resultsFile), "log.txt")])
+)
+  fail("MELTEMI_RESULTS and log.txt must not overwrite OAuth fixture data; no output was written.");
 mkdirSync(dirname(resultsFile), { recursive: true });
 
 const tokens = { first: read("MELTEMI_TOKEN"), second: read("MELTEMI_TOKEN_2") };
@@ -91,6 +98,56 @@ const capabilities: Capabilities = {
 const log = new RunLog();
 for (const token of [tokens.first, tokens.second]) if (token) log.secrets.add(token);
 const startedAt = new Date();
+const prerequisites: string[] = [];
+let fixtures: OAuthFixtures | undefined;
+let fixturePath: string | undefined;
+if (fixtureFile) {
+  try {
+    assertPrivateFixtureFile(fixtureFile);
+    const path = realpathSync(fixtureFile);
+    const inside = relative(realpathSync(dirname(resultsFile)), path);
+    if (
+      inside === "" ||
+      (!isAbsolute(inside) &&
+        inside !== ".." &&
+        !inside.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`))
+    )
+      throw new Error("fixture manifest must be outside results");
+    if (statSync(path).size > 64 * 1024) throw new Error("fixture manifest is too large");
+    const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
+    for (const value of fixtureSecrets(raw)) log.secrets.add(value);
+    fixtures = parseOAuthFixtures(raw, target?.origin ?? "");
+    fixturePath = path;
+    capabilities.grant = true;
+  } catch {
+    prerequisites.push(
+      "MELTEMI_OAUTH_FIXTURES is invalid, unreadable, oversized or inside uploaded results",
+    );
+  }
+}
+if (requireComplete) {
+  if (!tokens.first) prerequisites.push("MELTEMI_TOKEN is missing");
+  if (!tokens.second) prerequisites.push("MELTEMI_TOKEN_2 is missing");
+  if (!fixtureFile) prerequisites.push("MELTEMI_OAUTH_FIXTURES is missing");
+  if (local || probeOnly)
+    prerequisites.push("--require-complete cannot be combined with --local or --probe");
+  if (target && target.endpoint !== `${target.origin}/mcp`)
+    prerequisites.push("complete hosted acceptance requires the canonical /mcp endpoint");
+}
+if (
+  (requireComplete || fixtureFile) &&
+  ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_API_KEY", "CF_API_TOKEN", "CF_API_KEY"].some(
+    (name) => !!read(name),
+  )
+) {
+  prerequisites.push(
+    "Cloudflare deployment credentials must be absent from the acceptance process",
+  );
+}
+if (!target) prerequisites.push("MELTEMI_ORIGIN (or MELTEMI_MCP_URL) is missing or invalid");
+
+const accepted = (outcome: RunOutcome | undefined) =>
+  !!outcome && outcome.passed && (!requireComplete || completeHostedRun(outcome));
 
 /** `results.json`: what ran, against what, and how it ended; never a token or a link. */
 function writeResults(
@@ -103,8 +160,8 @@ function writeResults(
     change: "agent-mcp",
     startedAt: startedAt.toISOString(),
     endedAt: new Date().toISOString(),
-    origin: target!.origin,
-    endpoint: target!.endpoint,
+    origin: target?.origin ?? null,
+    endpoint: target?.endpoint ?? null,
     transport: local ? "local server (mdg mcp)" : "endpoint",
     reachable: probed.answers,
     ...(probed.answers ? {} : { unreachable: probed.why }),
@@ -114,7 +171,18 @@ function writeResults(
     node: process.version,
     accounts: { MELTEMI_TOKEN: capabilities.token, MELTEMI_TOKEN_2: capabilities.token2 },
     authorizationServer: capabilities.oauth ?? null,
-    passed: outcome?.passed ?? false,
+    oauthFixtures: {
+      provided: !!fixtures,
+      provenance: fixtures ? "preprovisioned with the production OAuth provider" : null,
+      interactiveConsent: false,
+    },
+    completeness: {
+      required: requireComplete,
+      expected: HOSTED_STEP_COUNT,
+      complete: !!outcome && completeHostedRun(outcome),
+    },
+    prerequisites,
+    passed: accepted(outcome),
     summary: summarise(outcome?.results ?? []),
     steps: outcome?.results ?? [],
     leaks: outcome?.leaks ?? [],
@@ -148,7 +216,7 @@ function writeSummary(outcome: RunOutcome, server: Target): void {
     [
       `### MCP acceptance: ${server.origin}`,
       "",
-      `${outcome.passed ? "Passed" : "Failed"}: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped.`,
+      `${accepted(outcome) ? "Passed" : "Failed"}: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped.`,
       "",
       "| Criterion | Step | Outcome | ms | Reason |",
       "| --: | --- | --- | --: | --- |",
@@ -156,6 +224,25 @@ function writeSummary(outcome: RunOutcome, server: Target): void {
       "",
     ].join("\n"),
   );
+}
+
+if (prerequisites.length > 0) {
+  for (const problem of prerequisites) {
+    log.write("-", problem);
+    annotate("error", "MCP acceptance prerequisites", problem);
+  }
+  writeResults(undefined, undefined, { answers: false, why: "acceptance prerequisites not met" });
+  fail("MCP acceptance prerequisites not met; see sanitized results.json.");
+}
+if (!target) fail("MCP acceptance target is missing.");
+
+if (probeOnly) {
+  const probed = await probeUntil(target, 6, 5_000);
+  if (env["GITHUB_OUTPUT"]) appendFileSync(env["GITHUB_OUTPUT"], `answers=${probed.answers}\n`);
+  console.log(
+    `${target.origin} ${probed.answers ? "answers" : "does not answer"} (${probed.why}).`,
+  );
+  process.exit(0);
 }
 
 // The host first: one that does not answer is named before any step.
@@ -201,6 +288,14 @@ const state = newState({
   target,
   capabilities,
   tokens,
+  ...(fixtures
+    ? {
+        oauthFixtures: fixtures,
+        runId: fixtures.runId,
+        recordOAuthClient: (client: { clientId: string; clientName: string }) =>
+          recordFixtureClient(fixturePath!, target.origin, client),
+      }
+    : {}),
   ...(read("MELTEMI_SERVER_LOG") ? { serverLog: read("MELTEMI_SERVER_LOG")! } : {}),
   ...(servers?.first
     ? {
@@ -220,11 +315,11 @@ writeSummary(outcome, target);
 const counts = summarise(outcome.results);
 log.write(
   "-",
-  `${outcome.passed ? "Passed" : "Failed"}: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped. Results: ${resultsFile}`,
+  `${accepted(outcome) ? "Passed" : "Failed"}: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped. Results: ${resultsFile}`,
 );
 if (counts.skipped > 0) {
   annotate(
-    "notice",
+    requireComplete ? "error" : "notice",
     "MCP acceptance",
     `${counts.skipped} step(s) skipped against ${target.origin}; results.json gives each reason.`,
   );
@@ -233,4 +328,4 @@ for (const result of outcome.results.filter((r) => r.outcome === "failed")) {
   annotate("error", "MCP acceptance", `${result.step}: ${result.error ?? "failed"}`);
 }
 // The SDK's transports may hold sockets open; the run is over.
-process.exit(outcome.passed ? 0 : 1);
+process.exit(accepted(outcome) ? 0 : 1);

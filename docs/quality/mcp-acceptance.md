@@ -41,18 +41,18 @@ deploy workflow's two runs of the suite with the test accounts' tokens, each wit
 |        24 | A read-only member cannot edit, create in the project or manage its sharing                  | The suite                                         |
 |        25 | An editor gains no owner's power from a wide OAuth scope                                     | The suite                                         |
 |        26 | Another account gets no document, file or preview by a guessed id or a cache                 | The suite                                         |
-|        27 | Expired tokens, a wrong audience and insufficient scopes are refused                         | The suite, in part; see below                     |
-|        28 | Refresh works and revocation applies as documented                                           | The suite, in part; see below                     |
+|        27 | Expired tokens, a wrong audience and insufficient scopes are refused                         | The suite (preprovisioned fixtures)               |
+|        28 | Refresh works and revocation applies as documented                                           | The suite (preprovisioned fixtures)               |
 |        29 | No log holds a secret or a link that grants access                                           | The suite                                         |
 |        30 | The whole proof passes on staging and on production, with a controlled test project          | The deploy workflow                               |
 
-Criteria 27 and 28 need, for their full proof, an OAuth access token that a person approved on the
-consent page (one past its hour, one of a revoked grant, one with `projects:read` alone, a refresh
-token used twice). A script has no person to approve one, so the suite runs what needs nobody:
-the challenge, tokens the service never issued, a wrong `resource` refused before consent once the
-authorization server is deployed, and a code or a refresh token the server never issued. The rest
-is reported skipped, with that reason, in every run; the cloud package's tests cover it in memory,
-and the procedure's criterion 1 uses a real grant.
+Criteria 27 and 28 use isolated fixtures made with the production OAuth provider and its D1 store.
+Expired and wrong-resource access credentials are preprovisioned with that provider; narrow and
+refreshable grants exchange their authorization codes on the deployed public token endpoint.
+The unprivileged suite then checks the deployed MCP endpoint's expiry/resource enforcement,
+read-only scopes, two refresh rotations and the provider's previous-token grace, and RFC 7009
+revocation of the grant. Reports identify these as preprovisioned fixtures. They do not prove
+interactive consent: the real Codex procedure's criterion 1 still requires that separate evidence.
 
 ## The suite
 
@@ -62,7 +62,7 @@ two dedicated test accounts, as Codex does with `bearer_token_env_var`, and runs
 check, each named by its criterion, in the order they build on each other:
 
 ```bash
-MELTEMI_ORIGIN=https://staging.diagrams.meltemi.dev MELTEMI_TOKEN=… MELTEMI_TOKEN_2=… pnpm acceptance:mcp
+MELTEMI_ORIGIN=https://staging.diagrams.meltemi.dev pnpm acceptance:mcp
 ```
 
 - `MELTEMI_ORIGIN` is the service's origin (`MELTEMI_MCP_URL`, the endpoint's address, works too).
@@ -73,13 +73,25 @@ MELTEMI_ORIGIN=https://staging.diagrams.meltemi.dev MELTEMI_TOKEN=… MELTEMI_TO
   second token, its steps are reported skipped with the variable's name; without the first, only
   what anybody sees is checked (the metadata documents when the host has them, the `401` challenge
   with `WWW-Authenticate`, `tools/list` refused, a token the service never issued).
-  A run never passes silently: every skipped step says why, in the output and in `results.json`.
+  Tokens are injected into the process environment from the secret store, never written in a
+  command line or the repository. A diagnostic run labels every omitted step in `results.json`.
+- `MELTEMI_OAUTH_FIXTURES` names a private, origin-bound manifest made by the separate setup process.
+  It must be outside the uploaded results directory. Every credential in it, and every credential
+  returned by refresh, is registered for redaction before assertions. A malformed or cross-origin
+  manifest fails without echoing its contents.
+- `--require-complete` is the hosted delivery gate: exactly 34 passed, zero failed and zero skipped.
+  Missing account tokens or fixtures fail before running steps and leave sanitized prerequisite
+  evidence. It cannot be combined with `--local` or `--probe`. Cloudflare API credentials must be
+  absent from the acceptance process. Without this flag, anonymous and local diagnostics retain
+  honest skips and do not claim complete hosted acceptance.
 - Everything a run makes is named `mcp-acceptance-<run>-…` (projects, publications, an invitation's
   address) and deleted at the end; a project of the prefix older than an hour, left by a run that
   was killed, is deleted at the start. Publishing needs a handle: when the first account has none,
-  the run gives it `mcp-acceptance-` and six hexadecimal digits, which stays. Once the authorization
-  server is deployed, the wrong-resource step registers one public client, which no endpoint
-  removes.
+  the run gives it `mcp-acceptance-` and six hexadecimal digits, which stays. Hosted fixture cleanup
+  also removes the four fixture clients/grants and the exact public client registered by the
+  wrong-resource step, after checking its run-owned metadata. Diagnostic runs without a fixture
+  journal leave that registration because no public endpoint removes one. Registration is limited
+  to ten per hour per source address; a hosted rate-limit refusal fails the strict gate.
 - Every line the run prints goes through a scan for `mdg_`, a bearer credential, `?invite=`, the
   address that accepts an invitation, `?live=`, `?code=` and the exact values of the tokens and the
   links the run received. A line that holds one is printed redacted and fails the step that wrote
@@ -93,7 +105,42 @@ MELTEMI_ORIGIN=https://staging.diagrams.meltemi.dev MELTEMI_TOKEN=… MELTEMI_TO
   every step with its criterion, outcome, duration and reason, the server's name and version, the
   protocol revision, the client's version, which tokens were given (never their values) and whether
   the host had an authorization server; `log.txt` beside it is the run's output, redacted. The exit
-  code is 1 when a step failed or a line held a secret.
+  code is 1 when a step failed or a line held a secret; hosted strict mode also fails any omission
+  or incomplete step count. Fixture provenance is reported separately from interactive consent.
+
+The privileged setup/cleanup CLI is `packages/acceptance/src/mcp/oauth-fixtures-cli.ts`. Setup
+requires the selected environment's Cloudflare account/database/deployment credential and both
+dedicated account tokens. It verifies both account identities before writing only run-owned OAuth
+data. No identity signing key, browser cookie, test authentication route or product OAuth change
+is used. The manifest and its registration sidecar are private temporary files, never artifacts.
+Cleanup verifies ownership, removes exact records and Connected apps usage, confirms zero
+residuals and writes only sanitized counts.
+
+Fixture setup accepts only the two reviewed test identities, checked against SHA-256 subject
+fingerprints in the fixture tooling and against the live account/database records. Rotating an
+API token for the same account preserves this boundary; changing either account requires review.
+On Windows, use a parent directory with a protected ACL granting access only to the current user
+and SYSTEM. POSIX mode bits alone do not secure a Windows file. The helper verifies the ACL and
+initializes ownership on a newly created empty file before writing any credential.
+
+For an operator-run proof, inject the environment's credentials using the secret store, choose a
+private temporary manifest and separate results directories for staging and production, and wrap
+these commands so cleanup executes even when setup or acceptance fails. `RUNNER_TEMP` must name a
+private, unique directory for this run:
+
+```bash
+export MELTEMI_ORIGIN=https://staging.diagrams.meltemi.dev
+node --conditions=@meltemi/diagrams-source --import tsx packages/acceptance/src/mcp/oauth-fixtures-cli.ts setup --environment staging --file "$RUNNER_TEMP/mcp-oauth-staging.json"
+env CLOUDFLARE_API_TOKEN= CLOUDFLARE_API_KEY= CF_API_TOKEN= CF_API_KEY= \
+  MELTEMI_OAUTH_FIXTURES="$RUNNER_TEMP/mcp-oauth-staging.json" \
+  MELTEMI_RESULTS=.test-output/mcp-acceptance-staging/results.json \
+  pnpm acceptance:mcp --require-complete
+node --conditions=@meltemi/diagrams-source --import tsx packages/acceptance/src/mcp/oauth-fixtures-cli.ts cleanup --environment staging --file "$RUNNER_TEMP/mcp-oauth-staging.json" --summary .test-output/mcp-acceptance-staging/oauth-fixture-cleanup.json
+```
+
+Run staging first, then production with its own account tokens, database, origin and manifest.
+Never run the suite with the deployment credential, upload the manifest, or redeploy an old source
+to obtain acceptance evidence. A standalone suite run does not deploy or publish the product.
 
 To run it against the Worker on this computer, with two accounts of your own:
 
@@ -140,8 +187,8 @@ tsx --conditions=@meltemi/diagrams-source packages/cloud/test/browser/mcp-local-
 
 `.github/workflows/deploy.yml` deploys the approved source to staging before production, from
 Meltemi Web's Terraform ([its decision 0008](https://github.com/askenaz-dev/meltemi-web/blob/main/docs/decisions/0008-diagrams-staging.md)):
-the `staging` environment (branch `main` only) holds the deploy token and, once the owner adds
-them, `MELTEMI_TOKEN` and `MELTEMI_TOKEN_2`, and the variables `scripts/deploy-config.mjs
+the `staging` environment (branch `main` only) requires the deploy token,
+`MELTEMI_TOKEN` and `MELTEMI_TOKEN_2` through the family's Terraform, and the variables `scripts/deploy-config.mjs
 --environment staging` writes into the configurations of `meltemi-diagrams-staging`
 (`staging.diagrams.meltemi.dev`) and `meltemi-diagrams-publish-staging` (`staging.meltemi.page`):
 the staging database `meltemi-diagrams-staging` (which holds the authorization server's state too),
@@ -157,14 +204,16 @@ the bucket `meltemi-diagrams-staging-blobs`, the Store's `FORMS_SECRET_STAGING` 
    `https://diagrams.meltemi.dev` with production's tokens; the artifact is
    `mcp-acceptance-production`.
 
-Two cases do not hold production back. While the staging hosts are not attached (Meltemi Web
-attaches them in the commit after the first staging upload, `staging_deployed`), the host does not
-answer: the job says so in a notice and skips the suite. Without the test tokens, the suite runs
-what needs none and reports the rest skipped. A failing step with the tokens fails the staging job,
-and production is not deployed. A failing step on production fails the workflow after the deploy:
-production stays as deployed, and going back is a revert on `main` that passes CI, or a rollback of
-the Worker on Cloudflare with the owner ([RELEASING.md](../../RELEASING.md#hosted-deployment)). The
-suite runs without the Cloudflare token in its environment, and the tokens are read as secrets only.
+Each environment's job prepares isolated OAuth fixtures in a privileged process, runs
+`pnpm acceptance:mcp --require-complete` with Cloudflare credentials cleared, then always invokes
+privileged cleanup before uploading only sanitized results and cleanup counts. A host that does
+not answer, missing prerequisites, an omitted step, a failed assertion or incomplete cleanup fails
+staging and prevents production deployment. A production failure fails the workflow after the
+deploy: production stays as deployed, and going back is a revert on `main` that passes CI, or a
+rollback of the Worker on Cloudflare with the owner
+([RELEASING.md](../../RELEASING.md#hosted-deployment)). Superseded sources still skip every deployment
+mutation under the existing current-main guard. No release workflow is needed merely to run the
+standalone acceptance suite.
 
 ## The procedure with Codex
 

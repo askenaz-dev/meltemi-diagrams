@@ -13,7 +13,7 @@ export type Outcome = "passed" | "failed" | "skipped";
 
 /**
  * What a step needs from the run: the first account's token, the second's, an authorization server,
- * a person's grant, or the hosted endpoint itself (its door and its challenge, which a run through the
+ * preprovisioned OAuth fixtures, or the hosted endpoint itself (its door and its challenge, which a run through the
  * local server does not reach).
  */
 export type Need = "token" | "token2" | "oauth" | "grant" | "endpoint";
@@ -62,6 +62,8 @@ export interface Capabilities {
   readonly token2: boolean;
   /** Whether the host publishes the authorization server's metadata; undefined before it is asked. */
   oauth?: boolean;
+  /** Whether validated, origin-bound OAuth fixtures were provided by the separate setup process. */
+  grant?: boolean;
   /** Whether the run goes through the command line's local servers (`--local`), not the endpoint. */
   local?: boolean;
 }
@@ -72,8 +74,7 @@ export const NEED_REASONS: Readonly<Record<Need, string>> = {
   token2: "MELTEMI_TOKEN_2 is not set: the second test account's API token is needed",
   oauth:
     "the host publishes no authorization server metadata (/.well-known/oauth-protected-resource)",
-  grant:
-    "needs an OAuth grant that a person approves on the consent page; covered by packages/cloud/test/oauth.test.ts and by the procedure in docs/quality/mcp-acceptance.md",
+  grant: "MELTEMI_OAUTH_FIXTURES is not set: origin-bound preprovisioned OAuth fixtures are needed",
   endpoint:
     "--local: the run goes through mdg mcp, which has no authorization server and no challenge; the endpoint's own door is proven by a run without --local",
 };
@@ -109,7 +110,7 @@ export interface Scanned {
 export function scanLine(line: string, secrets: Iterable<string> = []): Scanned {
   let out = line;
   let leaked = false;
-  for (const value of secrets) {
+  for (const value of [...secrets].sort((left, right) => right.length - left.length)) {
     if (value.length < 8 || !out.includes(value)) continue;
     leaked = true;
     out = out.split(value).join("[redacted]");
@@ -164,8 +165,7 @@ export class Skip extends Error {
 
 /** The message of whatever a step threw, on one line. */
 function messageOf(error: unknown): string {
-  const text = error instanceof Error ? error.message : String(error);
-  return text.replace(/\s+/g, " ").trim().slice(0, 600);
+  return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -188,7 +188,7 @@ export async function runSteps<S>(
       if (need === "token2") return !capabilities.token2;
       if (need === "endpoint") return capabilities.local === true;
       if (need === "oauth") return capabilities.local === true || capabilities.oauth !== true;
-      return true;
+      return capabilities.local === true || capabilities.grant !== true;
     });
     const blocked = (step.after ?? []).find((name) => outcomes.get(name) !== "passed");
     if (missing !== undefined || blocked !== undefined) {
@@ -226,7 +226,7 @@ export async function runSteps<S>(
       });
     } catch (thrown) {
       if (thrown instanceof Skip) skipped = log.redact(thrown.reason);
-      else error = log.redact(messageOf(thrown));
+      else error = log.redact(messageOf(thrown)).replace(/\s+/g, " ").trim().slice(0, 600);
     }
     if (skipped !== undefined && !log.leaks.has(step.name)) {
       outcomes.set(step.name, "skipped");
@@ -269,6 +269,19 @@ export function summarise(results: readonly StepResult[]): Record<Outcome, numbe
   const counts: Record<Outcome, number> = { passed: 0, failed: 0, skipped: 0 };
   for (const result of results) counts[result.outcome]++;
   return counts;
+}
+
+/** Hosted delivery's fixed contract; a shorter run cannot silently count as complete. */
+export const HOSTED_STEP_COUNT = 34;
+
+/** Completeness is stronger than a diagnostic run's success, which permits honest skips. */
+export function completeHostedRun(outcome: RunOutcome): boolean {
+  return (
+    outcome.passed &&
+    outcome.leaks.length === 0 &&
+    outcome.results.length === HOSTED_STEP_COUNT &&
+    outcome.results.every((result) => result.outcome === "passed")
+  );
 }
 
 /** The criteria of section 13 the suite runs (the others are the written procedure, or the workflow). */

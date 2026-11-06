@@ -14,6 +14,7 @@ import { readPng, writePng } from "../png.js";
 import { Agent, refusalOf } from "./agent.js";
 import { Skip, type Capabilities, type Step } from "./harness.js";
 import { ask, rpc, type Fetch, type Target } from "./host.js";
+import { FIXTURE_CLIENT_PREFIX, type OAuthFixtures } from "./oauth-fixture-format.js";
 
 /** The prefix of every project, publication, handle and invitation the suite makes. */
 export const PREFIX = "mcp-acceptance-";
@@ -51,6 +52,8 @@ export const CATALOGUE_NAMES: readonly string[] = [
 
 /** The scopes an API token opens the endpoint with. */
 const EVERY_SCOPE = ["projects:read", "projects:write", "sharing", "live", "publish"];
+const CONNECT = "connect: the first account, the catalogue and what earlier runs left";
+const CONNECT_SECOND = "connect: the second account";
 
 const FLOW =
   'language "0.2"\n\ndiagram checkout: flow {\n  cart["Cart"]\n  pay["Pay"]\n  cart -> pay\n}\n';
@@ -74,6 +77,13 @@ export interface SuiteState {
   readonly runId: string;
   readonly fetcher: Fetch;
   readonly tokens: { readonly first?: string; readonly second?: string };
+  /** Made by the privileged setup process with the official provider, not browser consent. */
+  readonly oauthFixtures?: OAuthFixtures;
+  /** Records the public registration for the separate privileged cleanup process. */
+  readonly recordOAuthClient?: (client: {
+    clientId: string;
+    clientName: string;
+  }) => void | Promise<void>;
   /** A file of the Worker's log to scan as well (criterion 29), when the run is given one. */
   readonly serverLog?: string;
   /**
@@ -115,6 +125,8 @@ export function newState(init: {
   target: Target;
   capabilities: Capabilities;
   tokens: SuiteState["tokens"];
+  oauthFixtures?: OAuthFixtures;
+  recordOAuthClient?: SuiteState["recordOAuthClient"];
   fetcher?: Fetch;
   serverLog?: string;
   runId?: string;
@@ -124,6 +136,8 @@ export function newState(init: {
     target: init.target,
     capabilities: init.capabilities,
     tokens: init.tokens,
+    ...(init.oauthFixtures ? { oauthFixtures: init.oauthFixtures } : {}),
+    ...(init.recordOAuthClient ? { recordOAuthClient: init.recordOAuthClient } : {}),
     fetcher: init.fetcher ?? fetch,
     ...(init.serverLog ? { serverLog: init.serverLog } : {}),
     ...(init.local ? { local: init.local } : {}),
@@ -401,6 +415,11 @@ const wrongResource: Step<SuiteState> = {
   after: ["27 discovery: the metadata documents name the endpoint and S256"],
   async run({ state, log }) {
     const oauth = state.oauth!;
+    const clientName = state.oauthFixtures
+      ? `${FIXTURE_CLIENT_PREFIX}${state.runId}-registration`
+      : `${PREFIX}${state.runId}`;
+    if (state.oauthFixtures && !state.recordOAuthClient)
+      throw new Error("the public client's fixture cleanup journal is unavailable");
     const registered = await ask(
       state.target,
       oauth.registration!,
@@ -408,7 +427,7 @@ const wrongResource: Step<SuiteState> = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          client_name: `${PREFIX}${state.runId}`,
+          client_name: clientName,
           redirect_uris: [REDIRECT],
           grant_types: ["authorization_code", "refresh_token"],
           response_types: ["code"],
@@ -418,6 +437,8 @@ const wrongResource: Step<SuiteState> = {
       state.fetcher,
     );
     if (registered.status === 429) {
+      if (state.oauthFixtures)
+        throw new Error("the host's registration limit (ten an hour per address) is reached");
       throw new Skip("the host's registration limit (ten an hour per address) is reached");
     }
     assert.ok(
@@ -426,8 +447,13 @@ const wrongResource: Step<SuiteState> = {
     );
     const clientId = text(registered.json()["client_id"]);
     assert.ok(clientId, "registration answered a client_id");
+    await state.recordOAuthClient?.({ clientId, clientName });
     oauth.clientId = clientId;
-    log("a public client registered (its registration stays: no endpoint removes one)");
+    log(
+      state.oauthFixtures
+        ? "a public client registered and recorded for the isolated fixture cleanup"
+        : "a public client registered (its registration stays: no endpoint removes one)",
+    );
 
     const authorize = (resource: string) => {
       const { challenge } = pkce();
@@ -521,24 +547,159 @@ const grantedTokens: Step<SuiteState> = {
   name: "27 an expired token, another resource's and a narrower scope are refused",
   criterion: 27,
   needs: ["grant"],
-  async run() {
-    // Never reached: `grant` is not something a run can have (`NEED_REASONS.grant`).
+  after: [CONNECT_SECOND],
+  async run({ state, log, secret }) {
+    const fixtures = state.oauthFixtures!;
+    for (const fixture of [fixtures.fixtures.expired, fixtures.fixtures.wrongResource]) {
+      secret(fixture.accessToken);
+      await refusedOAuthAccess(state, fixture.accessToken);
+    }
+    const narrow = fixtures.fixtures.narrow;
+    secret(narrow.accessToken);
+    const agent = await Agent.connect(state.target, narrow.accessToken);
+    try {
+      const me = await agent.ok("whoami");
+      assert.equal(me["sub"], fixtures.firstSub, "the narrow fixture is the dedicated account");
+      assert.deepEqual(me["scopes"], ["projects:read"], "only read was granted");
+      await agent.ok("list_projects");
+      const written = await agent.call("create_project", {
+        name: `${PREFIX}${state.runId}-scope-refusal`,
+      });
+      // An unexpected successful write is still ours to clean up before failing the assertion.
+      const id = text(written.structuredContent?.["id"]);
+      if (!written.isError && id && !state.created.includes(id)) state.created.push(id);
+      assert.equal(written.isError, true, "the narrow token cannot create a project");
+      const refusal = refusalOf(written);
+      assert.equal(refusal.code, "scope.insufficient");
+      assert.equal(refusal.fields["scope"], "projects:write");
+    } finally {
+      await agent.close();
+    }
+    log(
+      "preprovisioned official-provider fixtures: expired and wrong-resource access refused; read-only access reads and its write is refused",
+    );
   },
 };
+
+/** The real protected endpoint must refuse a credential before any tool is reached. */
+async function refusedOAuthAccess(state: SuiteState, token: string): Promise<void> {
+  const answer = await ask(state.target, "/mcp", { ...rpc("tools/list"), token }, state.fetcher);
+  assert.equal(answer.status, 401, "the OAuth access credential is refused");
+  assert.match(answer.headers.get("WWW-Authenticate") ?? "", /^Bearer\b/, "a bearer challenge");
+}
+
+/** Token responses are parsed and registered as secrets before any assertion can include them. */
+async function oauthRequest(
+  state: SuiteState,
+  fields: Record<string, string>,
+  secret: (value: string) => void,
+) {
+  const answer = await ask(
+    state.target,
+    "/oauth/token",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(fields).toString(),
+    },
+    state.fetcher,
+  );
+  let body: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = answer.json();
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed))
+      body = parsed as Record<string, unknown>;
+  } catch {
+    // An unreadable response fails the status/shape checks below without echoing its body.
+  }
+  for (const key of ["access_token", "refresh_token", "code"]) {
+    const value = body[key];
+    if (typeof value === "string") secret(value);
+  }
+  return { answer, body };
+}
+
+function refreshedPair(body: Record<string, unknown>) {
+  const accessToken = text(body["access_token"]);
+  const refreshToken = text(body["refresh_token"]);
+  assert.ok(accessToken.length >= 16 && accessToken.length <= 4096, "an access token was issued");
+  assert.ok(refreshToken.length >= 16 && refreshToken.length <= 4096, "a refresh token was issued");
+  assert.match(text(body["token_type"]), /^Bearer$/i, "bearer token type");
+  return { accessToken, refreshToken };
+}
 
 const refreshAndRevoke: Step<SuiteState> = {
   name: "28 a refresh token rotates once and a revoked grant is refused",
   criterion: 28,
   needs: ["grant"],
-  async run() {
-    // Never reached: see `grantedTokens`.
+  after: [CONNECT_SECOND],
+  async run({ state, log, secret }) {
+    const fixtures = state.oauthFixtures!;
+    const normal = fixtures.fixtures.normal;
+    secret(normal.accessToken);
+    secret(normal.refreshToken);
+    const usable = async (accessToken: string) => {
+      const agent = await Agent.connect(state.target, accessToken);
+      try {
+        const me = await agent.ok("whoami");
+        assert.equal(
+          me["sub"],
+          fixtures.firstSub,
+          "the refreshed fixture is the dedicated account",
+        );
+      } finally {
+        await agent.close();
+      }
+    };
+    await usable(normal.accessToken);
+    const refresh = (refreshToken: string) =>
+      oauthRequest(
+        state,
+        {
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          client_id: normal.clientId,
+        },
+        secret,
+      );
+    const first = await refresh(normal.refreshToken);
+    assert.equal(first.answer.status, 200, "the first refresh succeeds");
+    const one = refreshedPair(first.body);
+    assert.notEqual(one.refreshToken, normal.refreshToken, "the refresh credential rotates");
+    assert.notEqual(one.accessToken, normal.accessToken, "the access credential rotates");
+    // The provider deliberately permits the previous refresh credential until its successor is
+    // used. Consume that successor before checking that the original is no longer accepted.
+    const second = await refresh(one.refreshToken);
+    assert.equal(second.answer.status, 200, "the replacement refresh succeeds");
+    const two = refreshedPair(second.body);
+    assert.notEqual(two.refreshToken, one.refreshToken, "the second refresh rotates again");
+    const stale = await refresh(normal.refreshToken);
+    assert.equal(stale.answer.status, 400, "a consumed ancestor cannot refresh again");
+    assert.equal(stale.body["error"], "invalid_grant");
+    await usable(two.accessToken);
+    const revoked = await oauthRequest(
+      state,
+      {
+        client_id: normal.clientId,
+        token: two.refreshToken,
+        token_type_hint: "refresh_token",
+      },
+      secret,
+    );
+    assert.equal(revoked.answer.status, 200, "RFC7009 revokes the fixture grant");
+    await refusedOAuthAccess(state, two.accessToken);
+    await refusedOAuthAccess(state, normal.accessToken);
+    const ended = await refresh(two.refreshToken);
+    assert.equal(ended.answer.status, 400, "the revoked grant cannot refresh");
+    assert.equal(ended.body["error"], "invalid_grant");
+    log(
+      "preprovisioned official-provider fixture: two rotations honor the previous-token grace, an old refresh is refused, and RFC7009 revocation ends access and refresh",
+    );
   },
 };
 
 // ---------------------------------------------------------------------------------------------
 // The first account.
-
-const CONNECT = "connect: the first account, the catalogue and what earlier runs left";
 
 /** A project of an earlier run left behind is swept when it is older than this. */
 const STALE_MS = 60 * 60 * 1000;
@@ -578,6 +739,12 @@ const connect: Step<SuiteState> = {
       email: text(me["email"]),
       handle: text(me["handle"]) || null,
     };
+    if (state.oauthFixtures)
+      assert.equal(
+        state.firstAccount.sub,
+        state.oauthFixtures.firstSub,
+        "the first token matches the fixture account",
+      );
     assert.deepEqual(
       [...((me["scopes"] ?? []) as string[])].sort(),
       [...EVERY_SCOPE].sort(),
@@ -612,8 +779,6 @@ const connect: Step<SuiteState> = {
   },
 };
 
-const CONNECT_SECOND = "connect: the second account";
-
 const connectSecond: Step<SuiteState> = {
   name: CONNECT_SECOND,
   criterion: null,
@@ -623,6 +788,12 @@ const connectSecond: Step<SuiteState> = {
     state.second = await Agent.connect(state.target, state.tokens.second!, state.local?.second);
     const me = await state.second.ok("whoami");
     state.secondAccount = { sub: text(me["sub"]), email: text(me["email"]) };
+    if (state.oauthFixtures)
+      assert.equal(
+        state.secondAccount.sub,
+        state.oauthFixtures.secondSub,
+        "the second token matches the fixture account",
+      );
     assert.notEqual(
       state.secondAccount.sub,
       state.firstAccount?.sub,
@@ -1522,10 +1693,10 @@ export const STEPS: readonly Step<SuiteState>[] = [
   foreignTokens,
   wrongResource,
   inventedGrants,
-  grantedTokens,
-  refreshAndRevoke,
   connect,
   connectSecond,
+  grantedTokens,
+  refreshAndRevoke,
   created,
   twoDiagrams,
   retried,
