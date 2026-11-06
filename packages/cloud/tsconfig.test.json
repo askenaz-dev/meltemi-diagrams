@@ -8,6 +8,7 @@
   "include": ["src", "test", "scripts"],
   "exclude": [
     "src/worker.ts",
+    "src/administration-entry.ts",
     "src/worker-local.ts",
     "src/room.ts",
     "src/renderer.ts",

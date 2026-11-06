@@ -9,6 +9,7 @@ import type { R2Like } from "./env.js";
 export { default } from "./worker-handler.js";
 export { ProjectRoom } from "./room.js";
 export { ProjectRenderer } from "./renderer.js";
+export { Administration } from "./administration-entry.js";
 
 // The service reads R2 through the minimal `R2Like`. Only the Workers program has `R2Bucket`, so
 // the proof that the real binding satisfies it is here: a bucket that stopped fitting would stop this
