@@ -169,7 +169,8 @@ describe("delivery workflows", () => {
       const boundary = job.indexOf("node ../delivery/scripts/ci-run.mjs current");
       expect(boundary).toBeGreaterThan(job.indexOf("run: pnpm playground:build"));
       expect(boundary).toBeLessThan(job.indexOf("wrangler d1 migrations apply"));
-      // The migrations, both Workers and the suite run only for a source that is still main.
+      // Deployment and privileged fixture setup still require current main and successful prior
+      // steps. The unprivileged suite can report prerequisites after failed setup; cleanup must run.
       const mutations = stepsOf(job).filter((step) =>
         /wrangler (d1 migrations apply|deploy)/.test(step),
       );
@@ -177,8 +178,11 @@ describe("delivery workflows", () => {
       for (const step of mutations) {
         expect(step).toContain("if: steps.current.outputs.current == 'true'\n");
       }
-      expect(stepNamed(job, "acceptance:mcp\n")).toMatch(
-        /if: steps\.current\.outputs\.current == 'true'/,
+      const setup = stepNamed(job, "oauth-fixtures-cli.ts setup");
+      expect(setup).toContain("if: steps.current.outputs.current == 'true'\n");
+      expect(setup).not.toMatch(/always\(\)|failure\(\)|!cancelled\(\)/);
+      expect(stepNamed(job, "run: pnpm acceptance:mcp --require-complete\n")).toContain(
+        "if: ${{ !cancelled() && steps.current.outputs.current == 'true' }}",
       );
     }
     expect(secretsOf(text)).toEqual(["CLOUDFLARE_API_TOKEN", "MELTEMI_TOKEN", "MELTEMI_TOKEN_2"]);
@@ -197,7 +201,24 @@ describe("delivery workflows", () => {
     // failed step pass.
     expect(production).toContain("    needs: [authorize, staging]\n");
     expect(text).not.toContain("continue-on-error");
-    expect(production).not.toMatch(/^\s+if:.*(always\(\)|failure\(\))/m);
+    // No job-level override may bypass needs: staging. Only exact fixture cleanup and sanitized
+    // evidence upload may use always() at step level; product mutations may never do so.
+    expect(production.split(/^ {4}steps:\n/m)[0]).not.toMatch(/if:.*always\(\)|failure\(\)/);
+    for (const job of [staging, production]) {
+      const unconditional = stepsOf(job).filter((step) => /if:.*always\(\)|failure\(\)/.test(step));
+      expect(unconditional).toHaveLength(2);
+      for (const step of unconditional) {
+        expect(step).toContain("if: ${{ always() && steps.current.outputs.current == 'true' }}");
+        expect(
+          step.includes("oauth-fixtures-cli.ts cleanup") ||
+            step.includes("uses: actions/upload-artifact@v4"),
+        ).toBe(true);
+      }
+      for (const step of stepsOf(job).filter((step) =>
+        /wrangler (d1 migrations apply|deploy)/.test(step),
+      ))
+        expect(step).not.toMatch(/always\(\)|failure\(\)|!cancelled\(\)/);
+    }
 
     const order = (job: string, marks: readonly string[]) => {
       const at = marks.map((mark) => job.indexOf(mark));
@@ -212,7 +233,9 @@ describe("delivery workflows", () => {
       "wrangler deploy -c wrangler.deploy.json",
       "wrangler deploy -c wrangler.publish.deploy.json",
       "run: pnpm acceptance:mcp --probe",
-      "run: pnpm acceptance:mcp\n",
+      "oauth-fixtures-cli.ts setup --environment staging",
+      "run: pnpm acceptance:mcp --require-complete\n",
+      "oauth-fixtures-cli.ts cleanup --environment staging",
       "name: mcp-acceptance-staging",
     ]);
     order(production, [
@@ -220,13 +243,15 @@ describe("delivery workflows", () => {
       "wrangler d1 migrations apply DB --remote -c wrangler.deploy.json",
       "wrangler deploy -c wrangler.deploy.json",
       "wrangler deploy -c wrangler.publish.deploy.json",
-      "run: pnpm acceptance:mcp\n",
+      "oauth-fixtures-cli.ts setup --environment production",
+      "run: pnpm acceptance:mcp --require-complete\n",
+      "oauth-fixtures-cli.ts cleanup --environment production",
       "name: mcp-acceptance-production",
     ]);
-    expect(stepNamed(staging, "run: pnpm acceptance:mcp\n")).toContain(
+    expect(stepNamed(staging, "run: pnpm acceptance:mcp --require-complete\n")).toContain(
       "MELTEMI_ORIGIN: https://staging.diagrams.meltemi.dev\n",
     );
-    expect(stepNamed(production, "run: pnpm acceptance:mcp\n")).toContain(
+    expect(stepNamed(production, "run: pnpm acceptance:mcp --require-complete\n")).toContain(
       "MELTEMI_ORIGIN: https://diagrams.meltemi.dev\n",
     );
     // Each run's results.json is kept, red or green.
@@ -236,8 +261,9 @@ describe("delivery workflows", () => {
     ] as const) {
       const upload = stepNamed(job, `name: ${name}`);
       expect(upload).toContain("uses: actions/upload-artifact@v4");
-      expect(upload).toContain("if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}");
+      expect(upload).toContain("if: ${{ always() && steps.current.outputs.current == 'true' }}");
       expect(upload).toContain("path: source/.test-output/mcp-acceptance/");
+      expect(upload).not.toMatch(/runner\.temp|mcp-oauth-|registration\.json/);
     }
   });
 
@@ -261,7 +287,7 @@ describe("delivery workflows", () => {
     ]);
   });
 
-  it("reads the suite's tokens as secrets only, in the suite's steps, and never echoes them", () => {
+  it("reads account tokens only in setup and the isolated suite, and never echoes them", () => {
     const text = read("deploy.yml");
     for (const name of ["MELTEMI_TOKEN", "MELTEMI_TOKEN_2"]) {
       // Every mention is the environment entry that reads the secret.
@@ -269,14 +295,30 @@ describe("delivery workflows", () => {
       expect(lines).toEqual([
         `          ${name}: \${{ secrets.${name} }}`,
         `          ${name}: \${{ secrets.${name} }}`,
+        `          ${name}: \${{ secrets.${name} }}`,
+        `          ${name}: \${{ secrets.${name} }}`,
       ]);
     }
     for (const job of [jobOf(text, "staging"), jobOf(text, "deploy")]) {
-      for (const step of stepsOf(job).filter((s) => s.includes("secrets.MELTEMI_TOKEN"))) {
-        expect(step).toContain("run: pnpm acceptance:mcp\n");
-        // The suite runs without the Cloudflare token of the job.
-        expect(step).toContain('CLOUDFLARE_API_TOKEN: ""\n');
-      }
+      const setup = stepNamed(job, "oauth-fixtures-cli.ts setup");
+      const strict = stepNamed(job, "run: pnpm acceptance:mcp --require-complete\n");
+      const cleanup = stepNamed(job, "oauth-fixtures-cli.ts cleanup");
+      const credentialSteps = stepsOf(job).filter((s) => s.includes("secrets.MELTEMI_TOKEN"));
+      expect(credentialSteps).toEqual([setup, strict]);
+      expect(setup).toContain("node --conditions=@meltemi/diagrams-source --import tsx");
+      expect(setup).toContain('--file "$RUNNER_TEMP/mcp-oauth-');
+      expect(cleanup).toContain("--summary .test-output/mcp-acceptance/oauth-fixture-cleanup.json");
+      expect(setup).not.toContain('CLOUDFLARE_API_TOKEN: ""');
+      expect(cleanup).not.toContain('CLOUDFLARE_API_TOKEN: ""');
+      expect(cleanup).not.toContain("secrets.MELTEMI_TOKEN");
+      expect(strict).toContain("MELTEMI_OAUTH_FIXTURES: ${{ runner.temp }}/mcp-oauth-");
+      for (const credential of [
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_API_KEY",
+        "CF_API_TOKEN",
+        "CF_API_KEY",
+      ])
+        expect(strict).toContain(`${credential}: ""\n`);
       const suites = stepsOf(job).filter((s) => s.includes("run: pnpm acceptance:mcp"));
       expect(suites.length).toBeGreaterThan(0);
       for (const step of suites) expect(step).toContain('CLOUDFLARE_API_TOKEN: ""\n');
@@ -285,17 +327,19 @@ describe("delivery workflows", () => {
     expect(text).not.toMatch(/run:[^\n]*\$\{\{\s*secrets\./);
   });
 
-  it("skips the staging suite with a notice while the staging host does not answer", () => {
+  it("probes staging without allowing missing hosts or prerequisites to bypass strict acceptance", () => {
     const staging = jobOf(read("deploy.yml"), "staging");
     const probe = stepNamed(staging, "run: pnpm acceptance:mcp --probe");
     expect(probe).toContain("id: host\n");
     expect(probe).toContain("MELTEMI_ORIGIN: https://staging.diagrams.meltemi.dev\n");
     expect(probe).not.toContain("secrets.");
-    expect(stepNamed(staging, "run: pnpm acceptance:mcp\n")).toContain(
-      "if: steps.current.outputs.current == 'true' && steps.host.outputs.answers == 'true'\n",
-    );
+    const strict = stepNamed(staging, "run: pnpm acceptance:mcp --require-complete\n");
+    expect(strict).toContain("if: ${{ !cancelled() && steps.current.outputs.current == 'true' }}");
+    expect(strict).not.toContain("host.outputs.answers");
     const result = stepNamed(staging, "name: Staging result");
-    expect(result).toContain("::notice title=Staging not attached::");
+    expect(result).not.toContain("Staging not attached");
+    expect(result).toContain('[ "$SUITE" = success ] && [ "$CLEANUP" = success ]');
+    expect(result).toContain("all 34 MCP acceptance steps passed");
     expect(result).toContain("production is not deployed");
   });
 });

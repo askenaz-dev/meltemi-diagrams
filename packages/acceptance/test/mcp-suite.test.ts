@@ -5,9 +5,11 @@
 import { describe, expect, it } from "vitest";
 import {
   AUTOMATED_CRITERIA,
+  HOSTED_STEP_COUNT,
   MANUAL_CRITERIA,
   NEED_REASONS,
   RunLog,
+  completeHostedRun,
   runSteps,
   scanLine,
   Skip,
@@ -59,6 +61,9 @@ describe("the scan of the suite's log", () => {
       line: "the value [redacted] here",
     });
     expect(scanLine("a b c", ["a"]).leaked).toBe(false);
+    expect(scanLine("prefix-secret-extended", ["prefix-secret", "prefix-secret-extended"])).toEqual(
+      { leaked: true, line: "[redacted]" },
+    );
   });
 
   it.each([
@@ -150,6 +155,60 @@ describe("the steps of a run", () => {
     expect(outcome.passed).toBe(true);
     expect(outcome.results.map((r) => r.outcome)).toEqual(["passed", "skipped"]);
   });
+
+  it("accepts complete hosted evidence only with exactly 34 passed steps and no leaks", async () => {
+    const { log } = quietLog();
+    const steps = Array.from({ length: HOSTED_STEP_COUNT }, (_, index) =>
+      step(`step-${index}`, async () => undefined),
+    );
+    const complete = await runSteps(steps, {}, { token: true, token2: true, grant: true }, log);
+    expect(completeHostedRun(complete)).toBe(true);
+    expect(completeHostedRun({ ...complete, results: complete.results.slice(1) })).toBe(false);
+    expect(completeHostedRun({ ...complete, leaks: ["a leaky step"] })).toBe(false);
+    expect(
+      completeHostedRun({
+        ...complete,
+        results: complete.results.map((result, index) =>
+          index === 0 ? { ...result, outcome: "skipped" as const } : result,
+        ),
+      }),
+    ).toBe(false);
+    expect(completeHostedRun({ ...complete, passed: false })).toBe(false);
+  });
+
+  it("runs a provided fixture prerequisite, but never treats it as the endpoint in local mode", async () => {
+    const { log } = quietLog();
+    const steps = [step("fixture", async () => undefined, { needs: ["grant"] })];
+    const hosted = await runSteps(steps, {}, { token: true, token2: true, grant: true }, log);
+    expect(hosted.results[0]!.outcome).toBe("passed");
+    const local = await runSteps(
+      steps,
+      {},
+      { token: true, token2: true, grant: true, local: true },
+      log,
+    );
+    expect(local.results[0]).toMatchObject({ outcome: "skipped", reason: NEED_REASONS.endpoint });
+  });
+
+  it("redacts an entire long fixture credential before truncating an assertion failure", async () => {
+    const { log, printed } = quietLog();
+    const credential = `fixture:${"private".repeat(200)}`;
+    log.secrets.add(credential);
+    const outcome = await runSteps(
+      [
+        step("credential", async () => {
+          throw new Error(`rejected ${credential} after request`);
+        }),
+      ],
+      {},
+      { token: true, token2: true, grant: true },
+      log,
+    );
+    expect(outcome.passed).toBe(false);
+    expect(outcome.results[0]!.error).toBe("rejected [redacted] after request");
+    expect(printed.join("\n")).not.toContain("fixture:");
+    expect(printed.join("\n")).not.toContain("private");
+  });
 });
 
 describe("the suite's steps", () => {
@@ -162,6 +221,7 @@ describe("the suite's steps", () => {
 
   it("are named by their criterion, once each, and build only on earlier steps", () => {
     const names = STEPS.map((s) => s.name);
+    expect(names).toHaveLength(HOSTED_STEP_COUNT);
     expect(new Set(names).size).toBe(names.length);
     STEPS.forEach((s, i) => {
       if (s.criterion === null) expect(s.name).toMatch(/^(connect|cleanup): /);
