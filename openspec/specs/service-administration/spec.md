@@ -1,7 +1,7 @@
 # service-administration Specification
 
 ## Purpose
-The administration of the hosted service: owners configured in `ADMIN_SUBS` and administrators they invite by email, who accept in the account panel; removal and leaving; one account found by id, handle or verified email with no list of users; the catalog of permissions granted to accounts; the log of every administration act; and the answer that serves the account panel's Administration section.
+The administration of the hosted service: configured owners and invited administrators, invitation acceptance, removal and leaving, account lookup without a user directory, permission grants, sponsorship records, publication takedowns and an immutable audit log. The family's central console consumes these existing business rules through the private administration service.
 
 ## Requirements
 

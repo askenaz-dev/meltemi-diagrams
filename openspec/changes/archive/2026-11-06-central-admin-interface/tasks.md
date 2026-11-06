@@ -20,10 +20,11 @@
 
 ## Workflow follow-up
 
-- Review and archive with the OpenSpec CLI when accepted.
+- Archived with the OpenSpec CLI on 2026-11-06 after acceptance; canonical specifications were
+  synchronized without skipping validation.
 - Deliver only after the private Diagrams backend and the central Web console are deployed and
-  verified; the initial pull-request base is `codex/central-admin-service`.
-- The pull request's remote CI runs the complete repository and playground browser suites.
+  verified. Pull request #17 now targets `main` after backend #16 was integrated.
+- The rebased and archived source requires its own complete remote CI before merge.
 
 ## Verification record
 
@@ -46,3 +47,18 @@
 - External evidence: `C:/meltemi/artifacts/diagrams-central-admin-service/navigation-cloud-browser-summary.json`
   and `navigation-cloud-browser-final.log` in the same directory. The log's SHA-256 is
   `53dc2ef9a95d7cb42f709c915f79925364885a6148d6c560f6b0fcab66a542d9`.
+- Complete remote CI for `8dbfc9886acbfdf28e875d5d0cb6f1f0dcf44543`,
+  [run 42141089518, attempt 2](https://github.com/askenaz-dev/meltemi-diagrams/actions/runs/42141089518):
+  all seven jobs passed. The browser suites passed 129 playground, 38 player, 14 catalog and 306
+  webview checks; the cloud suite passed 105 checks, all with zero failures. The four Node matrix
+  jobs and Local Compose checks also passed.
+- The three navigation commits were rebased onto backend squash commit
+  `e99bf28eca8d43f81394e03cbd5d104149408d79`. `git range-diff` confirmed all three patches unchanged;
+  the existing backend archive, source and preceding local-installation documentation are retained.
+- After rebasing and archiving, 137 focused navigation/account/documentation tests passed, along
+  with the playground source/test typecheck, scoped ESLint, formatting and `git diff --check`.
+- Normal archive validation and strict validation of the new canonical capability passed. Global
+  strict audits were compared against the exact `e99bf28` baseline: no new findings; the inherited
+  long-requirement warnings and four unrelated incomplete historical archives were left unchanged,
+  with one warning removed alongside the retired Administration-section requirement. The newly
+  archived change has all six tasks complete and no archive-validation findings.
