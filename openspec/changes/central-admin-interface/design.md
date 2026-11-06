@@ -50,6 +50,8 @@ administration link is available locally.
 - `account-panel.ts`: seven product sections; no administration renderer.
 - `shell.ts`: existing account destination resolution, preserving its removal of the parameter.
 - Catalogs, focused unit tests, complete playground browser suite and bilingual user docs.
+- `packages/cloud/test/browser`: retain real cookie/Origin invitation, permission, sponsorship and
+  account lifecycle assertions while testing central navigation instead of removed product forms.
 
 ## Risks and verification
 

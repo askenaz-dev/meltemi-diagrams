@@ -14,6 +14,9 @@
 - [x] 2.2 Update English/Spanish account and administration docs and verify parity/link checks.
 - [x] 2.3 Run repository typecheck and lint plus affected-package unit tests; record results and
   delivery dependencies.
+- [ ] 2.4 Update real-Worker browser expectations for the renamed product settings and central
+  administration navigation, preserving account, token, sponsorship and permission lifecycle
+  assertions; verify the complete cloud browser suite.
 
 ## Workflow follow-up
 
@@ -34,3 +37,7 @@
 - Strict OpenSpec validation and `git diff --check`: passed.
 - Delivery order: Diagrams #16, Web #31, then this navigation change. No merge or deployment was
   performed as part of this local implementation.
+- The navigation pull request's first cloud browser run found old product-modal selectors in
+  four acceptance files. They now check central navigation and keep their real backend lifecycle
+  assertions; cloud typecheck, scoped ESLint/format and independent review passed. The complete
+  105-check local cloud browser run is in progress; no complete pass is claimed yet.

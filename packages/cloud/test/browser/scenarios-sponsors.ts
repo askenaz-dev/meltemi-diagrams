@@ -3,7 +3,7 @@
  * GitHub Sponsors' signed delivery is kept once, the page offers the donation line to the sponsor
  * who is not entitled yet, opening the account panel claims the donation through the sponsor's
  * GitHub sign-in, Profile says thank you without a reload and the export dialog then has the box,
- * and the owner's Administration section lists the sponsorship as claimed.
+ * and the real administration answer records the sponsorship as claimed for the central console.
  */
 import assert from "node:assert/strict";
 import { createHmac, randomUUID } from "node:crypto";
@@ -27,7 +27,7 @@ function sponsorship(login: string, action = "created"): string {
 
 export const sponsorScenarios: readonly Scenario[] = [
   {
-    name: "donation: a signed Sponsors delivery, then the sponsor's Profile claims it: the thanks without a reload, the box, and the owner's Sponsorships",
+    name: "donation: a signed Sponsors delivery, then Diagrams settings claims it without a reload and the real administration answer records it",
     signedIn: "u-suite-sponsor",
     async run(t) {
       const { page } = t;
@@ -75,7 +75,7 @@ export const sponsorScenarios: readonly Scenario[] = [
       await page.locator(".topbar .account-button").click();
       await page
         .locator("#menu-account")
-        .getByRole("menuitem", { name: "Account", exact: true })
+        .getByRole("menuitem", { name: "Diagrams settings", exact: true })
         .click();
       const panel = page.locator("dialog.settings[open]");
       await panel.getByText("Granted for your donation. Thank you.").waitFor({ timeout: 30_000 });

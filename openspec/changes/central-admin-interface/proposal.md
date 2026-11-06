@@ -36,7 +36,8 @@ This is a post-1.0 hosted-service change outside `docs/roadmap-1.0.md`.
 
 ## Impact
 
-`packages/playground` account navigation, catalogs and tests; `docs/web-app.md` and `docs/cloud.md`
+`packages/playground` account navigation, catalogs and tests; the real-Worker cloud browser
+acceptance scenarios; `docs/web-app.md` and `docs/cloud.md`
 with their Spanish counterparts. No new dependency, identity credential, public backend route or
 data schema. The branch is stacked on `central-admin-service`; delivery waits for that backend
 and the Web `central-administration` console to be deployed and verified first.

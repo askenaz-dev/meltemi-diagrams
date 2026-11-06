@@ -166,7 +166,7 @@ const scenarios: Scenario[] = [
       await t.open("/");
       const { button, menu } = accountParts(page);
       await button.click();
-      await menu.getByRole("menuitem", { name: "Account", exact: true }).click();
+      await menu.getByRole("menuitem", { name: "Diagrams settings", exact: true }).click();
       const panel = page.locator("dialog.settings[open]");
       await panel.waitFor();
       assert.equal(await page.locator("iframe").count(), 0, "nothing is framed");
@@ -450,7 +450,7 @@ const scenarios: Scenario[] = [
     },
   },
   {
-    name: "signed in: Ana in the header with her avatar from the Worker's origin, a menu of three entries",
+    name: "signed in: Ana in the header with her avatar from the Worker's origin, central account and product settings",
     signedIn: "u-ana-menu",
     async run(t) {
       const { page, origin } = t;
@@ -489,17 +489,59 @@ const scenarios: Scenario[] = [
       );
       assert.equal(drawn, true, "her picture loads from the Worker's origin");
 
-      // The menu: Account (the account panel), API tokens (the panel at that section), Sign out (a form).
+      // The menu keeps central account navigation distinct from the product settings and tokens.
       assert.equal(await menu.isVisible(), false);
       await button.click();
       assert.equal(await menu.isVisible(), true);
       assert.deepEqual(await menu.getByRole("menuitem").allTextContents(), [
-        "Account",
+        "Meltemi account",
+        "Diagrams settings",
         "API tokens",
         "Sign out",
       ]);
-      const account = menu.getByRole("menuitem", { name: "Account", exact: true });
-      assert.equal(await account.getAttribute("href"), null, "Account opens the panel, not a tab");
+      const central = menu.getByRole("menuitem", { name: "Meltemi account", exact: true });
+      assert.equal(
+        await central.getAttribute("href"),
+        `${IDENTITY}/account/profile?lang=en&environment=production`,
+      );
+      assert.equal(await central.getAttribute("target"), null, "central account uses the same tab");
+      const account = menu.getByRole("menuitem", { name: "Diagrams settings", exact: true });
+      assert.equal(
+        await account.getAttribute("href"),
+        null,
+        "Diagrams settings opens the product panel",
+      );
+      assert.equal(
+        await central.evaluate((element) => element === document.activeElement),
+        true,
+        "the central account is focused first",
+      );
+      await page.keyboard.press("ArrowDown");
+      assert.equal(await account.evaluate((element) => element === document.activeElement), true);
+      await page.keyboard.press("ArrowDown");
+      assert.equal(
+        await menu
+          .getByRole("menuitem", { name: "API tokens", exact: true })
+          .evaluate((element) => element === document.activeElement),
+        true,
+      );
+      await page.keyboard.press("End");
+      assert.equal(
+        await menu
+          .getByRole("menuitem", { name: "Sign out", exact: true })
+          .evaluate((element) => element === document.activeElement),
+        true,
+      );
+      await page.keyboard.press("ArrowDown");
+      assert.equal(
+        await central.evaluate((element) => element === document.activeElement),
+        true,
+        "menu focus wraps through all four entries",
+      );
+      await page.keyboard.press("Escape");
+      assert.equal(await menu.isVisible(), false);
+      assert.equal(await button.evaluate((element) => element === document.activeElement), true);
+      await button.click();
       const form = menu.locator("form");
       assert.equal(await form.getAttribute("method"), "post");
       assert.equal(await form.getAttribute("action"), `${IDENTITY}/logout`);
@@ -538,7 +580,7 @@ const scenarios: Scenario[] = [
       };
       await openDialog();
       const dialog = page.locator("dialog[open]");
-      assert.equal(await dialog.locator("h2").first().textContent(), "Account");
+      assert.equal(await dialog.locator("h2").first().textContent(), "Diagrams settings");
       assert.equal(
         await dialog.getByRole("tab", { name: "API tokens" }).getAttribute("aria-selected"),
         "true",
