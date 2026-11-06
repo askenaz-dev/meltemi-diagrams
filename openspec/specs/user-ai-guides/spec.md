@@ -1,7 +1,8 @@
 # user-ai-guides Specification
 
 ## Purpose
-TBD - created by archiving change user-ai-guides. Update Purpose after archive.
+Help product users choose and set up the skill, MCP tools or built-in AI assistance according to
+their task and where their diagrams live, with practical English and Spanish guides.
 
 ## Requirements
 
