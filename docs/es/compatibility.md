@@ -2,47 +2,49 @@
 
 [English](../compatibility.md)
 
-Dónde funciona Meltemi Diagrams 1.0, qué lee y escribe, y qué no hace. "Verificado" significa
-comprobado por las pruebas del repositorio o por ejecuciones de verificación en la máquina de
-referencia ([decisión 0032](../decisions/0032-reference-machine-and-quality-gates.md)); los
-resultados están en [quality/results.md](../quality/results.md).
+Entornos compatibles, formatos de archivo y limitaciones actuales. Estos requisitos describen el
+producto; los informes fechados de rendimiento y verificación se conservan aparte en el repositorio.
 
 ## Entorno de ejecución
 
-| Componente           | Compatible                                        | Verificado                                                                                               |
-| -------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Node.js              | 22.12 o posterior (módulos ES)                    | Node 24.15 en Windows 11                                                                                 |
-| Sistemas operativos  | Windows, macOS y Linux                            | Windows 11; consulta las limitaciones más abajo                                                          |
-| Gestores de paquetes | npm, pnpm y Yarn instalan los paquetes publicados | pnpm 10 (instalación sin conexión de la comprobación de la versión)                                      |
-| CI                   | GitHub Actions y GitLab CI (`init --ci`), Node 22 | los archivos de flujo de trabajo se generan y se prueban; aún no se han ejecutado en un servicio alojado |
+| Componente           | Requisitos                                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| Node.js              | 22.12 o posterior para la CLI y los paquetes JavaScript (módulos ES)                                     |
+| Sistemas operativos  | Windows, macOS y Linux con un entorno Node compatible                                                    |
+| Gestores de paquetes | Los paquetes publicados se pueden instalar con npm, pnpm o Yarn; los ejemplos de primeros pasos usan npm |
+| CI                   | `init --ci github` e `init --ci gitlab` generan flujos de validación y exportación para tu proyecto      |
 
-Nada necesita un servidor ni una cuenta. La red solo se usa para la asistencia de IA opcional, con
-el proveedor y la clave que configures ([asistencia](assist.md)), y para la cuenta opcional que
-ofrece la app cuando la sirve el [servicio en la nube](cloud.md).
+La validación, la disposición y la exportación SVG locales funcionan sin servidor ni cuenta de
+Meltemi después de instalar. Guardar en la nube, colaborar, publicar y conectar MCP a una cuenta
+usan el servicio; la [asistencia de IA](assist.md) opcional conecta al proveedor que configures.
+La app web carga su código, fuentes e iconos desde su host. El uso local con Docker se explica en
+[la guía del espacio de trabajo local](local-compose.md).
 
 ## Navegadores y FFmpeg
 
-PNG, PDF y video los captura un navegador instalado en la máquina, que se encuentra automáticamente
-o se indica con `MELTEMI_BROWSER`; el video lo codifica un FFmpeg instalado, que se encuentra en el
-PATH o se indica con `MELTEMI_FFMPEG`. No se descarga nada.
+Las exportaciones PNG, PDF y de video de la CLI usan un Edge, Chrome o Chromium instalado, que
+se encuentra automáticamente o se elige con `MELTEMI_BROWSER`. El video usa además un FFmpeg
+instalado, que se encuentra en el PATH o se elige con `MELTEMI_FFMPEG`. Exportar no instala estas
+herramientas por ti.
 
-| Uso                                                                       | Compatible                                               | Verificado                                                                     |
-| ------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Capturas (PNG, PDF, fotogramas de video)                                  | Microsoft Edge, Google Chrome, Chromium                  | Edge 155, Chrome 154                                                           |
-| Codificación de video                                                     | FFmpeg con libx264 (MP4), libvpx-vp9 (WebM), GIF         | FFmpeg 6.1.1                                                                   |
-| Abrir las exportaciones (SVG, PNG, reproductor, catálogo, MP4, WebM, GIF) | las versiones actuales de Edge, Chrome, Firefox y Safari | Edge 155, Chrome 154, Firefox 157 ([navegadores](../verification/browsers.md)) |
-| La app web                                                                | las versiones actuales de Edge, Chrome, Firefox y Safari | Edge 155, Chrome 154, Firefox 157; Safari sin verificar                        |
+| Uso                                                       | Requisitos                                                                                               |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Capturas de la CLI (PNG, PDF y fotogramas de video)       | Microsoft Edge, Google Chrome o Chromium                                                                 |
+| Codificación de video de la CLI                           | FFmpeg con libx264 para MP4, libvpx-vp9 para WebM y soporte de GIF                                       |
+| Ver exportaciones SVG, PNG, reproductor, catálogo y video | Un navegador actual que admita ese formato multimedia                                                    |
+| La app web                                                | Edge, Chrome, Firefox o Safari actuales; los formatos de video disponibles dependen de sus codificadores |
 
-La app web graba WebM y MP4 con los codificadores WebCodecs del navegador; un navegador que no
-los tenga desactiva el formato y muestra el comando que lo genera. GIF no necesita codificador.
+La app web graba WebM y MP4 con los codificadores WebCodecs del navegador. Cuando falta un
+codificador, desactiva ese formato y muestra el comando de la CLI que puede generarlo. GIF no
+necesita un codificador de video.
 
 ## Editores
 
-| Editor                                                    | Compatible                                                                                                                   | Verificado                 |
-| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| Visual Studio Code                                        | 1.95 o posterior                                                                                                             | 1.141 (`pnpm vscode:test`) |
-| Derivados de VS Code (VSCodium, Cursor, Windsurf y otros) | mediante Open VSX o el `.vsix`, con el mismo motor                                                                           | sin verificar              |
-| Otros editores                                            | la línea de comandos y `meltemi-diagrams preview`; los servicios de lenguaje son una biblioteca (`@meltemi/diagrams-editor`) | —                          |
+| Editor               | Requisitos                                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Visual Studio Code   | 1.95 o posterior; instala `meltemi.meltemi-diagrams-vscode`                                                                               |
+| Derivados de VS Code | Una API de extensiones compatible; instala desde Open VSX o el VSIX de la versión publicada. La compatibilidad también depende del editor |
+| Otros editores       | Edita texto `.meltemi` y usa `mdg validate`, `mdg export` y `mdg preview`; otras herramientas pueden integrar `@meltemi/diagrams-editor`  |
 
 ## Archivos
 
@@ -73,49 +75,27 @@ consulta [Importar Mermaid](import/mermaid.md) e [Importar PlantUML](import/plan
 
 ## Aplicaciones de diapositivas y de oficina
 
-Las exportaciones se comprueban a mano en PowerPoint, Keynote y Google Slides con el kit de
-verificación; el propietario registra los resultados por aplicación, versión y formato en
-[aplicaciones de oficina](../verification/office-apps.md). Lo que cabe esperar de los propios
-formatos:
+Elige un formato que admita la aplicación de destino. PNG sirve para una imagen con aspecto
+fijo; SVG y PDF conservan formas y texto vectoriales donde el destino los admita. Conserva el
+archivo `.meltemi` para revisar el diagrama y volver a exportarlo.
 
-- Google Slides acepta imágenes PNG y GIF, y video solo desde Google Drive o YouTube.
-- Ninguna aplicación de diapositivas ejecuta el reproductor HTML dentro de una diapositiva;
-  compártelo como archivo o como enlace, o inserta el fragmento en una página web.
+El reproductor HTML es una página web: comparte su archivo o enlace, o integra su fragmento en
+una página web. Meltemi no lo convierte en un objeto interactivo de una diapositiva.
 
 ## Limitaciones conocidas
 
-Fuera de la 1.0, como decide la propuesta:
-
-- la voz sintética y el video generado por IA;
-- la importación universal (archivos de draw.io, Lucidchart, Visio y otros editores);
-- la exportación a PPTX y la conversión a formas editables de PowerPoint.
-
-La colaboración en tiempo real (varias personas que editan el mismo archivo a la vez) también
-quedaba fuera de la 1.0 y ya no es una limitación: los proyectos en la nube de la app la tienen
-([trabajar juntos](web-app.md#trabajar-juntos)). Lo que no hace:
-
-- Necesita el servicio en la nube, y un proyecto en una cuenta. Quienes se unen no necesitan
-  ninguna: quien visita un enlace compartido lo sigue en vivo, y el invitado de la sesión en vivo del
-  propietario edita sin cuenta ([sesiones en vivo](web-app.md#sesiones-en-vivo)). La extensión de
-  VS Code y la línea de comandos no muestran presencia, aunque un push mediante la API o la línea de
-  comandos llega en vivo a las personas de una sala.
-- Una sala admite veinte conexiones, y diez sin cuenta desde una misma red; la número veintiuno
-  espera y lo intenta de nuevo. Una sesión en vivo dura un día como máximo.
-- Un invitado no puede añadir imágenes ni fuentes, crear versiones, compartir ni publicar: eso
-  requiere una cuenta.
-- No se puede seguir la vista de otra persona, y no hay comentarios, chat ni voz.
-
-En la 1.0:
-
-- macOS y Linux ejecutan el mismo código que Windows (incluida la detección del navegador y de
-  FFmpeg), pero no se han verificado en una máquina; los resultados de referencia vienen de
-  Windows 11.
-- El PDF desde la app web pasa por el diálogo de impresión del navegador (elige
-  **Guardar como PDF**); la línea de comandos escribe el PDF directamente.
-- El video transparente (WebM con canal alfa) solo lo genera la línea de comandos.
-- GIF usa una sola paleta de 256 colores para toda la animación.
-- El catálogo y el reproductor muestran lo que se exportó; no editan.
-- La asistencia de IA necesita una clave de un proveedor y envía el contexto que antes te muestra;
-  todo lo demás funciona sin conexión.
-- Las capturas de video y PNG necesitan un navegador basado en Chromium instalado; Firefox está
-  verificado para ver las exportaciones, no para capturarlas.
+- Meltemi no ofrece voz sintética, video generado por IA, exportación PPTX ni formas editables de PowerPoint.
+- Las importaciones cubren las construcciones documentadas de Mermaid y PlantUML. No hay
+  importador de archivos de draw.io, Lucidchart ni Visio; consulta las
+  [tablas de cobertura](#cobertura-de-la-importación).
+- La edición colaborativa funciona en proyectos con backend: proyectos de la nube alojada o el
+  [espacio de trabajo Docker local](local-compose.md). No agrega presencia en vivo a una carpeta
+  independiente en VS Code o la CLI, aunque un envío por CLI/API llega a un proyecto en la nube abierto.
+- Una sala alojada admite hasta 20 conexiones, con un máximo de 10 anónimas desde una red.
+  Una sesión en vivo del propietario deja editar a invitados sin cuenta y dura como máximo un día.
+  Los invitados no pueden subir imágenes/fuentes, crear versiones, compartir ni publicar.
+- No hay seguimiento de la vista de otra persona, comentarios, chat ni voz.
+- El PDF de la app web usa el diálogo de impresión del navegador (**Guardar como PDF**); la CLI escribe PDF directamente.
+- El video transparente (WebM con alfa) está disponible mediante la CLI.
+- Si el renderizador MCP alojado responde `renderer.unavailable`, usa el
+  [servidor MCP local](agents.md#a-través-del-servidor-local) para proyectos de tu cuenta o el espacio de trabajo Docker.

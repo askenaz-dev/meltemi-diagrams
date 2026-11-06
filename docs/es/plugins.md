@@ -4,7 +4,7 @@
 
 Un plugin agrega **tipos de diagrama** y un **paquete de iconos** a un proyecto. Los plugins son
 datos: una carpeta con un manifiesto `meltemi-plugin.json`, que se lee y se comprueba como cualquier
-otro archivo del proyecto. Abrir un diagrama nunca ejecuta código (decisión 0030).
+otro archivo del proyecto. Abrir un diagrama nunca ejecuta código.
 
 ## Instalar un plugin
 
@@ -33,7 +33,7 @@ del manifiesto de cada plugin; un manifiesto que cambia después se informa hast
 escribir el archivo de bloqueo, así que un cambio en un plugin aparece en la revisión como cualquier
 otro cambio del proyecto.
 
-`pnpm mdg plugins <project>` enumera los plugins, lo que agregan, su origen y sus problemas;
+`mdg plugins <project>` enumera los plugins, lo que agregan, su origen y sus problemas;
 `--json` muestra lo mismo como un solo objeto.
 
 ## El manifiesto

@@ -209,5 +209,4 @@ The shared catalogue also lists thirteen sharing, guest-session and publication 
 return `local.feature-unavailable` and change nothing in this mode. Their editor controls are
 absent. Ordinary synchronization between your browser and agents remains enabled.
 
-The hosted service and its authentication are separate. The existing [manual development
-instructions](cloud.md#running-locally) remain available for working on the hosted implementation.
+The hosted service and its account are separate from this local workspace.

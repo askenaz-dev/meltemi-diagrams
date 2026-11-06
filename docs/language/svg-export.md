@@ -8,7 +8,7 @@ pipeline is `compile()` in `@meltemi/diagrams-model`, `layoutDiagram()` in `@mel
 and `renderSvg()` in `@meltemi/diagrams-render` (scene to text).
 
 ```bash
-pnpm mdg export examples/purchase/diagrams/architecture.meltemi
+mdg export examples/purchase/diagrams/architecture.meltemi
 ```
 
 Options: `--diagram <id>` exports one diagram, `--out <path>` names the file (one diagram) or an
@@ -246,7 +246,7 @@ painting changes: the layout's boxes, tracks and bounds, hit tests, the canvas's
 outlines and handles and the text editor use the clean geometry. Every export (SVG, PNG, PDF, the
 players, video) and the canvas draw through `renderSvg`, so they all show the same strokes; a
 moving dash moves on both passes. A sketched picture is larger: the whiteboard of the gallery is
-6.5 KB clean and 35.6 KB sketched with `--fonts system` (decision 0058).
+6.5 KB clean and 35.6 KB sketched with `--fonts system`.
 
 ### Presets and canvas
 

@@ -83,7 +83,7 @@ Busca nombres de iconos con la línea de comandos, que compara los nombres, las 
 categorías:
 
 ```bash
-pnpm mdg assets icons cloud upload
+mdg assets icons cloud upload
 ```
 
 ### Agregar iconos desde el editor
@@ -114,9 +114,8 @@ propios del proyecto y luego la biblioteca Tecnología.
 
 ### Iconos de proveedores
 
-Los conjuntos de AWS, Azure, Google Cloud y Kubernetes vienen integrados, convertidos sin
-modificaciones desde las descargas de cada proveedor con `pnpm vendor:icons` en
-`packages/assets/vendor/`, con las categorías del proveedor y una etiqueta por icono
+Los conjuntos de AWS, Azure, Google Cloud y Kubernetes vienen integrados, con los SVG originales
+del proveedor, sus categorías y una etiqueta por icono
 (`aws:lambda` es «AWS Lambda»). Cada uno conserva las condiciones de su proveedor, que permiten
 diagramas de arquitectura y documentación: la herramienta las recoge en
 `THIRD_PARTY_LICENSES.md` y en los avisos de la extensión y de la app web, y los paquetes `aws`,
@@ -230,7 +229,7 @@ proyecto necesita una licencia de uno de los dos lugares (`asset.missing-license
 ## `assets.lock.json`
 
 ```bash
-pnpm mdg assets lock
+mdg assets lock
 ```
 
 El archivo de bloqueo registra cada paquete y cada fuente con su versión, su origen, su licencia y,

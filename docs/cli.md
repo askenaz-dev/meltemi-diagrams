@@ -2,7 +2,7 @@
 
 [Español](es/cli.md)
 
-`meltemi-diagrams` (alias `mdg`; `pnpm mdg` from the sources) covers the life of a project:
+`meltemi-diagrams` (alias `mdg`) covers the life of a project:
 starting it, previewing it, validating, formatting, importing, exporting, publishing a catalog,
 reviewing changes and keeping a copy of it in the cloud. Every command takes `--help`. Paths in
 messages are relative to the working folder; nothing a command prints or writes names the machine's
@@ -61,13 +61,13 @@ keys of `--format json` are the same in both languages. Confirmations accept `y`
 as `s`, `si` and `sí`.
 
 ```bash
-pnpm mdg export architecture --lang es --out site
+mdg export architecture --lang es --out site
 ```
 
 ## Starting: `init`
 
 ```bash
-pnpm mdg init architecture --template purchase
+mdg init architecture --template purchase
 ```
 
 `init` writes `project.json` (the folder's name, or `--name`; the language version; this CLI's
@@ -95,7 +95,7 @@ view (1 model, 2 views)`.
 ## Previewing: `preview`
 
 ```bash
-pnpm mdg preview architecture --open
+mdg preview architecture --open
 ```
 
 The catalog of the project is served at `http://127.0.0.1:4317/` (`--port`, or `0` for a free
@@ -109,14 +109,14 @@ the live view of one file ([editor.md](editor.md)).
 
 `validate`, `format`, `import`, `export` and `build catalog` take a folder:
 
-| Command                                              | Does                                                            |
-| ---------------------------------------------------- | --------------------------------------------------------------- |
-| `pnpm mdg validate architecture --strict`            | every file of the project, `project.json` and the assets        |
-| `pnpm mdg format architecture --check`               | lists the files that would change                               |
-| `pnpm mdg import legacy --out architecture/imported` | every `.mmd`, `.puml` and `.md` below `legacy`, keeping folders |
-| `pnpm mdg export architecture --out site`            | every diagram of every file, as `site/<folders>/<file>.svg`     |
-| `pnpm mdg export architecture --format png`          | the same as PNG, beside each file, in one browser session       |
-| `pnpm mdg export architecture --profiles`            | every `export` profile of every file                            |
+| Command                                         | Does                                                            |
+| ----------------------------------------------- | --------------------------------------------------------------- |
+| `mdg validate architecture --strict`            | every file of the project, `project.json` and the assets        |
+| `mdg format architecture --check`               | lists the files that would change                               |
+| `mdg import legacy --out architecture/imported` | every `.mmd`, `.puml` and `.md` below `legacy`, keeping folders |
+| `mdg export architecture --out site`            | every diagram of every file, as `site/<folders>/<file>.svg`     |
+| `mdg export architecture --format png`          | the same as PNG, beside each file, in one browser session       |
+| `mdg export architecture --profiles`            | every `export` profile of every file                            |
 
 In a folder, files without diagrams (models, themes, stories) are passed over, and `--diagram`,
 `--story`, `--stories`, `--scenes`, `--scenario` and `--stdout` are refused: they choose within one
@@ -133,7 +133,7 @@ chart of the run and every format, `--profiles` included, so a picture made by a
 on every day:
 
 ```bash
-pnpm mdg export plan.meltemi --today 2026-07-15
+mdg export plan.meltemi --today 2026-07-15
 ```
 
 Without it the day is the machine's local date, which every command and the VS Code extension host
@@ -146,7 +146,7 @@ positions to write for a gantt chart, as for a sequence diagram: it skips the ch
 ## Model JSON: `convert --to json`
 
 ```bash
-pnpm mdg convert diagrams/overview.meltemi --to json
+mdg convert diagrams/overview.meltemi --to json
 ```
 
 writes `diagrams/overview.model.json`, the file's model in the interchange format
@@ -158,7 +158,7 @@ copies a flow diagram, as drawn, into a free one ([free](language/free.md)).
 ## Reviewing: `review`
 
 ```bash
-pnpm mdg review architecture --base main --out review
+mdg review architecture --base main --out review
 ```
 
 `review` compares a project, a folder or a file with an earlier version and lists what changed by
@@ -281,12 +281,12 @@ the API the page uses, driven with an API token. No other command talks to the s
 ### The developer's loop
 
 ```bash
-pnpm mdg login                              # once for each computer and service
-pnpm mdg push architecture --create         # makes the cloud project, records it in project.json
-pnpm mdg push architecture                  # later: lists what differs, asks, pushes
-pnpm mdg review architecture --base cloud   # what somebody changed in the page, by id
-pnpm mdg pull architecture                  # brings those files into the folder
-pnpm mdg publish architecture --slug shop   # builds the catalog and publishes it
+mdg login                              # once for each computer and service
+mdg push architecture --create         # makes the cloud project, records it in project.json
+mdg push architecture                  # later: lists what differs, asks, pushes
+mdg review architecture --base cloud   # what somebody changed in the page, by id
+mdg pull architecture                  # brings those files into the folder
+mdg publish architecture --slug shop   # builds the catalog and publishes it
 ```
 
 `push --create` writes a `cloud` setting into `project.json`
@@ -301,7 +301,7 @@ is overwritten that was not shown to you first, or forced.
 ### Signing in: `login`, `logout` and `whoami`
 
 ```bash
-pnpm mdg login
+mdg login
 ```
 
 `login` makes an API token for this computer in four steps:
@@ -327,10 +327,10 @@ five minutes), too many failed attempts (`cli.rate`), an account that already ho
 (`quota.tokens`: revoke one in the page) and a token that could not be kept (`login.not-stored`: it
 is revoked again) all fail with exit code 1 and keep nothing.
 
-On a machine without a browser, make a token in the page's **API tokens** dialog and pipe it in:
+On a machine without a browser, create a token through **API tokens** in the web app's account menu and pipe it in:
 
 ```bash
-printf '%s' "$TOKEN" | pnpm mdg login --token
+printf '%s' "$TOKEN" | mdg login --token
 ```
 
 `--token` reads the token from standard input, never from an argument, so it stays out of the
@@ -391,7 +391,7 @@ place a token is written.
 ### Mirroring a folder: `push`
 
 ```bash
-pnpm mdg push architecture --create
+mdg push architecture --create
 ```
 
 `push [folder] [--create [--name <n>]] [--project <id>] [--force] [--check] [--strict] [--host <url>]`
@@ -473,7 +473,7 @@ both.
 ### Bringing a project back: `pull`
 
 ```bash
-pnpm mdg pull k4c2w7x5q3y6m2n5r7d4 architecture
+mdg pull k4c2w7x5q3y6m2n5r7d4 architecture
 ```
 
 `pull [<id>] [folder] [--version <n>] [--force] [--host <url>]` writes the files of a cloud project
@@ -507,7 +507,7 @@ and the command asks you to give the id next time. It ends with a summary such a
 ### Publishing: `publish`
 
 ```bash
-pnpm mdg publish architecture --slug shop --handle ana
+mdg publish architecture --slug shop --handle ana
 ```
 
 `publish [folder] [--slug <name>] [--handle <name>] [--project <id>] [--force] [--strict]` and
@@ -658,7 +658,7 @@ The service's own codes, as the commands meet them, are printed with a sentence 
 ## Continuous integration
 
 ```bash
-pnpm mdg init architecture --ci github
+mdg init architecture --ci github
 ```
 
 writes `.github/workflows/meltemi-diagrams.yml` at the top of the repository with the project's
@@ -674,7 +674,7 @@ exists, and prints the `include` that adds it. Existing workflows are never repl
 ### Pushing to the cloud on merge
 
 ```bash
-pnpm mdg init architecture --ci github --cloud
+mdg init architecture --ci github --cloud
 ```
 
 adds one more job to the workflow, the last thing in the file: on a push to the repository's default
@@ -690,7 +690,7 @@ has to be pushed once from a computer (`push --create`) and its `project.json` c
 the job knows the project. GitHub's workflow starts on pushes to `main` only, so edit the `branches`
 under `on:` if your default branch has another name.
 
-Make the token for the job in the page's **API tokens** dialog, which shows it once, and keep it in
+Create the token for the job through **API tokens** in the web app's account menu. It is shown once; keep it in
 the secrets of the repository. A token acts as you for everything the API allows and is not limited
 to one project: name it for the repository and revoke it if the secret leaks.
 

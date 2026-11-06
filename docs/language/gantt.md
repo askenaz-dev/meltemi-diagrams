@@ -43,12 +43,12 @@ diagram launch_plan: gantt {
 
 ![A mobile app launch as a gantt chart](../../gallery/gantt/launch-plan.svg)
 
-Gantt charts compile into the same model as the other profiles (decision 0066): sections, tasks,
+Gantt charts compile into the same model as the other profiles: sections, tasks,
 milestones and markers are elements, and each `after` is a relation from the task it names to the
 one that waits. Ids, labels, descriptions, `class`, `style`, `rule`, `animate`, `link`, themes,
 presets, canvases and the brand frame work as in the other profiles. Their own statements are
 below, and [the gallery](../../gallery/README.md#gantt-a-mobile-app-launch) has this sheet with its
-exports. `pnpm mdg init plan --template roadmap` starts a project with a chart of its own and the
+exports. `mdg init plan --template roadmap` starts a project with a chart of its own and the
 story that tells it ([the command line](../cli.md#starting-init)).
 
 ## Statements
@@ -280,7 +280,7 @@ text. The editor and the web app pass their own local date, and the command line
 or the date of `--today`:
 
 ```bash
-pnpm mdg export plan.meltemi --today 2026-07-15
+mdg export plan.meltemi --today 2026-07-15
 ```
 
 `--today` gives every chart of the run that writes `today` without a date the same day, in every
@@ -579,7 +579,7 @@ working day later; `from 2026-06-15` written beside `after tec0` on `tec1` makes
 rather than copying its text, so the dates of the sheet are the ones Mermaid shows:
 
 ```bash
-pnpm mdg import chart.mmd
+mdg import chart.mmd
 ```
 
 - Dates become ISO 8601, whatever the chart's `dateFormat` (every dayjs token is read). A time is

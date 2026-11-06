@@ -2,10 +2,10 @@
 
 [Español](../es/language/conformance.md)
 
-The conformance suite fixes what `.meltemi` files mean. Any tool that reads them, this one or
-another, can run it and know whether it reads files as Meltemi Diagrams does. It is the corpus of
-this repository, with the expected result of each case, and a runner that takes another
-implementation as commands.
+The conformance corpus specifies expected models and diagnostics for `.meltemi` files. It is useful
+when you implement another reader or integrate the language, rather than for drawing a diagram.
+The runner is a source-repository tool, not an installed `mdg` subcommand. After checking out the
+repository and installing its dependencies, run it from that checkout:
 
 ```bash
 pnpm conformance
@@ -46,7 +46,7 @@ the repository's root folder.
 
 The runner prints each failing case with what differed, the first differing JSON path for models
 (`differs at $.diagrams[0].relations[1].label`) or the expected and reported codes for diagnostics,
-then the totals by kind. It exits 1 when a case fails.
+then the totals by kind. It exits 1 when a case fails. For example (illustrative case counts):
 
 ```text
   ✗ model valid/checkout.meltemi: differs at $.diagrams[0].relations[0].label
@@ -55,9 +55,3 @@ then the totals by kind. It exits 1 when a case fails.
 5 of 5 valid project cases pass
 39 of 39 invalid project cases pass
 ```
-
-## Adding cases
-
-Every language change adds its cases ([policy](policy.md)): a valid file and its model JSON, an
-invalid file named after the diagnostic it shows, or a project folder with `expected.json`. The
-snapshots are written by the tests (`pnpm test -u`) and reviewed like code ([corpus](../../corpus/README.md)).

@@ -43,13 +43,13 @@ diagram launch_plan: gantt {
 
 ![Un lanzamiento de aplicación móvil como diagrama de Gantt](../../../gallery/gantt/launch-plan.svg)
 
-Los diagramas de Gantt se compilan en el mismo modelo que los demás perfiles (decisión 0066): las
+Los diagramas de Gantt se compilan en el mismo modelo que los demás perfiles: las
 secciones, las tareas, los hitos y las marcas son elementos, y cada `after` es una relación desde la
 tarea que nombra hasta la que espera. Los ids, las etiquetas, las descripciones, `class`, `style`,
 `rule`, `animate`, `link`, los temas, los preajustes, los lienzos y el marco con el logotipo
 funcionan como en los demás perfiles. Sus instrucciones propias están a continuación, y
 [la galería](../../../gallery/README.md#gantt-a-mobile-app-launch) tiene esta hoja con sus
-exportaciones. `pnpm mdg init plan --template roadmap` empieza un proyecto con un diagrama propio y
+exportaciones. `mdg init plan --template roadmap` empieza un proyecto con un diagrama propio y
 la historia que lo cuenta ([la línea de comandos](../cli.md#empezar-init)).
 
 ## Instrucciones
@@ -287,7 +287,7 @@ La disposición nunca lee un reloj: el host le pasa el día como `LayoutOptions.
 máquina, o la de `--today`:
 
 ```bash
-pnpm mdg export plan.meltemi --today 2026-07-15
+mdg export plan.meltemi --today 2026-07-15
 ```
 
 `--today` da el mismo día a todos los diagramas de la ejecución que escriben `today` sin fecha, en
@@ -397,7 +397,7 @@ style beta { class late }               // una tarea
   tarea, `radius`; el `stroke` de una marca colorea su línea y el borde de su píldora, y su `fill` y
   su `color`, la píldora; el `fill` y el `stroke` de una sección, su banda, y su `color`, su título;
   una flecha acepta `stroke`, `width`, `line`, `arrowhead` y `corners`, pero solo mediante
-  `rule relation`, ya que las relaciones de un diagrama no tienen id con que nombrarlas. `icon`,
+  `rule relation`, ya que las relaciones de un diagrama no tienen id con que nombrarlas.
   `pattern` rellena una barra y un rombo con la trama en el color del trazo; `icon` e `iconColor` se
   aceptan y todavía no se dibujan en las barras.
 - `shape`, `rotation`, `iconPosition`, `labelPosition`, `iconSize`, `routing` y las propiedades
@@ -607,7 +607,7 @@ movieron, con lo que las movió.
 de Mermaid en lugar de copiar su texto, así que las fechas de la hoja son las que muestra Mermaid:
 
 ```bash
-pnpm mdg import chart.mmd
+mdg import chart.mmd
 ```
 
 - Las fechas pasan a ser ISO 8601, sea cual sea el `dateFormat` del diagrama (se lee cada token de

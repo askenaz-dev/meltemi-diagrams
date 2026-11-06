@@ -6,10 +6,10 @@
 abrir desde un disco, una carpeta compartida, un adjunto o cualquier alojamiento estático, sin red:
 los diagramas y las historias del proyecto por carpeta, con el reproductor, la búsqueda, los
 enlaces entre diagramas y las entidades del modelo de arquitectura. El mismo código fuente da el
-mismo archivo (decisión 0027).
+mismo archivo.
 
 ```bash
-pnpm mdg build catalog architecture
+mdg build catalog architecture
 ```
 
 ```text
@@ -18,13 +18,13 @@ Wrote architecture/catalog/index.html (3 diagrams, 1 story, 6 entities; 289 KB)
 
 ## Generación
 
-| Comando                                           | Escribe                                                                 |
-| ------------------------------------------------- | ----------------------------------------------------------------------- |
-| `pnpm mdg build catalog`                          | el catálogo del proyecto de la carpeta de trabajo                       |
-| `pnpm mdg build catalog architecture/`            | `architecture/catalog/index.html`, o donde indique `catalog.out`        |
-| `pnpm mdg build catalog architecture/ --out site` | `site/index.html`; una ruta que termina en `.html` da nombre al archivo |
-| `pnpm mdg build catalog --title "Shop"`           | con un título distinto de `catalog.title` o del nombre del proyecto     |
-| `pnpm mdg build catalog --source`                 | con el texto de cada archivo catalogado                                 |
+| Comando                                      | Escribe                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| `mdg build catalog`                          | el catálogo del proyecto de la carpeta de trabajo                       |
+| `mdg build catalog architecture/`            | `architecture/catalog/index.html`, o donde indique `catalog.out`        |
+| `mdg build catalog architecture/ --out site` | `site/index.html`; una ruta que termina en `.html` da nombre al archivo |
+| `mdg build catalog --title "Shop"`           | con un título distinto de `catalog.title` o del nombre del proyecto     |
+| `mdg build catalog --source`                 | con el texto de cada archivo catalogado                                 |
 
 La ruta es una carpeta de proyecto o un archivo dentro de una. El comando imprime los diagnósticos
 de los archivos catalogados, deja fuera (y nombra) los diagramas y las historias que no se pueden

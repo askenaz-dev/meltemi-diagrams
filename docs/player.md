@@ -3,21 +3,21 @@
 [Español](es/player.md)
 
 The player plays a story, several stories of one drawing, or a diagram and its effects, in any browser: offline, from one HTML
-file, with the controls the proposal asks for (pause, progress, scene selection, reduced motion
-and a static view) and full keyboard and screen reader support. It draws every frame with the same
+file, with controls for pause, progress, scene selection, reduced motion
+and a static view, and full keyboard and screen reader support. It draws every frame with the same
 functions as `meltemi-diagrams export` and the canvas, so the picture at an instant is the same
-everywhere (decision 0024). Around the frame, never in it, the player lets people explore the
+everywhere. Around the frame, never in it, the player lets people explore the
 drawing: zoom and pan, hover cards, a detail panel, and opening what a box holds with a double
-click or its plus sign (decision 0047).
+click or its plus sign.
 
 ## Writing a player
 
-| Command                                                                   | Result                                                 |
-| ------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `pnpm mdg export purchase.meltemi --format html --story purchase`         | `purchase.purchase.html`, a complete page              |
-| `pnpm mdg export purchase.meltemi --format html --story purchase --embed` | a fragment to paste into a page                        |
-| `pnpm mdg export checkout.meltemi --format html`                          | `checkout.html`, the diagram and its `animate` effects |
-| `pnpm mdg export flows.meltemi --format html --stories`                   | `flows.stories.html`, every story of the file          |
+| Command                                                              | Result                                                 |
+| -------------------------------------------------------------------- | ------------------------------------------------------ |
+| `mdg export purchase.meltemi --format html --story purchase`         | `purchase.purchase.html`, a complete page              |
+| `mdg export purchase.meltemi --format html --story purchase --embed` | a fragment to paste into a page                        |
+| `mdg export checkout.meltemi --format html`                          | `checkout.html`, the diagram and its `animate` effects |
+| `mdg export flows.meltemi --format html --stories`                   | `flows.stories.html`, every story of the file          |
 
 The page of a diagram also holds every view a drill-down reaches from it across the project (the
 container view of a system, the component view of a container, the diagrams its elements link

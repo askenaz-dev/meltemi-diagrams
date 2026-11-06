@@ -2,254 +2,107 @@
 
 [English](../security.md)
 
-Meltemi Diagrams abre repositorios de cualquier procedencia: los archivos de un colega, una pull
-request, un proyecto descargado para echarle un vistazo, un trabajo de CI que recorre muchos
-repositorios. Abrir, validar, previsualizar o exportar un proyecto así no debe ejecutar su código,
-leer fuera de él, acceder a la red ni agotar los recursos de la máquina. Esta página enumera qué lo
-garantiza, y dónde (decisión 0030).
+Meltemi puede abrir diagramas de colegas, repositorios y proyectos compartidos. El procesamiento
+local no ejecuta código del proyecto y acota el acceso a archivos; la nube añade decisiones
+explícitas de almacenamiento y acceso. Esta página explica esas fronteras, los permisos de los clientes y los límites siguientes.
 
 ## No se ejecuta código
 
-- Los diagramas, los temas, las historias, los modelos y los perfiles de exportación son
-  declaraciones; nada del lenguaje se ejecuta.
-- Los plugins son datos (`docs/plugins.md`): tipos de diagrama y paquetes de iconos declarados en
-  JSON. Los campos que nombrarían código (`main`, `module`, `exports`, `scripts`, `bin`) se ignoran
-  con una advertencia.
-- Los reproductores y los catálogos exportados solo llevan su propio script; su política de
-  seguridad de contenido no permite ningún otro script ni ninguna solicitud de red.
+- Los diagramas, temas, historias, modelos y perfiles de exportación son declaraciones, no código ejecutable.
+- Los [plugins](plugins.md) declaran tipos de diagrama y paquetes de iconos como datos. Los campos
+  `main`, `module`, `exports`, `scripts` y `bin` se ignoran con una advertencia.
+- Los reproductores y catálogos exportados contienen el runtime de Meltemi. Su política sin
+  conexión no permite scripts externos ni solicitudes automáticas de red; seguir un enlace es decisión del lector.
 
 ## Las rutas se quedan en el proyecto
 
-- Las importaciones son rutas `.meltemi` relativas dentro de la raíz del proyecto; se rechazan las
-  URL, las rutas absolutas y las rutas que salen de la raíz (`module.invalid-path`,
-  `module.outside-project`).
-- Las imágenes son archivos del proyecto (`asset.outside-project`); las fuentes y los paquetes de
-  iconos están en `assets/`; los plugins son carpetas dentro del proyecto; las salidas del catálogo
-  y de los perfiles son rutas relativas dentro de él (una salida escrita en otro lugar es un `--out`
-  explícito de la persona).
+- Las importaciones son rutas relativas `.meltemi` dentro de la raíz del proyecto. Se rechazan
+  URL, rutas absolutas y las que salen de ella (`module.invalid-path`, `module.outside-project`).
+- Las imágenes, fuentes, iconos y plugins son recursos del proyecto o integrados. Una importación
+  o un recurso no puede leer un archivo arbitrario fuera de la raíz (`asset.outside-project`).
+- Las salidas de perfiles/catálogos se quedan en el proyecto. Un `--out` explícito permite que
+  la persona elija escribir la exportación en otro lugar.
 
 ## Sin red
 
-No se descarga nada: ninguna URL de importación, imagen, fuente, icono, plugin, tema o página de
-inicio se lee nunca de la red. Las propiedades `url` son hipervínculos escritos en las
-exportaciones, que la herramienta nunca sigue. Las únicas solicitudes que hace el producto son las
-de la asistencia de IA que una persona inicia y acepta (`docs/assist.md`) y las de los comandos de
-la nube que una persona ejecuta (`docs/cli.md`), que hablan con el único servicio que resolvieron
-([más abajo](#la-línea-de-comandos-y-la-nube)); `review --base <revision>` ejecuta el `git` local.
+Después de instalar, la compilación, validación, disposición y exportación locales leen archivos
+del proyecto o integrados; no descargan URL de importaciones, imágenes, fuentes, iconos, plugins
+ni temas. Una propiedad `url` se convierte en un enlace del resultado y la compilación no la
+descarga. La revisión basada en Git lee el historial Git local.
+
+El uso de red depende del flujo elegido: la [asistencia de IA](assist.md) envía la solicitud
+declarada a tu proveedor tras confirmarla; los comandos de nube, MCP con cuenta, los proyectos
+compartidos y las sesiones en vivo se comunican con el servicio. La app web también carga código
+y recursos desde su host. Un invitado a un proyecto compartido o en vivo usa la red aunque no tenga cuenta Meltemi.
 
 ## La app web
 
-La app web (`docs/web-app.md`) es una página estática: su política de seguridad de contenido
-solo permite scripts, estilos, fuentes y conexiones de su propio origen, y sin una cuenta ninguna
-solicitud sale de él. Servido por el servicio en la nube ([cloud](cloud.md)) ofrece una cuenta
-opcional: el avatar de la persona con sesión iniciada es la única imagen que puede venir de otro
-origen (los hosts de los proveedores), los formularios pueden enviarse a la propia página y al
-servicio de identidad (para cerrar sesión), y las conexiones se quedan en el origen de la página. El
-servicio rechaza un cambio hecho con la cookie de sesión si no viene de su propia página, no deja
-que otro sitio enmarque la página, y guarda solo el SHA-256 de un token de API. Los enlaces para
-compartir llevan los proyectos después de `#`, que los
-navegadores nunca envían; al abrir uno se descomprimen como máximo 4 MiB y el texto se compila con
-los límites de más abajo; nada de lo que contiene se ejecuta. El trabajo se queda en el
-almacenamiento del navegador hasta que la persona lo descarga o, con la sesión iniciada, lo guarda
-en un proyecto en la nube.
+Un proyecto del navegador se guarda en su almacenamiento hasta que lo descargues, compartas un
+enlace con fragmento o lo guardes en un proyecto con backend. Un enlace con fragmento lleva el
+proyecto después de `#`, que el navegador no envía en la petición HTTP; quien reciba el enlace
+completo puede leer su contenido. Al abrirlo se descomprimen como máximo 4 MiB y se aplican los límites normales de compilación.
+
+Los proyectos en la nube usan conexiones API/WebSocket al mismo origen. El inicio de sesión
+navega por el servicio de cuentas; los avatares pueden cargarse desde GitHub o Google. Los cambios
+con cookie requieren el [Origin](cloud.md#la-regla-de-origin) correcto. Estas reglas también se
+aplican a invitados y proyectos compartidos: no tener sesión no significa trabajar solo en el navegador.
 
 ## Proyectos en la nube
 
-Los proyectos en la nube (decisión 0041, [cloud](cloud.md)) son la forma en que el trabajo de una
-persona llega al servicio, y solo cuando ella lo decide. Seis cosas los mantienen seguros:
-
-- **La sala.** Todo cambio de un proyecto pasa por su sala, un Durable Object por proyecto, que
-  valida cada transacción sea cual sea su origen (un socket, un push mediante la API, una versión
-  restaurada): los paths deben seguir [la regla de los paths](cloud.md#la-regla-de-los-paths)
-  (relativos, sin `..`, nada oculto), los valores deben tener la forma del documento, un binario
-  debe ser un hash que el proyecto subió, y los límites deben cumplirse. Una transacción que
-  incumple una regla se revierte y se avisa a quien la envió. La sala solo responde a solicitudes
-  que construye el Worker, así que ninguna cabecera ni path de un navegador llega a ella y nadie
-  puede nombrar su propio rol; el socket necesita un `Origin` que sea el del propio servicio, y o un
-  rol que el proyecto da a la persona o el token de una sesión en vivo que la sala comprueba ella
-  misma.
-- **Blobs en una sandbox.** Una imagen o una fuente subida se tipa por sus bytes, nunca por el
-  `Content-Type` que diga un cliente, y un SVG debe ser XML bien formado con una raíz `svg`. Todo
-  blob se sirve con `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` y como
-  descarga, desde una dirección acotada al proyecto que lo tiene, así que un script dentro de un SVG
-  subido no ejecuta nada en el origen del servicio.
-- **Miniaturas.** Una miniatura es un SVG que dibuja la página: el servicio acepta como máximo
-  200 KiB de SVG bien formado, una cada treinta segundos por proyecto, y la sirve en una sandbox.
-- **Cuotas.** Las cuentas y los proyectos tienen límites (100 proyectos, 200 MiB de almacenamiento,
-  2000 archivos, 16 MiB de documento, 10 MiB por imagen o fuente, 200 versiones, 20 clientes en una
-  sala, 512 KiB por mensaje, 50 miembros e invitaciones por proyecto, 16 MiB por página publicada), y
-  las frecuencias también (seis versiones por minuto y diez solicitudes de publicación por hora para
-  un proyecto), y cada rechazo lleva un código estable
-  ([cuotas y límites](cloud.md#cuotas-y-límites)).
-- **La presencia viene de la sala.** Quién está dónde lo retransmite la sala y no lo guarda nadie
-  ([presencia](cloud.md#presencia-awareness)). La sala fija el `sub`, el nombre, la imagen, el
-  color y la marca de invitado de cada estado que retransmite a partir de la identidad que el Worker
-  dio al socket del remitente (la persona de la cookie, o un invitado al que nombró el Worker), diga
-  lo que diga el mensaje, y lo identifica con ese socket, así que nadie puede
-  aparecer como otra persona ni hablar por la entrada de otra. Una página lee quién es una persona de
-  eso y de ningún otro sitio, y acota lo que toma (un nombre es una línea de 100 caracteres como
-  máximo, una imagen cumple la regla del avatar y la política de la página, una posición o un id que
-  no se resuelve se ignora). Todo nombre llega a la cabecera, al código y al lienzo como un nodo de
-  texto, así que un nombre como `<img src=x>` se muestra como esos caracteres y no construye nada. El
-  tráfico también está acotado: un mensaje de presencia de más de 16 KiB cierra a su remitente, más
-  de 20 por segundo se descartan y más de 100 cierran el socket (`awareness.rate`), una página envía
-  cuatro por segundo como máximo, y un lector puede enviar presencia pero nunca una actualización.
-  Un puntero son dos números finitos a menos de un millón del origen, o el estado se descarta. La
-  sala guarda el último estado de un cliente solo en el adjunto del socket, nunca en su base de
-  datos, y la selección del lienzo y el puntero en ningún sitio, y la página nunca lo guarda ni lo
-  escribe en una exportación.
-- **Las conexiones sin cuenta están acotadas.** Quien visita de forma anónima un enlace `view` o
-  `edit`, y el invitado de una sesión en vivo, se conectan con una identidad que fija el Worker: un
-  sub `guest:` a partir de un id que creó su navegador (32 caracteres hexadecimales, si no `400`), un
-  nombre de 1 a 40 caracteres sin caracteres de control (si no, "Guest NN"), y ninguna imagen; la
-  sala rechaza una cuenta cuyo sub pasaría por el de un invitado. Ocupan los veinte sitios de la sala
-  y los ceden al propietario y a los editores con cuenta; una dirección de cliente admite como máximo
-  diez de ellas en una sala (`connections.limit`); una visita es un lector, y un invitado edita solo
-  mientras esté activa una sesión que deje editar a los invitados. Una sesión en vivo dura un día
-  como máximo y termina tras una hora sin nadie en su sala; terminarla cierra cada conexión que
-  admitió (`session.ended`). Su token son 128 bits aleatorios guardados en claro en la sala, como el
-  de una invitación, respondidos solo al propietario y nunca registrados; un token que no está
-  vigente es `404`, sin revelar nada. Además de la sala, llega a la fila del proyecto y a sus blobs, y
-  a ninguna ruta que escriba fuera de la sala, lea las versiones, la miniatura o lo compartido, o
-  gaste el almacenamiento del propietario ([sesiones en vivo](cloud.md#sesiones-en-vivo)).
+- **Validación.** Cada cambio debe cumplir la [regla de los paths](cloud.md#la-regla-de-los-paths),
+  la estructura del documento, las referencias conocidas a recursos y las cuotas. Un rechazo
+  conserva el estado válido anterior e informa un código estable. El cliente no se concede identidad ni rol mediante los archivos.
+- **Acceso.** Los roles se aplican a lecturas y cambios. Un lector no edita; al cambiar el acceso
+  se desconectan las conexiones afectadas para comprobar otra vez sus permisos.
+- **Archivos subidos.** El tipo de imagen/fuente se comprueba por sus bytes. Un SVG debe ser XML
+  bien formado con raíz `svg`. Las descargas llevan `Content-Security-Policy: sandbox`,
+  `X-Content-Type-Options: nosniff` y disposición de adjunto, acotadas a un proyecto accesible.
+- **Guardado.** Los pushes HTTP y las restauraciones persisten antes del éxito. Las escrituras
+  WebSocket alojadas pueden esperar entre guardados (normalmente un segundo, con un máximo de
+  diez desde el primer cambio pendiente). El navegador guarda los cambios pendientes localmente
+  y los reenvía al reconectar. Docker local confirma los cambios WebSocket después de guardarlos.
+  Conserva un archivo de proyecto como copia independiente; la [guía web](web-app.md#sin-conexión) explica el trabajo sin conexión.
+- **Presencia.** El servicio determina nombres, identidades y roles. Cursores, selecciones y
+  actividad del puntero se comparten con los participantes conectados, sin formar parte del código, las exportaciones ni el historial.
+- **Límites.** El almacenamiento, los tamaños, las salas, los mensajes y las frecuencias están
+  acotados; los valores y códigos exactos están [más abajo](#límites).
 
 ## Compartir y publicar
 
-Compartir y publicar (decisión 0042, [cloud](cloud.md)) hacen que el trabajo de una persona llegue a
-otras, de nuevo solo cuando ella lo decide, y un proyecto nuevo es privado. Cinco cosas lo
-mantienen seguro:
+Un proyecto nuevo en la nube es privado. Su propietario elige el acceso por enlace y los miembros;
+las visitas anónimas ven proyectos compartidos y un enlace de sesión en vivo puede permitir que
+un invitado edite. Solo el propietario gestiona compartir y publicar. Los scopes API/OAuth no elevan un rol del proyecto.
 
-- **Una sola comprobación de permisos.** Quién puede abrir un proyecto, y como qué (`owner`,
-  `editor` o `viewer`), lo decide una sola función que consultan todas las rutas y el socket
-  ([roles](cloud.md#roles)). Un proyecto que la persona no puede abrir en absoluto es `404`, la misma
-  respuesta que la de uno que no existe, así que un proyecto privado no se delata; a una persona
-  anónima solo se le dice que inicie sesión donde iniciar sesión ayudaría (`401`), y cualquier otra
-  carencia es `403`. Solo el propietario cambia quién puede abrir un proyecto. La sala toma el rol
-  solo del Worker y cierra el socket de un lector en su primera actualización, dejando el documento
-  como estaba. Un cambio de acceso cuenta desde la solicitud siguiente, y las rutas que lo hacen
-  cortan los sockets que pueda haber dejado obsoletos, para que el rol se determine de nuevo cuando
-  la página reconecte ([cuando cambia el acceso](cloud.md#cuando-cambia-el-acceso)).
-- **Invitaciones en claro, y solo para el propietario.** El token de una invitación es el único
-  secreto que el servicio guarda en claro, porque el propietario puede volver a copiar su enlace; es
-  una capacidad del mismo tipo que el enlace de un proyecto `edit`, solo se le muestra al
-  propietario, nunca se registra, funciona una vez y dura treinta días. Los tokens de API y los
-  códigos de aprobación siguen guardándose solo como hash. Una invitación por correo coincide solo
-  con un correo que el servicio de identidad verificó. Un miembro ve los nombres y las imágenes de
-  los demás, nunca sus correos; quien solo tiene un enlace no ve a nadie.
-- **Una página que solo muestra.** El modo de solo lectura rechaza toda edición en el único lugar
-  por el que pasan las ediciones, y de nuevo en cada control; al lienzo se le dice `readOnly`, no
-  envía ninguna acción a la página y oculta lo que escribe; el binding de un lector nunca envía una
-  actualización, y la sala la rechazaría. Quien no ha iniciado sesión sigue la sala como lector, o
-  lee el proyecto con solicitudes normales al propio origen de la página cuando la sala no responde,
-  y nada de un proyecto que se mira, ni de un proyecto que edita un invitado, se guarda en el
-  navegador.
-- **Las páginas publicadas son HTML de otras personas, en un dominio propio.** Una página publicada
-  es el catálogo que construyó la página, servido desde un dominio que no está bajo `meltemi.dev` por
-  un segundo Worker que solo tiene la base de datos y el bucket: ni recursos, ni secretos, ni
-  cookie, ni API. Responde solo `/<handle>/<slug>/`, con `nosniff` y `no-referrer`, y `404` con un
-  único cuerpo a todo lo demás; el servicio se niega a construir una dirección sobre un host que es
-  el suyo o que está bajo el dominio de la cookie
-  ([el host de publicación](cloud.md#el-host-de-publicación)). La página se ejecuta bajo la política
-  del propio catálogo, que permite script y estilo en línea e imágenes y fuentes de `data:` y
-  `blob:`, y nada más; el servicio no comprueba que el HTML sea un catálogo, y el aislamiento no
-  depende de ello. Una página tiene como máximo 16 MiB y un proyecto puede publicarse diez veces por
-  hora; el propietario despublica, y los propietarios y los administradores del servicio retiran
-  una página ([retirada](cloud.md#retirada)), con rutas que responden `404` a todos los demás. La
-  ruta de desarrollo que sirve una página desde el propio origen del servicio responde `404` salvo
-  que `DEV` esté definido.
-- **Administración por invitación, sin una lista de usuarios.** Los propietarios son las cuentas
-  que nombra el secreto `ADMIN_SUBS`, y la página no puede añadirlos ni quitarlos. Invitan
-  administradores por correo; una invitación no envía ningún correo, dura siete días y solo hace
-  administradora a la persona que inicia sesión con ese correo verificado y elige Aceptar, nunca por
-  iniciar sesión sin más. Los propietarios y los administradores conceden y revocan permisos, como
-  exportar sin la marca, y retiran páginas; solo los propietarios invitan y quitan administradores,
-  y un administrador puede irse. Cada ruta de administración toma la cookie de sesión en el propio
-  origen de la página y responde `404` a todos los demás, también a un token de API de un
-  propietario, y el rol se lee en cada solicitud, así que quitar a alguien cuenta al instante.
-  Ninguna ruta lista, busca ni cuenta las cuentas: una cuenta se nombra por su identificador, su
-  alias o el único correo con el que inició sesión verificado, y solo un propietario o un
-  administrador sabe si un correo tiene cuenta. Cada acto se escribe en un registro con quién lo hizo
-  y cuándo, en el mismo paso que el acto; el registro guarda los correos de las invitaciones y se
-  barre un año después de cada entrada ([administración](cloud.md#administración)).
+Trata los enlaces de invitación y sesión en vivo como enlaces de acceso. Revocar el acceso o
+terminar la sesión impide seguir usándolos. Una herramienta de invitación devuelve un enlace; no envía un correo.
+
+Un catálogo publicado contiene los metadatos y dibujos elegidos. El código se incluye solo
+si habilitas `catalog.source` o `--source`. Las publicaciones usan el dominio separado
+`meltemi.page`, sin cookie de sesión Meltemi ni API de proyectos. Actualizar o despublicar puede
+tardar hasta cinco minutos en llegar a una caché existente.
 
 ## La línea de comandos y la nube
 
-Los comandos de la nube (`login`, `logout`, `whoami`, `push`, `pull`, `publish`, `projects` y
-`review --base cloud`, [la línea de comandos](cli.md#los-comandos-de-la-nube)) son la única parte de
-la línea de comandos que guarda un secreto, un token de API, y escribe los archivos de un servicio en
-una carpeta. Seis cosas los mantienen seguros:
+Los comandos de nube usan el origen elegido y credenciales fuera del proyecto. `mdg login` pide
+aprobar una solicitud en el navegador; `mdg login --token` lee un token desde la entrada estándar.
+Los tokens no son opciones del comando ni ajustes del proyecto. Consulta la
+[referencia de credenciales de la CLI](cli.md#el-host-y-el-token).
 
-- **Un token va a un solo host.** El host es `--host`, si no `MELTEMI_HOST`, si no
-  `https://diagrams.meltemi.dev`, y nunca el `cloud.host` de un `project.json`: un repositorio que
-  clonaste no puede enviar tu token a ningún sitio, y un manifiesto que nombra otro host falla con
-  `cloud.host-mismatch` antes de cualquier solicitud. Un token nunca se envía por `http:` salvo a
-  `127.0.0.1`, `localhost` o `[::1]` (`cloud.insecure-host`), nunca se sigue con él una redirección
-  (`cloud.redirect`), y el intercambio del código de un solo uso no lleva ninguno. Cada solicitud
-  tiene un límite de tiempo y cada respuesta se lee con un límite de tamaño.
-- **Los tokens nunca se muestran.** `redactSecrets` sustituye los tokens `mdg_…` en cada mensaje,
-  error, documento `--json`, página de revisión e imagen que escriben los comandos de la nube, y en
-  el error inesperado que termina con 70; el valor de `MELTEMI_TOKEN` se elimina como el de
-  cualquier variable que parezca un secreto. Un token entra por la entrada estándar
-  (`login --token`), nunca por un argumento, así que no queda en el historial del shell ni en la
-  lista de procesos. `whoami` imprime un nombre, y el código de un solo uso de `login` no se imprime
-  nunca.
-- **Un solo archivo guarda el token.** `credentials.json`, en la carpeta de configuración del
-  usuario, es el único lugar donde se escribe un token. Es `0600` en una carpeta `0700` donde el
-  sistema tiene esos modos (Windows conserva los permisos de la carpeta de perfil y el comando no
-  cambia nada ahí), se escribe mediante un archivo temporal y un renombrado, y nunca se sobrescribe
-  si no contiene credenciales válidas (`credentials.corrupt`). `logout` olvida un token solo después
-  de que el servicio lo revocó o dijo que ya no lo conoce, así que un token que sigue vivo nunca se
-  pierde de vista.
-- **El inicio de sesión escucha solo aquí.** El listener está en `127.0.0.1`, en un puerto al azar.
-  Toma un único `GET /` que lleve un `code`, el `state` de la propia solicitud y un `Host` que sea su
-  propia dirección (una página que haga que el navegador lo llame con otro nombre no obtiene nada),
-  deja de escuchar con la primera solicitud así y termina a los cinco minutos. La única página que
-  responde no tiene script, y su política no permite ninguno. El código está ligado al `state` y se
-  intercambia una sola vez, sin ningún token.
-- **Pull escribe dentro de la carpeta, después de comprobarlo todo.** Cada ruta que responde la nube
-  se comprueba antes de escribir el primer byte: la [regla de los paths](cloud.md#la-regla-de-los-paths)
-  de la nube (relativos, sin `..`, nada oculto), nombres que Windows pudiera guardar, ningún par de
-  rutas que difiera solo en las mayúsculas, que se resuelva dentro de la carpeta, y nunca a través de
-  un enlace. Una que falle rechaza todo el pull con `pull.unsafe-path`. Los archivos se escriben
-  mediante un archivo temporal y un renombrado, así que un enlace de la carpeta se reemplaza y nunca
-  se sigue; los archivos que difieren se conservan salvo con `--force`; las imágenes y las fuentes se
-  comprueban contra su hash. `review --base cloud` aplica la misma regla. Los paths de un proyecto
-  los escribe quien lo edita, y la línea de comandos no se fía de la palabra del servicio sobre
-  ellos.
-- **Nada se sobrescribe sin verlo.** `push` compara antes cada ruta con la nube, lista lo que difiere
-  y pregunta, o se niega sin `--force`; lleva la revisión con la que comparó, y un cambio que llega
-  entretanto se compara de nuevo, no se sobrescribe. Los archivos que no puede enviar se nombran y
-  nunca hacen que borre los de la nube.
+Push/pull usan revisiones para detectar copias antiguas y muestran los cambios antes de escribir.
+Una revisión rechazada o un documento no válido no se sobrescribe en silencio. Estas son
+operaciones explícitas de nube; validar y exportar en local no suben un proyecto.
 
 ## Los agentes y el endpoint MCP
 
-El endpoint MCP ([nube](cloud.md#el-endpoint-mcp)) es la puerta que un agente abre por sí mismo, y
-sus tokens siguen una regla: **un token abre aquello para lo que se hizo, y nada más.**
+La [skill](agents.md) aporta instrucciones y MCP aporta herramientas. Ninguno es un modelo de IA.
+MCP con cuenta actúa con la identidad y los scopes concedidos y el rol actual del proyecto.
+Puedes revocar OAuth en **Ajustes de Diagrams → Aplicaciones conectadas** y los tokens de API en **Tokens de API**.
 
-- **Un token OAuth está ligado a `/mcp`.** El servidor de autorización emite tokens de acceso para un
-  solo recurso, `<origin>/mcp`, durante una hora ([autorización](cloud.md#autorización)); en
-  cualquier otro sitio (la API, el socket, las páginas) uno es `401 token.invalid`. Lleva los alcances
-  que la persona aprobó, y una herramienta rechaza lo que no incluyen; los roles del proyecto deciden
-  el resto, así que un alcance nunca añade un derecho que la cuenta no tiene.
-- **Un token `mdg_` abre los dos.** Un token de API es la llave propia de la cuenta, creada en la
-  página: abre la API HTTP y el endpoint, con todos los alcances. El endpoint nunca emite, lista ni
-  imprime uno, y el servidor de autorización nunca acepta uno.
-- **El consentimiento es de la persona.** Solo aprueba una persona con sesión iniciada en la página,
-  en una página que nombra al cliente, adónde va el acceso (con un aviso cuando es este equipo) y
-  cada alcance, y que ningún otro sitio puede enmarcar ni a la que puede enviar: su política prohíbe
-  los marcos, su formulario lleva un identificador ligado al navegador por una cookie `__Host-` y un
-  `csrf` de la sesión. Cada solicitud se comprueba antes de mostrar la página: PKCE `S256`, una URI
-  de redirección que el cliente registró exactamente, el endpoint como recurso. El registro se limita
-  a diez clientes por hora y dirección.
-- **La revocación es inmediata.** Aplicaciones conectadas, en el panel de la cuenta, revoca una
-  concesión y sus tokens ([aplicaciones conectadas](cloud.md#aplicaciones-conectadas)); eliminar la
-  cuenta revoca todas las concesiones, y una concesión aprobada antes de una eliminación no abre nada
-  aunque su revocación aún esté en camino.
-- **Nada que dé acceso se guarda en claro ni se registra.** Los códigos, los tokens de acceso y de
-  refresco y los secretos de cliente se guardan como hashes, y las props de una concesión, cifradas.
-  El endpoint registra la herramienta, la duración y el código de una llamada, y los rechazos del
-  servidor de autorización se responden, no se imprimen. En `/mcp` nunca se toma la cookie, y allí
-  una página de otro sitio se rechaza antes de leer nada.
+El servidor de carpeta local, `mdg mcp --folder .`, ofrece `validate` y `preview`; el agente edita
+con sus propias herramientas. Escucha en `127.0.0.1` y rechaza peticiones con origen de navegador.
+En un equipo compartido, configura su clave bearer opcional como explica
+[la guía MCP local](agents.md#a-través-del-servidor-local). Docker tiene su
+[frontera de acceso local](local-compose.md#acceso-y-operación-sin-red) y no usa cuenta Meltemi.
 
 ## Los archivos que no son de confianza se sanean
 
@@ -285,17 +138,7 @@ inspeccionan antes de usarse; las fuentes cuya licencia prohíbe incrustarlas so
 
 ## Errores sin secretos
 
-- Las claves de los proveedores de IA están en el entorno o en el almacenamiento de secretos del
-  editor, nunca en los archivos del proyecto ni en las exportaciones, y se ocultan en todos los
-  errores.
-- Un error inesperado de la línea de comandos muestra su mensaje sin los valores de las variables
-  de entorno que parecen secretos (`*KEY*`, `*TOKEN*`, `*SECRET*`, `*PASSWORD*`, `*CREDENTIAL*`), y
-  sin la pila de llamadas salvo que `MELTEMI_DEBUG` esté definida; termina con el código 70.
-- Los tokens de API del servicio en la nube (`mdg_…`) se sustituyen por `mdg_…` en cada mensaje,
-  documento `--json` y página de revisión de la línea de comandos, vengan de donde vengan.
-- Las páginas y los informes pensados para compartirse (catálogos, páginas de revisión,
-  reproductores exportados) nombran versiones y rutas relativas al proyecto, nunca rutas locales.
-- Los Workers de la nube conservan sus propias líneas de registro y ningún registro de invocaciones,
-  que guardaría la dirección de cada solicitud, entre ellas el enlace de una invitación o de una
-  sesión en vivo; ninguna línea que registran contiene una dirección, un token, un id de sesión, uno
-  de esos enlaces ni un código OAuth ([configuración](cloud.md#configuración)).
+Los errores del servicio devuelven códigos estables y mensajes seguros, sin credenciales, cookies,
+cuerpos de solicitudes ni trazas. Los diagnósticos de la CLI usan rutas relativas al proyecto,
+salvo que un comando pida explícitamente rutas absolutas. Los registros de diagnóstico omiten
+tokens de API, tokens de invitación/sesión en vivo y códigos OAuth.

@@ -2,43 +2,19 @@
 
 [Español](es/web-app.md)
 
-The web app is Meltemi Diagrams in a web page (decision 0069): the templates, the code beside the
-same canvas as the VS Code extension, and every export, with nothing to install and no account
-needed. Everything runs in the browser; nothing you write is sent anywhere (decision 0031). Served
-by the [cloud service](cloud.md), the page also offers an optional account
-([the account](#the-account)) and, with it, projects kept in the cloud
-([projects in the cloud](#projects-in-the-cloud)), which can be shared
-([sharing a project](#sharing-a-project)), worked on together, live, by the people they are shared
-with ([working together](#working-together)) and published as a web page
-([publishing a project](#publishing-a-project)). The link to a shared project opens it for anyone
-to look at, with no account ([viewing a shared project](#viewing-a-shared-project)); without an
-account, nothing else changes.
+Create `.meltemi` diagrams with code beside a visual canvas, then export them for documents,
+presentations or the web. A browser-only project needs no account and keeps its content in that
+browser until you download or share it. Cloud projects and shared/live sessions communicate with
+the service, including when you join as a guest without an account.
 
-## Building and serving it
+An optional Meltemi account lets you keep projects across devices, collaborate and publish catalogs.
+For an editor and agents on your own machine, use the [local Docker workspace](local-compose.md).
+The guides below explain the tools shared by both editors and the hosted account features.
 
-```bash
-pnpm playground:build
-```
+## Open the editor
 
-The build writes a static site to `packages/playground/dist/`: `index.html`, the scripts, the
-style sheets, `templates.json`, the fonts, the Tabler data, the runtimes written into HTML exports,
-`NOTICES.md`, `api/session`, the answer a static server gives the page's one request to an API
-(`{"user":null}`: nobody is signed in), and `_headers`, the two headers the cloud service's assets
-platform gives every file of the page (`frame-ancestors 'self'` and `nosniff`; a static server
-serves it as a plain file), and `agent-setup/` with `es/agent-setup/`, the static page that tells
-how to give coding agents the skill ([drawing with coding agents](agents.md)), beside its
-stylesheet and `agent-setup/prompt.md`, the command line's setup prompt. Any static server serves it; during development `pnpm preview` serves
-the repository at `http://localhost:4173/packages/playground/dist/`. The hosted page is
-`https://diagrams.meltemi.dev`: the [cloud service](cloud.md) serves the same build with an account
-on top of it (`pnpm cloud:dev` locally), deployed from `main` by the deploy workflow.
-The page signs people in at `https://id.meltemi.dev`; set `PLAYGROUND_IDENTITY` to another identity
-service's origin when building to change that, and the policy's `form-action` follows.
-
-```bash
-pnpm playground:test-browser
-```
-
-builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or Chrome.
+Open [Meltemi Diagrams](https://diagrams.meltemi.dev). Choose a template or import a project, edit
+the text or canvas, and download a project archive to keep your own copy. No source build is required.
 
 ## What it does
 
@@ -59,14 +35,9 @@ builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or
 | Publish  | A cloud project's catalog as a web page at an address of its own ([publishing a project](#publishing-a-project)).                                                                                                                                                                                                                                                                         |
 | Language | English and Spanish: the page follows the browser's language until the globe menu in the header chooses one.                                                                                                                                                                                                                                                                              |
 
-While the page loads, and whenever the canvas has nothing to draw (a project with no files,
-`project.json`, or a file that is not a `.meltemi` source), the page wears the Meltemi family's
-sea, `@meltemi/ocean`: points of the sea lift and link into a small flow while the fleet of Meltemi
-marks sails on it, in the page's own light or dark colours. It plays once and comes to rest within
-5 seconds, so nothing moves for longer, and it is never shown behind a diagram. It never delays the
-start: its code (about 10 KB gzipped) is loaded apart from the editor's, only when it shows, and it
-makes no request. When the system asks for reduced motion, it is drawn once, at rest. The agent
-setup pages show the same sea as a still picture, with no script.
+While the page loads or the canvas has nothing to draw, a short sea animation marks the empty
+state. It comes to rest within five seconds and never appears behind a diagram. With reduced
+motion enabled, it stays still.
 
 ### Keys of the code
 
@@ -347,16 +318,13 @@ coding agents**, the agent setup page, under its description.
 
 ## The account
 
-The account is optional, and it belongs to the [cloud service](cloud.md), not to the page: the page
-offers it only when the Worker of `packages/cloud` serves it. Served by a static server, such as
-`pnpm preview`, nothing changes. When it starts the page asks its own origin, once, who is signed
-in. A static server answers with the `{"user":null}` that the build wrote; any other answer the page
-cannot use, or none at all, also means that nobody is signed in, silently. Since the page asks once,
-something an administrator grants your account shows at the next load.
+The hosted app offers an optional [Meltemi account](cloud.md). It lets you keep cloud projects,
+manage tokens and connect agents while your browser-only project stays separate. The local Docker
+workspace needs no Meltemi account and does not show central account or administration links.
 
 **Signed out**, the end of the header holds a **Sign in** link. It goes to the identity service,
 `id.meltemi.dev`, and brings you back to the page you were on; before leaving, the page keeps your
-project in the browser. Everything else works as before and nothing is sent.
+project in the browser. Signing in does not automatically upload that project.
 
 **Signed in**, the header shows your avatar and name, with separate entries for the family account, product settings and administration:
 
@@ -391,11 +359,9 @@ the close button return to the page.
 | **Usage**          | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                                                                                                                                                                                 |
 | **Danger zone**    | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                                                                                                                                                                                 |
 
-Sign-ins and Devices are what the identity service holds; the page asks its own origin, whose Worker
-asks the identity service on your behalf ([the identity data](cloud.md#the-identity-data)). When the
-identity service cannot be reached the two sections say so, with **Try again** and a link to its
-account page; the other sections keep working. A device you sign out keeps working on this product
-for up to an hour, until the Worker checks its session again.
+**Sign-ins** and **Devices** manage your linked providers and active sessions. If they cannot load,
+use **Try again** or open **Meltemi account**; the other product settings remain available. A device
+you sign out may keep its cached product session for up to an hour.
 
 Two things leave the page, in the same tab, and come back to the section they left: linking a
 provider (GitHub and Google show their own pages) and deleting the account (you confirm it on the
@@ -926,82 +892,17 @@ service's own origin.
 
 ## Privacy and safety
 
-The page's content security policy allows scripts, styles, fonts, images and connections from its
-own origin only, plus `data:` and `blob:` for drawn pictures; without an account no request leaves
-it, which the browser test checks for every feature. The account adds two things to the policy and
-takes nothing out. `img-src` also allows `https://avatars.githubusercontent.com` and
-`https://*.googleusercontent.com`, where the sign-in providers keep avatars, so a signed-in
-person's avatar is the one image the browser may load from another origin. `form-action`, which was
-`'none'`, is `'self'` plus the origin of the identity service the page was built for, so that the
-**Sign out** form can post to it. `connect-src` stays `'self'`: signing in is a navigation, not a
-request the page makes. Cloud projects add nothing to the policy either: the page talks to its own
-origin, with ordinary requests and one WebSocket to its own host (`/rooms/<id>`). The images and
-fonts of a cloud project reach the page as bytes the service serves sandboxed and as downloads
-([images and fonts](cloud.md#images-and-fonts)), so a script inside an uploaded SVG runs nowhere.
-Sharing, viewing and publishing add nothing either: a viewer's page reads the project through
-ordinary requests to its own origin, and publishing sends the catalog's HTML to the service as one
-more; the pictures of people in the share dialog are drawn only from the hosts the policy already
-allows. Working together adds nothing: presence travels on the same socket, and the name and
-picture of every person come from the room, are shown as text and through the same rule for
-pictures, and are kept nowhere ([safety](security.md#cloud-projects)). A published page is served
-from a domain of its own, never from the page's origin
-([safety](security.md#sharing-and-publishing)).
-Nothing runs from a project or a link: they are compiled with the limits of
-`docs/security.md`. There is no AI assistance in the page: it would need a provider key in a web
-page and requests to the provider; the CLI and the editor have it (`docs/assist.md`).
+A browser-only project stays in that browser until you choose to share, download or upload it.
+Cloud projects, shared projects and live sessions communicate with the service, including guest
+sessions without an account. The [Safety guide](security.md) explains the exact access and size limits.
 
-## How it is built
+The app loads its code, fonts and icon packs from its own host. Signing in navigates through the
+Meltemi account service; a signed-in avatar can load from GitHub or Google. Cloud files and uploaded
+images/fonts are fetched through the project service with its access checks and sandboxed downloads.
 
-- The canvas is `@meltemi/diagrams-canvas`, shared with the extension's webview; the page plays
-  the extension's role (applies plans, keeps revisions, answers the canvas's requests).
-- The explorer is `src/explorer/`: `tree-model.ts` (the tree, the rows the keys walk and the rules
-  of names, moves and copies, with no DOM), `tree.ts` (the WAI-ARIA tree, redrawn by key so that
-  focus, scroll and an opening folder survive the project's changes), `explorer.ts` (the pane and
-  its actions), `switcher.ts` (the header and the Projects panel), `new-project.ts`, `import.ts`
-  and `dialogs.ts`. A move goes through `Studio.moveFiles`, which rewrites the imports with
-  `moveFileEdits` of `@meltemi/diagrams-editor` and records the move in the history's own stack;
-  the pictures of the template cards are drawn when the site is built (`thumbnails.mjs`).
-- Projects live in memory (`MemoryHost`, a `ProjectHost` under `/playground`) and compile with
-  `ProjectSessions` of `@meltemi/diagrams-editor`, with the page's font and Tabler readers and the
-  bundled ELK worker.
-- Fonts and icon data are fetched from the page's own origin when first read; the page analyses
-  again when they arrive, and exports wait for every file they read.
-- The GIF encoder, the WebM and MP4 writers and the ZIP reader and writer are part of the page
-  (`packages/playground/src/encode/`, `src/zip.ts`); nothing else is downloaded.
-- The account is `src/cloud/`: the session the page asks for once (`session.ts`), the header's
-  sign-in link and account menu (`account.ts`) and the API tokens dialog (`tokens-dialog.ts`, over
-  `tokens-model.ts` and `tokens.ts`, which need no DOM). The page works the same whatever the
-  service answers; it never throws on it.
-- Cloud projects are in `src/cloud/` too. `client.ts` makes the calls to the service and none of
-  them throws. `projects-model.ts` is the cloud list of the explorer's panel, and `versions.ts` the
-  versions panel over `versions-model.ts`; neither model needs a DOM. `project.ts` is one open
-  project: its Yjs document (`doc.ts`), the binding that ties the document to the `Studio`
-  (`binding.ts`), the socket to the room (`room.ts`), its copy in IndexedDB (`persistence.ts`) and
-  the connection's state (`status.ts`). `thumbnails.ts` and `thumbnail-render.ts` make and send the
-  preview, `address.ts` reads and writes `?project=`, and `controller.ts` holds it all together for
-  the panel and the shell. The `Studio` gains a `change` listener, `replaceText` for changes that
-  arrive from elsewhere and `canUndo` and `canRedo`, and delegates undo to the binding while a cloud
-  project is open. The one runtime dependency cloud projects add is `yjs` (MIT, listed in
-  `NOTICES.md`); the page keeps the browser, the socket, IndexedDB and the clock behind small
-  interfaces, so the tests play all of them.
-- Sharing, viewing and publishing are in `src/cloud/` as well. `share.ts` draws the share dialog
-  over `share-model.ts`, whose `shareView` is the one place that decides what each role is shown (a
-  control a person may not use is not drawn), and `share-api.ts`, the calls; `publish.ts`,
-  `publish-model.ts` and `publish-api.ts` do the same for publishing, building the page with
-  `projectCatalog` (`src/exports/files.ts`), the build the catalog download shares. Viewing is
-  `view-mode.ts` (the mode), `snapshot.ts` (the read of a person who is not signed in), `link.ts`
-  (opening an address and accepting an invitation), `view-actions.ts` (the copies and the reload),
-  `view-bar.ts` (the header's badge and the reload hint) and `view-page.ts`, which ties them
-  together. `Studio.setReadOnly` refuses every edit at the one place edits pass, `CodePane.setReadOnly`
-  and the shell guard the rest, the binding sends no update as a viewer, and `canvas-settings.ts`
-  gives the canvas `readOnly` in its `settings` message ([the editor guide](editor.md)).
-- Presence is in `src/cloud/` as well. `presence.ts` is what a project tells the room about its
-  person (the file open, the caret as Yjs relative positions, the canvas selection) with the 250 ms
-  throttle and the heartbeat, and what the room says of the others; `presence-wire.ts` is the format
-  of the kind 2 messages ([awareness](cloud.md#awareness)) and the only place that reads a peer's
-  payload; `presence-model.ts` decides, against the document as it is now, who the header lists,
-  which carets the code pane draws and what the canvas is told; `presence-geometry.ts` says where a
-  position is on the pane. None of those four needs a DOM. `presence-bar.ts` draws the header's
-  list, `presence-overlay.ts` the carets and selections over the code, and `presence-mount.ts` ties
-  them to the shell; `room.ts` carries kind 2 messages both ways, and the canvas draws the rest from
-  a `presence` message ([the editor guide](editor.md)).
+Fragment links contain project data in the part after `#`; anyone who receives the full link can
+read it. Published catalogs use the separate `meltemi.page` domain. Their source text is included
+only if you enable it in the catalog settings; review what you publish before sharing its address.
+
+There is no built-in AI chat in the browser editor. Use [AI assistance](assist.md) in the CLI or
+VS Code, or connect your [coding agent with skill/MCP](agents.md) to work on the same project.

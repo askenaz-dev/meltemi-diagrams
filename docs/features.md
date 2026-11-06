@@ -2,7 +2,7 @@
 
 [Español](es/features.md)
 
-Everything Meltemi Diagrams 1.0 does, by area. The [getting started](getting-started.md) guide
+Meltemi Diagrams' capabilities, by area. The [getting started](getting-started.md) guide
 walks through the common path, and the [documentation index](README.md) lists every reference.
 
 - `.meltemi` grammar 0.2 with a lossless parser and stable diagnostics.
@@ -97,17 +97,14 @@ walks through the common path, and the [documentation index](README.md) lists ev
   approximated or dropped, the source is never changed, and re-importing keeps the placement,
   styles and other adjustments made since (`meltemi-diagrams import`, and three commands in VS
   Code).
-- Meltemi Diagrams in the browser ([the web app](web-app.md)): a static web page with an explorer
-  of the project's folders and diagrams (renames and moves keep imports working), New project from
-  the templates' cards, import and export of a project as a `.zip`, the code with its language
-  services beside the same canvas, one undo history, Mermaid and PlantUML import, every
-  export (SVG, PNG, PDF by printing, the HTML player, GIF, WebM and MP4, profiles, the project
-  archive, the model JSON and the catalog), share links and work kept in the browser; no account,
-  and nothing leaves the page.
-- Working together ([the web app](web-app.md#working-together), [cloud](cloud.md)): an optional
-  account adds cloud projects that several people open at once. Everyone types without losing a
-  character and each person's undo covers their own edits; the header shows who is here, and their
-  carets and selections show in the code and on the canvas. Nothing of it is exported or saved.
+- Meltemi Diagrams in the browser ([web app](web-app.md)): templates, a project explorer,
+  code and the shared canvas, Mermaid/PlantUML import, project ZIPs and diagram exports.
+  Browser-only projects need no account; cloud/shared/live projects communicate with the service.
+  PDF uses printing and available video formats depend on browser encoders
+  ([compatibility](compatibility.md)).
+- Working together ([web app](web-app.md#working-together), [cloud](cloud.md)): service-backed
+  projects merge concurrent edits and keep each person's undo separate. Presence shows connected
+  participants and their carets/selections; it is not part of source, exports or version history.
 - The editor for VS Code and its forks ([editor](editor.md)):
   - every language feature, from diagnostics and completion to rename, formatting and quick fixes;
   - a canvas beside the code with a 14 px grid, guides, zoom, pan, a minimap, a palette with a
@@ -116,10 +113,11 @@ walks through the common path, and the [documentation index](README.md) lists ev
     a theme panel, a clipboard, grouping, drag and drop into groups, alignment, full keyboard
     operation and short transitions that respect reduced motion;
   - every gesture is one small edit of the text.
-- Quality: labels kept clear of shapes and other connectors and audited in
-  every drawing, connectors that go around boxes, an acceptance corpus of the five profiles, pixel
-  references, deterministic exports, performance targets on a reference machine and every export
-  opened in Edge, Chrome and Firefox ([quality](quality.md)).
-- Stability: the [language change policy](language/policy.md), a [conformance suite](language/conformance.md)
-  that another implementation can run, one version for every package and a release check that
-  installs the packed CLI and runs it ([releasing](../RELEASING.md)).
+- Coding agents ([skill and MCP](agents.md)): install diagramming instructions for an agent,
+  use the CLI beside your code, or connect project tools to edit the same project as the browser.
+- [Local Docker workspace](local-compose.md): editor, backend and MCP together on your machine,
+  without a Meltemi account, with project archives and whole-instance backup/restore.
+- Composition checks report overlaps and other layout problems as diagnostics
+  ([layout](language/layout.md)); they do not silently change your source.
+- Stability: independent product/language versions, the [language policy](language/policy.md)
+  and [conformance contracts](language/conformance.md) for other readers and tools.

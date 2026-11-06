@@ -2,10 +2,10 @@
 
 [English](../../language/conformance.md)
 
-La batería de conformidad fija lo que significan los archivos `.meltemi`. Cualquier herramienta que
-los lea, esta u otra, puede ejecutarla y saber si los lee como lo hace Meltemi Diagrams. Es el corpus
-de este repositorio, con el resultado esperado de cada caso, y un ejecutor que recibe otra
-implementación en forma de comandos.
+El corpus de conformidad especifica los modelos y diagnósticos esperados de archivos `.meltemi`.
+Sirve al implementar otro lector o integrar el lenguaje, no para dibujar un diagrama. El ejecutor
+es una herramienta del repositorio fuente, no un subcomando instalado de `mdg`. Después de clonar
+el repositorio e instalar sus dependencias, ejecútalo desde esa copia:
 
 ```bash
 pnpm conformance
@@ -47,7 +47,8 @@ Los comandos se ejecutan desde la carpeta raíz del repositorio.
 
 El ejecutor imprime cada caso que falla con lo que difiere: la primera ruta JSON distinta en los
 modelos (`differs at $.diagrams[0].relations[1].label`) o los códigos esperados y los informados en
-los diagnósticos; después, los totales por tipo. Sale con 1 cuando falla un caso.
+los diagnósticos; después, los totales por tipo. Sale con 1 cuando falla un caso. Por ejemplo (con
+cantidades de casos ilustrativas):
 
 ```text
   ✗ model valid/checkout.meltemi: differs at $.diagrams[0].relations[0].label
@@ -56,10 +57,3 @@ los diagnósticos; después, los totales por tipo. Sale con 1 cuando falla un ca
 5 of 5 valid project cases pass
 39 of 39 invalid project cases pass
 ```
-
-## Agregar casos
-
-Cada cambio del lenguaje agrega sus casos ([política](policy.md)): un archivo válido y su JSON del
-modelo, un archivo no válido con el nombre del diagnóstico que muestra, o una carpeta de proyecto con
-`expected.json`. Las instantáneas las escriben las pruebas (`pnpm test -u`) y se revisan como el
-código ([corpus](../../../corpus/README.md)).

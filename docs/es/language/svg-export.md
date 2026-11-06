@@ -9,7 +9,7 @@ que contiene el SVG. El proceso es `compile()` en `@meltemi/diagrams-model`, `la
 `@meltemi/diagrams-render` (de la escena al texto).
 
 ```bash
-pnpm mdg export examples/purchase/diagrams/architecture.meltemi
+mdg export examples/purchase/diagrams/architecture.meltemi
 ```
 
 Opciones: `--diagram <id>` exporta un diagrama, `--out <path>` nombra el archivo (un diagrama) o un
@@ -268,7 +268,7 @@ editor de texto usan la geometría limpia. Todas las exportaciones
 (SVG, PNG, PDF, los reproductores, el video) y el lienzo dibujan con `renderSvg`, así que todos
 muestran los mismos trazos; un guion en movimiento se mueve en las dos pasadas. Una imagen
 dibujada a mano pesa más: la pizarra de la galería ocupa 6,5 KB limpia y 35,6 KB a mano con
-`--fonts system` (decisión 0058).
+`--fonts system`.
 
 ### Preajustes y lienzo
 

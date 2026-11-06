@@ -37,7 +37,7 @@ diagram overview: free {
 }
 ```
 
-Free diagrams compile into the same model as flow diagrams (decision 0018). Relations, `placement`,
+Free diagrams compile into the same model as flow diagrams. Relations, `placement`,
 constraints, `style`, `class`, `rule`, `animate`, themes, presets and canvases work as in flow
 diagrams. `layout manual` is the default: every object has a `place`.
 
@@ -66,7 +66,7 @@ the lines without heads `--` and `---` among them ([grammar](grammar-0.2.md#lexi
 `shape` applies to boxes and to the nodes of flow diagrams; texts, icons, images, notes, stickies,
 lines and pens refuse it with `prop.invalid-value`. `radius` applies to the elements and groups of
 both profiles ([styles.md](styles.md)); `font`, `fontSize` and `fontWeight` to whatever draws text
-in every profile ([fonts.md](fonts.md#the-font-size-and-weight-of-a-text), decision 0067); and
+in every profile ([fonts.md](fonts.md#the-font-size-and-weight-of-a-text)); and
 `textAlign`, `verticalAlign` and `opacity` to free diagrams only, and flow diagrams refuse them
 with `prop.invalid-value` (decisions 0043, 0058 and 0064).
 

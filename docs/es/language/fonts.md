@@ -123,7 +123,7 @@ texto, pero nunca se incrusta ni se convierte en contornos: las exportaciones la
 | `system`   | solo los nombres de las fuentes; los visores usan la primera fuente instalada                                                           | los archivos más pequeños, cuando las fuentes están instaladas |
 
 ```bash
-pnpm mdg export sheet.meltemi --fonts outlined
+mdg export sheet.meltemi --fonts outlined
 ```
 
 En los archivos `embedded`, los caracteres que solo tienen las fuentes completas (las flechas, por

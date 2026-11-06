@@ -4,7 +4,7 @@
 
 `toJson(compile(text))` de `@meltemi/diagrams-model` convierte una compilación en JSON para otras
 herramientas: `meltemi-diagrams convert <file> --to json` lo escribe (`docs/cli.md`), la app web
-lo descarga, y los motores de disposición y las pruebas lo leen. El nombre del formato es
+lo descarga, y los motores de disposición y otras aplicaciones lo leen. El nombre del formato es
 `model-json` y esta página describe la versión `0.1`. Un cambio incompatible aumenta la versión.
 
 ## Reglas
@@ -19,8 +19,8 @@ lo descarga, y los motores de disposición y las pruebas lo leen. El nombre del 
   las relaciones, `spacing`, `side`, `returns` y los `events` de los mensajes, y `scenes` en los
   perfiles de exportación en 1.11.0, `task` en los elementos y `gantt` en los diagramas en 1.11.16,
   y la versión sigue siendo `0.1`.
-- Todos los perfiles de diagrama se compilan; los bloques `story` y `export` todavía no están en el
-  JSON.
+- Todos los perfiles de diagrama se compilan; `stories` y `exports`, en el nivel superior,
+  contienen los bloques correspondientes.
 
 ## Documento
 
@@ -284,8 +284,7 @@ valores predeterminados aplicados:
 | `today`                                     | objeto o null | `{ "date" }`, la fecha escrita o null cuando `today` no escribe ninguna; null sin la instrucción.                                        |
 | `span`                                      | objeto o null | `{ "start", "end" }` como texto ISO: del primer inicio al último final; null cuando nada tiene fecha.                                    |
 
-`corpus/valid/gantt/roadmap.model.json` es el JSON del plan de [gantt.md](gantt.md#un-ejemplo-completo)
-y lo comprueba el conjunto de pruebas.
+`corpus/valid/gantt/roadmap.model.json` es el JSON del plan de [gantt.md](gantt.md#un-ejemplo-completo).
 
 ### Historias
 
@@ -347,5 +346,4 @@ tiene `message` y `range`. Los códigos se listan en [diagnostics.md](diagnostic
 
 ## Ejemplo
 
-`corpus/valid/checkout.model.json` es el JSON de `corpus/valid/checkout.meltemi` y lo comprueba la
-batería de pruebas.
+`corpus/valid/checkout.model.json` es el JSON de `corpus/valid/checkout.meltemi`.

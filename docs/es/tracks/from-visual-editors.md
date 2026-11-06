@@ -34,8 +34,8 @@ reutilizar y animar los diagramas.
 
 ## Para empezar
 
-No hay importador para los archivos de draw.io, Lucidchart o Visio: la importación universal queda
-fuera de la 1.0 ([compatibilidad](../compatibility.md)). En su lugar, empieza desde una plantilla,
+No hay importador para los archivos de draw.io, Lucidchart o Visio
+([compatibilidad](../compatibility.md)). En su lugar, empieza desde una plantilla,
 en [la app web](../web-app.md) sin instalar nada, o en local:
 
 ```bash

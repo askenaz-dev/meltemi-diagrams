@@ -38,7 +38,7 @@ diagram overview: free {
 }
 ```
 
-Las composiciones libres se compilan en el mismo modelo que los diagramas de flujo (decisión 0018).
+Las composiciones libres se compilan en el mismo modelo que los diagramas de flujo.
 Las relaciones, `placement`, las restricciones, `style`, `class`, `rule`, `animate`, los temas, los
 preajustes y los lienzos funcionan como en los diagramas de flujo. `layout manual` es el valor
 predeterminado: cada objeto tiene un `place`.
@@ -70,7 +70,7 @@ símbolos de los diagramas de flujo, entre ellos las líneas sin puntas `--` y `
 imágenes, las notas, las notas adhesivas, las líneas y los lápices la rechazan con
 `prop.invalid-value`. `radius` se aplica a los elementos y los grupos de ambos perfiles
 ([styles.md](styles.md)); `font`, `fontSize` y `fontWeight`, a lo que dibuja texto en todos los
-perfiles ([fonts.md](fonts.md#la-fuente-el-tamaño-y-el-peso-de-un-texto), decisión 0067); y
+perfiles ([fonts.md](fonts.md#la-fuente-el-tamaño-y-el-peso-de-un-texto)); y
 `textAlign`, `verticalAlign` y `opacity`, solo a las composiciones libres, y los diagramas de flujo
 los rechazan con `prop.invalid-value` (decisiones 0043, 0058 y 0064).
 

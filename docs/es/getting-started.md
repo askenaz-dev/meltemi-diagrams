@@ -2,16 +2,18 @@
 
 [English](../getting-started.md)
 
-De no tener nada instalado a un diagrama dibujado en el lienzo y exportado, en unos diez minutos. No
-hace falta ninguna cuenta, y nada de lo que escribes sale de tu máquina.
+De no tener nada instalado a un diagrama dibujado en el lienzo y exportado, en unos diez minutos.
+Puedes trabajar en local sin cuenta; guardar en la nube y colaborar son opciones adicionales.
 
 ## Probarlo sin instalar nada
 
-[La app web](web-app.md) ejecuta todo el producto en una pestaña del navegador: empieza un
-proyecto desde la tarjeta de una plantilla, cambia el código o arrastra en el lienzo, y exporta. El
+Abre [Meltemi Diagrams](https://diagrams.meltemi.dev) en una pestaña del navegador: empieza un
+proyecto desde la tarjeta de una plantilla, cambia el código o arrastra en el lienzo, y exporta.
+La [guía de la app web](web-app.md) explica sus herramientas y las exportaciones que dependen del navegador. El
 explorador de la izquierda lista las carpetas y los diagramas del proyecto. Cuando quieras seguir en
 local, **Exportar proyecto**, en el panel Proyectos (el nombre del proyecto arriba del explorador),
-lo descarga como archivo comprimido; la línea de comandos y el editor lo abren tal cual.
+lo descarga como archivo comprimido. Extráelo y abre la carpeta resultante con la CLI o la
+extensión de VS Code.
 
 ## Instalación
 
@@ -33,13 +35,13 @@ El editor es la extensión **Meltemi Diagrams** para Visual Studio Code 1.95 o p
 Visual Studio Marketplace u Open VSX, o desde un archivo `.vsix`:
 
 ```bash
-code --install-extension meltemi-diagrams-1.0.0.vsix
+code --install-extension meltemi.meltemi-diagrams-vscode
 ```
 
-Si trabajas desde este repositorio, ejecuta `pnpm install` una vez y usa `pnpm mdg` donde esta guía
-dice `meltemi-diagrams`;
-[probarlo desde el repositorio](../../README.es.md#probarlo-desde-este-repositorio) explica también
-el editor y la app web.
+En un editor que use Open VSX, busca **Meltemi Diagrams for VS Code** de **meltemi**.
+Para instalar manualmente, descarga el VSIX de la
+[última versión](https://github.com/askenaz-dev/meltemi-diagrams/releases/latest) y elige
+**Extensiones: Instalar desde VSIX…** en la paleta de comandos.
 
 ## Un primer proyecto
 
@@ -136,6 +138,9 @@ meltemi-diagrams build catalog shop
 
 ## Adónde seguir
 
+- Trabaja con el editor web y los agentes juntos en tu máquina: [espacio de trabajo Docker local](local-compose.md).
+- Dibuja con tu agente de programación: [skill y MCP](agents.md), o usa la [asistencia de IA integrada](assist.md)
+  para una tarea concreta en VS Code o la CLI.
 - Si vienes de otra herramienta: [Mermaid](tracks/from-mermaid.md),
   [PlantUML](tracks/from-plantuml.md) o un [editor visual](tracks/from-visual-editors.md).
 - Qué más hace el producto: las [funciones](features.md), la [galería](../../gallery/README.md) y el

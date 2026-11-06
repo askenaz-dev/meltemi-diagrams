@@ -2,7 +2,7 @@
 
 [English](../features.md)
 
-Todo lo que hace Meltemi Diagrams 1.0, por áreas. La guía de [primeros pasos](getting-started.md)
+Las capacidades de Meltemi Diagrams, por áreas. La guía de [primeros pasos](getting-started.md)
 recorre el camino habitual, y el [índice de la documentación](README.md) enumera todas las
 referencias.
 
@@ -110,19 +110,16 @@ referencias.
   archivos Markdown. Cada construcción se informa como convertida, aproximada o descartada, el
   origen nunca se modifica, y al reimportar se conservan la colocación, los estilos y los demás
   ajustes hechos desde entonces (`meltemi-diagrams import`, y tres comandos en VS Code).
-- La app web ([la app web](web-app.md)): una página web estática con un explorador de las
-  carpetas y los diagramas del proyecto (cambiar el nombre y mover conservan las importaciones),
-  Nuevo proyecto a partir de las tarjetas de las plantillas, importación y exportación de un
-  proyecto como `.zip`, el código con sus servicios de lenguaje junto al mismo lienzo, un único historial para deshacer, importación
-  de Mermaid y PlantUML, todas las exportaciones (SVG, PNG, PDF mediante la impresión, el
-  reproductor HTML, GIF, WebM y MP4, perfiles, el archivo comprimido del proyecto, el JSON del modelo
-  y el catálogo), enlaces para compartir y el trabajo guardado en el navegador; sin cuenta, y nada
-  sale de la página.
-- Trabajar juntos ([la app web](web-app.md#trabajar-juntos), [cloud](cloud.md)): una cuenta
-  opcional añade proyectos en la nube que varias personas abren a la vez. Todos escriben sin perder
-  un solo carácter y el deshacer de cada persona cubre solo sus propias ediciones; la cabecera
-  muestra quién está, y sus cursores y selecciones se ven en el código y en el lienzo. Nada de ello
-  se exporta ni se guarda.
+- Meltemi Diagrams en el navegador ([app web](web-app.md)): plantillas, un explorador de proyectos,
+  código y el lienzo compartido, importación de Mermaid/PlantUML, proyectos ZIP y exportaciones de diagramas.
+  Los proyectos guardados solo en el navegador no necesitan cuenta; los proyectos en la nube,
+  compartidos y las sesiones en vivo se comunican con el servicio. PDF usa la impresión y los
+  formatos de video disponibles dependen de los codificadores del navegador
+  ([compatibilidad](compatibility.md)).
+- Trabajar juntos ([app web](web-app.md#trabajar-juntos), [cloud](cloud.md)): los proyectos del
+  servicio combinan ediciones concurrentes y mantienen separado el deshacer de cada persona.
+  La presencia muestra a las personas conectadas y sus cursores y selecciones; no forma parte del
+  código fuente, las exportaciones ni el historial de versiones.
 - El editor para VS Code y sus derivados ([editor](editor.md)):
   - todas las funciones del lenguaje, desde los diagnósticos y el autocompletado hasta el cambio de
     nombre, el formato y las correcciones rápidas;
@@ -133,11 +130,11 @@ referencias.
     tema, un portapapeles, agrupación, arrastrar y soltar dentro de los grupos, alineación, manejo
     completo con el teclado y transiciones breves que respetan el movimiento reducido;
   - cada gesto es una pequeña edición del texto.
-- Calidad: etiquetas que se mantienen apartadas de las formas y de otros conectores, auditadas en
-  cada dibujo, conectores que rodean las cajas, un corpus de aceptación de los cinco perfiles,
-  referencias de píxeles, exportaciones deterministas, objetivos de rendimiento en una máquina de
-  referencia y cada exportación abierta en Edge, Chrome y Firefox ([calidad](../quality.md)).
-- Estabilidad: la [política de cambios del lenguaje](language/policy.md), una
-  [suite de conformidad](language/conformance.md) que otra implementación puede ejecutar, una sola
-  versión para todos los paquetes y una comprobación de la versión que instala la CLI empaquetada y
-  la ejecuta ([publicación de versiones](../../RELEASING.md)).
+- Agentes de programación ([skill y MCP](agents.md)): instala instrucciones de diagramación,
+  usa la CLI junto a tu código o conecta herramientas de proyecto para editar el mismo que el navegador.
+- [Espacio de trabajo Docker local](local-compose.md): editor, backend y MCP juntos en tu máquina,
+  sin cuenta Meltemi, con archivos de proyecto y respaldo/restauración de la instancia completa.
+- Las comprobaciones de composición informan superposiciones y otros problemas como diagnósticos
+  ([disposición](language/layout.md)); no cambian el código en silencio.
+- Estabilidad: versiones independientes de producto/lenguaje, la [política del lenguaje](language/policy.md)
+  y [contratos de conformidad](language/conformance.md) para otros lectores y herramientas.

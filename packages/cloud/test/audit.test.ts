@@ -1038,13 +1038,23 @@ describe("the documents and the commands", () => {
   // the tables must list every code.
   const DOCUMENTED_LATER = new Set<string>();
 
-  it.each(["docs/cloud.md", "docs/es/cloud.md"])(
-    "%s lists every error code of the service with its status, and no other",
-    (page) => {
+  it.each([
+    ["docs/cloud.md", "docs/internal/cloud-implementation.md"],
+    ["docs/es/cloud.md", "docs/internal/es/cloud-implementation.md"],
+  ])(
+    "%s and its implementation reference list every service error with its status",
+    (page, internalPage) => {
       const documented = Object.entries(ERROR_STATUS).filter(
         ([code]) => !DOCUMENTED_LATER.has(code),
       );
-      expect(rowsOf(page)).toEqual(documented.sort());
+      expect([...rowsOf(page), ...rowsOf(internalPage)].sort()).toEqual(documented.sort());
+      // Private webhook errors belong to the service implementation reference; clients cannot
+      // call those routes. Keep their coverage without presenting them as public API errors.
+      const privateCodes = ["request.unsupported", "signature.invalid"];
+      for (const code of privateCodes) {
+        expect(rowsOf(page).map(([name]) => name)).not.toContain(code);
+      }
+      expect(rowsOf(internalPage).map(([code]) => code)).toEqual(privateCodes);
     },
   );
 

@@ -4,8 +4,7 @@
 
 This is the reference for the syntax implemented by `@meltemi/diagrams-language` and the `flow`,
 `free`, `sequence`, `c4` and `gantt` vocabularies and `model` blocks validated by
-`@meltemi/diagrams-model`. It follows the proposal of 9 October 2026 and decisions 0001 to 0004,
-0018 to 0020 and 0066.
+`@meltemi/diagrams-model`.
 Changes to the language follow the [language change policy](policy.md), and the
 [conformance suite](conformance.md) fixes what files mean.
 
@@ -235,7 +234,7 @@ that point of the side (`from api.east 50%`). A port name that the element does 
 at most one `place` and one `size`, and each relation at most one `route` and one `label`.
 Constraints apply to boxes, notes and tags, not groups; an element appears at most once in each.
 
-Relations without `as <id>` get the key `<from>-><to>#<n>` in the model and JSON (decision 0004).
+Relations without `as <id>` get the key `<from>-><to>#<n>` in the model and JSON.
 
 `link <diagram>.<element>` in an element or group block records that the element stands for an
 element of another diagram: of the same file, or through an import as `link <member>.<element>` or
@@ -440,11 +439,3 @@ Times take `ms` or `s`, from `0ms` to `600s`; `focus` and `camera` take `all`
 `size`, `scale`, `background`, `at`, `motion`, `theme`, `fonts`, `scenario`, `link`, `fps`,
 `duration`, `file`, and `autoplay`, `loop` and `embed` for HTML. Each option applies to some
 formats only ([export.md](export.md)).
-
-## Not yet decided
-
-Deferred to a grammar 0.3 decision after the Stage 2 prototypes:
-
-- Group semantics: whether groups create namespaces and how qualified references interact with
-  rename.
-- Whether chained clauses may start on the line after the closing `}`.

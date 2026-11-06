@@ -130,10 +130,7 @@ the cause is reported. The other codes say, in a gantt chart:
 
 ## Layout and export
 
-Reported by `layoutDiagram()` in `@meltemi/diagrams-layout` and by `meltemi-diagrams export`, not by `compile()`. The
-examples in `corpus/invalid/layout.*.meltemi` are checked by the layout package and
-`corpus/invalid/export.no-diagram.meltemi` by the CLI tests. `layout.engine-failed` has no corpus
-example, since ELK does not fail on valid diagrams; a unit test with a failing engine covers it.
+Reported by `layoutDiagram()` in `@meltemi/diagrams-layout` and by `meltemi-diagrams export`, not by `compile()`.
 Layout modes, constraints and the composition checks are described in [layout.md](layout.md).
 
 | Code                            | Severity | Message template                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |

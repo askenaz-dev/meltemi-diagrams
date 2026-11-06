@@ -38,7 +38,7 @@ diagram payment: sequence {
 ```
 
 Los diagramas de secuencia se compilan en el mismo modelo que los diagramas de flujo y las
-composiciones libres (decisión 0019): los participantes son elementos, las cajas de participantes
+composiciones libres: los participantes son elementos, las cajas de participantes
 son grupos y los mensajes son relaciones. Los ids, las etiquetas, las descripciones, `class`,
 `style`, `rule`, `animate`, `link`, los temas, los preajustes, los lienzos y el marco con el logotipo
 funcionan como en los demás perfiles. Sus instrucciones propias están a continuación.

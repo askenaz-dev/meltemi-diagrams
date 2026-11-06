@@ -4,8 +4,8 @@
 
 Los archivos `.meltemi` se guardan durante años en repositorios y los leen herramientas de distintas
 épocas. Esta página dice qué promete una versión del lenguaje, cómo cambia el lenguaje y cómo se
-versionan los demás contratos que lo rodean. La [batería de conformidad](conformance.md) comprueba
-las promesas; el [proceso de publicación](../../../RELEASING.md) las aplica.
+versionan los demás contratos que lo rodean. La [batería de conformidad](conformance.md) describe
+cómo otra implementación puede comprobar los mismos contratos del lenguaje.
 
 ## Versiones
 
@@ -19,17 +19,17 @@ El encabezado es opcional; un archivo sin él se lee con la versión que impleme
 Una herramienta informa una versión que no implementa como `language.unsupported-version` y no
 intenta adivinar.
 
-Hay otros tres contratos, cada uno con su propia versión:
+El producto, el formato de intercambio y las API públicas tienen versiones independientes del lenguaje:
 
-| Contrato                | Dónde se declara                                                   | Versión actual | Reglas                                                        |
-| ----------------------- | ------------------------------------------------------------------ | -------------- | ------------------------------------------------------------- |
-| El producto             | cada paquete, la CLI y la extensión                                | 1.8.0          | versionado semántico, todos a la par (decisión 0033)          |
-| El JSON del modelo      | `"version"` en cada archivo JSON del modelo (`MODEL_JSON_VERSION`) | 0.1            | una versión nueva ante cualquier cambio de un campo existente |
-| La API del modelo       | `MODEL_API_VERSION`; los plugins declaran el rango que aceptan     | 1.0.0          | versionado semántico (decisión 0030)                          |
-| La API del renderizador | `RENDERER_API_VERSION`; los plugins declaran el rango que aceptan  | 1.0.0          | versionado semántico (decisión 0030)                          |
+| Contrato                | Dónde se declara                                                   | Versión actual                                         | Reglas                                                        |
+| ----------------------- | ------------------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------- |
+| El producto             | cada paquete, la CLI y la extensión                                | `mdg --version` o la versión de la extensión instalada | versionado semántico, todos a la par                          |
+| El JSON del modelo      | `"version"` en cada archivo JSON del modelo (`MODEL_JSON_VERSION`) | 0.1                                                    | una versión nueva ante cualquier cambio de un campo existente |
+| La API del modelo       | `MODEL_API_VERSION`; los plugins declaran el rango que aceptan     | 1.0.0                                                  | versionado semántico                                          |
+| La API del renderizador | `RENDERER_API_VERSION`; los plugins declaran el rango que aceptan  | 1.0.0                                                  | versionado semántico                                          |
 
-Una versión del producto puede dejar sin cambios el lenguaje, el JSON del modelo y las API; el
-producto 1.8.0 implementa el lenguaje 0.2.
+Una versión del producto puede dejar sin cambios el lenguaje, el JSON del modelo y las API. El
+lenguaje actual es 0.2; no es el número de versión del producto.
 
 ## Qué promete una versión
 
@@ -65,6 +65,9 @@ nueva del lenguaje la quite.
 
 ## Migraciones
 
+La CLI actual lee el lenguaje 0.2 y no tiene un subcomando `migrate`. La política siguiente se
+aplica cuando se introduce una nueva versión del lenguaje:
+
 Una versión nueva del lenguaje viene con un comando explícito, `meltemi-diagrams migrate`, que:
 
 - escribe el archivo migrado junto al original, nunca en su lugar, y deja el original intacto;
@@ -77,19 +80,9 @@ responsables. Abrir un archivo más antiguo nunca lo reescribe.
 
 ## Cómo cambia el lenguaje
 
-Cada cambio del lenguaje es un cambio de OpenSpec (`openspec/changes/`) con:
-
-1. una nota de decisión en `docs/decisions/` que nombra el problema, las alternativas y lo que ven
-   los archivos existentes;
-2. la actualización de la gramática en [grammar-0.2.md](grammar-0.2.md) (o en la gramática de la
-   versión siguiente) y las referencias de los perfiles afectados;
-3. casos de conformidad nuevos: archivos válidos con su JSON del modelo y archivos no válidos con sus
-   diagnósticos en `corpus/`, y un caso de proyecto cuando el cambio afecta a los proyectos;
-4. los diagnósticos en [diagnostics.md](diagnostics.md), con las correcciones rápidas;
-5. las tablas de cobertura de los importadores cuando el cambio traduce una construcción de Mermaid
-   o PlantUML.
-
-Un cambio que necesita una versión nueva del lenguaje también describe la migración y sus pruebas.
+Las notas de cada versión describen las adiciones y las actualizaciones de la referencia. Consulta
+el [registro de cambios](../../../CHANGELOG.md) y la versión del lenguaje en tus archivos. Las
+reglas anteriores distinguen una mejora compatible de un cambio que requiere otra versión del lenguaje.
 
 ## Extensiones
 

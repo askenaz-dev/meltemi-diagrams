@@ -5,8 +5,8 @@
 A `story` tells a diagram step by step: scenes that reveal, highlight, trace and draw parts of it,
 move the camera, and change to another view of the same system. A story never changes its
 diagrams; it draws them frame by frame on the same deterministic clock as motion effects
-([motion.md](motion.md), decision 0023), so the canvas, a frame exported at a time and, later, the
-player and videos show the same state at the same instant.
+([motion.md](motion.md)), so the canvas, exported frames, the player and videos show the same
+state at the same instant.
 
 ```text
 story purchase for checkout {
@@ -156,16 +156,16 @@ does not resolve is reported by the import, not by the story.
 
 ## Exports
 
-| Command                                                                   | Result                                              |
-| ------------------------------------------------------------------------- | --------------------------------------------------- |
-| `pnpm mdg export purchase.meltemi --story purchase`                       | `purchase.purchase.svg`, the end of the story       |
-| `pnpm mdg export purchase.meltemi --story purchase --at 500ms`            | the frame at 500 ms                                 |
-| `pnpm mdg export purchase.meltemi --story purchase --format html`         | `purchase.purchase.html`, the HTML player           |
-| `pnpm mdg export purchase.meltemi --story purchase --at 3s --format png`  | the frame at 3 s as PNG (or `pdf`)                  |
-| `pnpm mdg export purchase.meltemi --story purchase --format mp4`          | the whole story as a 1080p video (or `webm`, `gif`) |
-| `pnpm mdg export purchase.meltemi --story purchase --scenes`              | `purchase.purchase.overview.svg` and one per scene  |
-| `pnpm mdg export purchase.meltemi --story purchase --scenes --format pdf` | `purchase.purchase.pdf`, a page per scene           |
-| `pnpm mdg export flows.meltemi --stories`                                 | `flows.stories.html`, every story in one player     |
+| Command                                                              | Result                                              |
+| -------------------------------------------------------------------- | --------------------------------------------------- |
+| `mdg export purchase.meltemi --story purchase`                       | `purchase.purchase.svg`, the end of the story       |
+| `mdg export purchase.meltemi --story purchase --at 500ms`            | the frame at 500 ms                                 |
+| `mdg export purchase.meltemi --story purchase --format html`         | `purchase.purchase.html`, the HTML player           |
+| `mdg export purchase.meltemi --story purchase --at 3s --format png`  | the frame at 3 s as PNG (or `pdf`)                  |
+| `mdg export purchase.meltemi --story purchase --format mp4`          | the whole story as a 1080p video (or `webm`, `gif`) |
+| `mdg export purchase.meltemi --story purchase --scenes`              | `purchase.purchase.overview.svg` and one per scene  |
+| `mdg export purchase.meltemi --story purchase --scenes --format pdf` | `purchase.purchase.pdf`, a page per scene           |
+| `mdg export flows.meltemi --stories`                                 | `flows.stories.html`, every story in one player     |
 
 `--story` writes one frame, so it cannot be combined with `--diagram`, `--scenario` or
 `--motion animated`; `--out` takes a file or an existing directory, `--stdout` prints the SVG.

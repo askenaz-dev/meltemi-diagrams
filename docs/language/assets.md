@@ -77,7 +77,7 @@ with gradients in `<defs>`. Nothing is referenced with `<use>` or `<image>`, so 
 Find icon names with the command line, which matches names, tags and categories:
 
 ```bash
-pnpm mdg assets icons cloud upload
+mdg assets icons cloud upload
 ```
 
 ### Adding icons from the editor
@@ -104,8 +104,7 @@ packs, then the Technology library.
 
 ### Provider icons
 
-The AWS, Azure, Google Cloud and Kubernetes sets are built in, converted unmodified from the
-vendors' downloads by `pnpm vendor:icons` into `packages/assets/vendor/` with the vendor's
+The AWS, Azure, Google Cloud and Kubernetes sets are built in, with the vendor's original SVGs,
 categories and a label per icon (`aws:lambda` is "AWS Lambda"). Each keeps its vendor's terms,
 which permit architecture diagrams and documentation: the tool reports the terms in
 `THIRD_PARTY_LICENSES.md` and in the notices of the extension and the web app, and the `aws`,
@@ -214,7 +213,7 @@ one of the two (`asset.missing-license`).
 ## `assets.lock.json`
 
 ```bash
-pnpm mdg assets lock
+mdg assets lock
 ```
 
 The lock records every pack and font with its version, source, licence and, for project assets, a

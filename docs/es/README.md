@@ -9,7 +9,7 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
 
 - [Primeros pasos](getting-started.md): la instalación, un primer proyecto, el lienzo y las
   exportaciones.
-- [Funciones](features.md): todo lo que hace la 1.0, por áreas.
+- [Funciones](features.md): las capacidades del producto, por áreas.
 - [Galería](../../gallery/README.md) y el [ejemplo de compra](../../examples/purchase/README.md)
   (en inglés).
 - [Compatibilidad y limitaciones conocidas](compatibility.md).
@@ -61,10 +61,8 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
 - [La app web](web-app.md): todo en una pestaña del navegador, y proyectos en la nube cuando
   inicias sesión, compartidos por enlace, con personas, trabajados juntos en vivo y publicados como
   páginas web.
-- [El servicio en la nube](cloud.md): el Worker de la app alojada, con su cuenta opcional,
-  los tokens de API, el inicio de sesión de la línea de comandos y los proyectos guardados en la
-  nube: salas, versiones, miniaturas y cuotas; compartir y permisos; la presencia que retransmite la
-  sala; y la publicación en un host propio.
+- [El servicio en la nube](cloud.md): cuentas opcionales, tokens de API, proyectos en la nube,
+  versiones, colaboración y publicación, con la referencia de las API HTTP y MCP.
 - [El reproductor HTML](player.md) y [el catálogo](catalog.md).
 - [Importar Mermaid](import/mermaid.md) y [PlantUML](import/plantuml.md): en qué se convierte cada
   construcción.
@@ -74,5 +72,4 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
 
 - [Compatibilidad y limitaciones conocidas](compatibility.md), incluidas las exportaciones y los
   entornos compatibles.
-- [Rendimiento](performance.md): límites y comportamiento medido.
 - [Registro de cambios](../../CHANGELOG.md): cambios de cada versión.

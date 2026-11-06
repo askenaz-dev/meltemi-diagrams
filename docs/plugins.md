@@ -4,7 +4,7 @@
 
 A plugin adds **diagram types** and an **icon pack** to a project. Plugins are data: a folder
 with a `meltemi-plugin.json` manifest, read and checked like any other file of the project. Opening
-a diagram never runs code (decision 0030).
+a diagram never runs code.
 
 ## Installing a plugin
 
@@ -32,7 +32,7 @@ loaded. `meltemi-diagrams assets lock` records each plugin's version, folder and
 manifest in `assets.lock.json`; a manifest that changes afterwards is reported until the lock is
 written again, so a change to a plugin shows up in review like any change to the project.
 
-`pnpm mdg plugins <project>` lists the plugins, what they add, their origin and their problems;
+`mdg plugins <project>` lists the plugins, what they add, their origin and their problems;
 `--json` prints the same as one object.
 
 ## The manifest

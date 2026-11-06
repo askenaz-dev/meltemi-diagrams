@@ -5,29 +5,29 @@
 Every diagram, story and set of effects can be written as SVG, PNG, PDF or an HTML player, from
 the command line or the editor. An `export` profile names one delivery reproducibly: what it
 exports, the format and every option, so `meltemi-diagrams export sheet.meltemi --profiles` writes
-the same files on every machine with the same tools (decision 0025).
+the same files on every machine with the same tools.
 
 ## From the command line
 
-| Command                                                                         | Result                                                     |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `pnpm mdg export sheet.meltemi`                                                 | `sheet.svg` (see [svg-export.md](svg-export.md))           |
-| `pnpm mdg export sheet.meltemi --format png`                                    | `sheet.png` at twice the size, with the theme's background |
-| `pnpm mdg export sheet.meltemi --format png --scale 4 --background transparent` | a 4 × PNG on a transparent background                      |
-| `pnpm mdg export sheet.meltemi --format png --size 1920x1080`                   | a 1920 × 1080 PNG with the picture fitted and centred      |
-| `pnpm mdg export sheet.meltemi --format pdf`                                    | `sheet.pdf`, one vector page of the picture's size         |
-| `pnpm mdg export sheet.meltemi --story tour --at 2s --format pdf`               | the frame of the story at 2 s                              |
-| `pnpm mdg export sheet.meltemi --format html --story tour`                      | the story's player ([player.md](../player.md))             |
-| `pnpm mdg export sheet.meltemi --stories`                                       | `sheet.stories.html`, every story in one player            |
-| `pnpm mdg export sheet.meltemi --story tour --scenes --format png`              | `sheet.tour.<scene>.png`, each scene's final state         |
-| `pnpm mdg export sheet.meltemi --story tour --scenes --format pdf`              | `sheet.tour.pdf`, a page per scene                         |
-| `pnpm mdg export sheet.meltemi --diagram context --format html`                 | `sheet.context.html`, with every view it opens             |
-| `pnpm mdg export sheet.meltemi --story tour --format mp4`                       | `sheet.tour.mp4`, 1920 × 1080 at 30 fps                    |
-| `pnpm mdg export sheet.meltemi --format gif`                                    | a GIF of one loop of the diagram's effects                 |
-| `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | the same GIF, 4 s long                                     |
-| `pnpm mdg export sheet.meltemi --profile slide`                                 | what the profile `slide` describes                         |
-| `pnpm mdg export sheet.meltemi --profiles`                                      | every profile of the file                                  |
-| `pnpm mdg export plan.meltemi --today 2026-07-15`                               | a gantt chart's `today` line at 15 July 2026               |
+| Command                                                                    | Result                                                     |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `mdg export sheet.meltemi`                                                 | `sheet.svg` (see [svg-export.md](svg-export.md))           |
+| `mdg export sheet.meltemi --format png`                                    | `sheet.png` at twice the size, with the theme's background |
+| `mdg export sheet.meltemi --format png --scale 4 --background transparent` | a 4 × PNG on a transparent background                      |
+| `mdg export sheet.meltemi --format png --size 1920x1080`                   | a 1920 × 1080 PNG with the picture fitted and centred      |
+| `mdg export sheet.meltemi --format pdf`                                    | `sheet.pdf`, one vector page of the picture's size         |
+| `mdg export sheet.meltemi --story tour --at 2s --format pdf`               | the frame of the story at 2 s                              |
+| `mdg export sheet.meltemi --format html --story tour`                      | the story's player ([player.md](../player.md))             |
+| `mdg export sheet.meltemi --stories`                                       | `sheet.stories.html`, every story in one player            |
+| `mdg export sheet.meltemi --story tour --scenes --format png`              | `sheet.tour.<scene>.png`, each scene's final state         |
+| `mdg export sheet.meltemi --story tour --scenes --format pdf`              | `sheet.tour.pdf`, a page per scene                         |
+| `mdg export sheet.meltemi --diagram context --format html`                 | `sheet.context.html`, with every view it opens             |
+| `mdg export sheet.meltemi --story tour --format mp4`                       | `sheet.tour.mp4`, 1920 × 1080 at 30 fps                    |
+| `mdg export sheet.meltemi --format gif`                                    | a GIF of one loop of the diagram's effects                 |
+| `mdg export sheet.meltemi --format gif --duration 4s`                      | the same GIF, 4 s long                                     |
+| `mdg export sheet.meltemi --profile slide`                                 | what the profile `slide` describes                         |
+| `mdg export sheet.meltemi --profiles`                                      | every profile of the file                                  |
+| `mdg export plan.meltemi --today 2026-07-15`                               | a gantt chart's `today` line at 15 July 2026               |
 
 `--background` takes `transparent`, a colour token (`accent`, `canvas`, …) or a CSS colour, for
 SVG, PNG and PDF; `--link <url>` makes the whole SVG or PDF picture a link. With profiles, the other
@@ -66,7 +66,7 @@ speed of the machine never changes the times: a 7.4 s story at 30 fps is 222 fra
 7.4 s. FFmpeg is the system's (on the path, or `MELTEMI_FFMPEG`; never bundled); each export line
 names the browser, FFmpeg's version and the frame count.
 
-| Format | Default             | Encoder (decision 0026)                                                         |
+| Format | Default             | Encoder                                                                         |
 | ------ | ------------------- | ------------------------------------------------------------------------------- |
 | MP4    | 1920 × 1080, 30 fps | H.264 (libx264), CRF 18, yuv420p, fast start; always opaque                     |
 | WebM   | 1920 × 1080, 30 fps | VP9 (libvpx-vp9), CRF 32; with an alpha channel when `--background transparent` |
