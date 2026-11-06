@@ -14,7 +14,7 @@
 - [x] 2.2 Update English/Spanish account and administration docs and verify parity/link checks.
 - [x] 2.3 Run repository typecheck and lint plus affected-package unit tests; record results and
   delivery dependencies.
-- [ ] 2.4 Update real-Worker browser expectations for the renamed product settings and central
+- [x] 2.4 Update real-Worker browser expectations for the renamed product settings and central
   administration navigation, preserving account, token, sponsorship and permission lifecycle
   assertions; verify the complete cloud browser suite.
 
@@ -37,7 +37,12 @@
 - Strict OpenSpec validation and `git diff --check`: passed.
 - Delivery order: Diagrams #16, Web #31, then this navigation change. No merge or deployment was
   performed as part of this local implementation.
-- The navigation pull request's first cloud browser run found old product-modal selectors in
-  four acceptance files. They now check central navigation and keep their real backend lifecycle
-  assertions; cloud typecheck, scoped ESLint/format and independent review passed. The complete
-  105-check local cloud browser run is in progress; no complete pass is claimed yet.
+- The four real-Worker acceptance files check the renamed settings and central navigation while
+  retaining account, token, sponsorship and permission lifecycle assertions. Cloud typecheck,
+  scoped ESLint/format and independent review passed.
+- Complete local `pnpm cloud:test-browser` at `3baa98c39dc996ba81ee807d828bf8e66d43b07c`:
+  **105 passed, 0 failed**, exit code 0. This verifies the 104 scenarios and the Worker logging
+  check; it is a completed result for that source, separate from the playground browser suite.
+- External evidence: `C:/meltemi/artifacts/diagrams-central-admin-service/navigation-cloud-browser-summary.json`
+  and `navigation-cloud-browser-final.log` in the same directory. The log's SHA-256 is
+  `53dc2ef9a95d7cb42f709c915f79925364885a6148d6c560f6b0fcab66a542d9`.

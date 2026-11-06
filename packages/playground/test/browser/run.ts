@@ -6705,7 +6705,11 @@ const tests: Test[] = [
       await page.waitForTimeout(200);
       assert.equal(usage.requests, 1);
       assert.equal(await page.locator(".account-usage").isVisible(), false, "no numbers, no block");
-      assert.equal(await menu.getByRole("menuitem").count(), 3, "the menu is whole");
+      assert.deepEqual(
+        await menu.getByRole("menuitem").allTextContents(),
+        [en.account.meltemiAccount, en.account.account, en.account.tokens, en.account.signOut],
+        "the complete account menu remains available when usage cannot be read",
+      );
       await page.keyboard.press("Escape");
 
       // An answer that is not what the contract says is no answer either.
