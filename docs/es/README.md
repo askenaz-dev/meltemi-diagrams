@@ -14,6 +14,15 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
   (en inglés).
 - [Compatibilidad y limitaciones conocidas](compatibility.md).
 
+## IA y agentes
+
+- [Diagramar con agentes de IA: skill y MCP](agents.md): convierte el código de tu proyecto o una
+  descripción en diagramas editables con tu agente de programación. Elige la skill para archivos
+  locales, MCP para las herramientas de proyectos o ambos para editar junto con el navegador.
+- [Asistencia de IA integrada](assist.md): genera un primer diagrama, propone cambios, sugiere
+  relaciones faltantes o explica un diff desde la CLI y VS Code, con tu propio proveedor y
+  revisión antes de aplicar.
+
 ## Si vienes de otra herramienta
 
 - [Desde Mermaid](tracks/from-mermaid.md)
@@ -59,22 +68,11 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
 - [El reproductor HTML](player.md) y [el catálogo](catalog.md).
 - [Importar Mermaid](import/mermaid.md) y [PlantUML](import/plantuml.md): en qué se convierte cada
   construcción.
-- [Asistencia de IA](assist.md), opcional.
-- [Dibujar con agentes de programación](agents.md): el prompt que configura un agente de
-  programación, la skill, `skill install` y la página de configuración para agentes en
-  `https://diagrams.meltemi.dev/es/agent-setup/`.
 - [Plugins](plugins.md) y [seguridad](security.md).
 
-## Calidad y proyecto
+## Compatibilidad y novedades
 
-- [Calidad y aceptación](../quality.md), con los [últimos resultados](../quality/results.md)
-  (en inglés), el [rendimiento](performance.md) y las comprobaciones de las exportaciones en
-  [navegadores](../verification/browsers.md) y en
-  [aplicaciones de oficina](../verification/office-apps.md) (en inglés).
-- [Contribuir](../../CONTRIBUTING.md), [gobernanza](../../GOVERNANCE.md),
-  [política de seguridad](../../SECURITY.md) y [publicación de versiones](../../RELEASING.md)
-  (en inglés).
-- [Registro de cambios](../../CHANGELOG.md), la [hoja de ruta de la 1.0](../roadmap-1.0.md) y las
-  [notas de decisión](../decisions/) (en inglés).
-- [Protocolo del piloto](../pilot/protocol.md) y [material del lanzamiento](../launch/announcement.md)
-  (en inglés).
+- [Compatibilidad y limitaciones conocidas](compatibility.md), incluidas las exportaciones y los
+  entornos compatibles.
+- [Rendimiento](performance.md): límites y comportamiento medido.
+- [Registro de cambios](../../CHANGELOG.md): cambios de cada versión.

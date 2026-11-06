@@ -12,6 +12,15 @@ canvas, animated, and exported for documents, slides, the web and video.
 - [Gallery](../gallery/README.md) and the [purchase example](../examples/purchase/README.md).
 - [Compatibility and known limitations](compatibility.md).
 
+## AI and agents
+
+- [Diagram with AI agents: skill and MCP](agents.md): turn project code or a description into
+  editable diagrams with your coding agent. Choose the skill for local files, MCP for project
+  tools, or both for shared editing with the browser.
+- [Built-in AI assistance](assist.md): generate a first diagram, propose changes, suggest missing
+  relations or explain a diff from the CLI and VS Code, with your own provider and review before
+  applying.
+
 ## Coming from another tool
 
 - [From Mermaid](tracks/from-mermaid.md)
@@ -55,18 +64,10 @@ canvas, animated, and exported for documents, slides, the web and video.
 - [The HTML player](player.md) and [the catalog](catalog.md).
 - [Importing Mermaid](import/mermaid.md) and [PlantUML](import/plantuml.md): what each construct
   becomes.
-- [AI assistance](assist.md), optional.
-- [Drawing with coding agents](agents.md): the one prompt that sets up a coding agent, the skill,
-  `skill install` and the agent setup page at `https://diagrams.meltemi.dev/agent-setup/`.
 - [Plugins](plugins.md) and [safety](security.md).
 
-## Quality and project
+## Compatibility and updates
 
-- [Quality and acceptance](quality.md), with the [latest results](quality/results.md),
-  [performance](performance.md) and the export checks in [browsers](verification/browsers.md) and
-  [office applications](verification/office-apps.md).
-- [Contributing](../CONTRIBUTING.md), [governance](../GOVERNANCE.md), [security policy](../SECURITY.md)
-  and [releasing](../RELEASING.md).
-- [Changelog](../CHANGELOG.md), the [1.0 roadmap](roadmap-1.0.md) and the
-  [decision notes](decisions/).
-- [Pilot protocol](pilot/protocol.md) and [launch material](launch/announcement.md).
+- [Compatibility and known limitations](compatibility.md), including supported exports and hosts.
+- [Performance](performance.md): limits and measured behaviour.
+- [Changelog](../CHANGELOG.md): changes in each release.
