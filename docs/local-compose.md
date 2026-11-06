@@ -3,26 +3,48 @@
 [Español](es/local-compose.md)
 
 Run the web editor, project backend and MCP on your computer. Your browser and Claude Code or
-Codex edit the same projects. You need Docker Compose and an installed agent; there is no
-Meltemi account, IDP, sign-in, API token or host Node installation.
+Codex edit the same projects. You need Git and Docker Compose; to diagram with an agent, you
+also need Claude Code or Codex installed. No Meltemi account or host Node installation is needed.
 
 ## Start
 
-Obtain a release's source archive from [GitHub releases](https://github.com/askenaz-dev/meltemi-diagrams/releases)
-and extract it, or check out that release in Git. Open a terminal in the folder containing
-`compose.yaml`. Docker Engine with Compose on Linux, or Docker Desktop using Linux containers
-on Windows, must be running. The initial container target is Linux amd64.
+Start Docker Engine with Compose on Linux, or Docker Desktop using Linux containers on Windows.
+This distribution supports Linux amd64 containers.
+
+Open a terminal in the folder where you want to install Meltemi and run the matching block.
+It checks `latest` to download the latest published release into a new `meltemi-local` folder
+and start the application. Drafts and prereleases are excluded from `latest`.
+
+### Linux (Bash)
+
+You also need `curl` to look up the latest release.
 
 ```bash
+release_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/askenaz-dev/meltemi-diagrams/releases/latest) &&
+git clone --depth 1 --branch "${release_url##*/}" https://github.com/askenaz-dev/meltemi-diagrams.git meltemi-local &&
+cd meltemi-local &&
 docker compose up
 ```
 
+### Windows (PowerShell)
+
+```powershell
+$release = Invoke-RestMethod https://api.github.com/repos/askenaz-dev/meltemi-diagrams/releases/latest -ErrorAction Stop
+git clone --depth 1 --branch $release.tag_name https://github.com/askenaz-dev/meltemi-diagrams.git meltemi-local
+if ($LASTEXITCODE -ne 0) { throw "Git clone failed." }
+Set-Location meltemi-local -ErrorAction Stop
+docker compose up
+```
+
+### Open the editor
+
 The first start builds the image and needs network access to download dependencies. It initializes
 persistent storage and a default project automatically. Wait for the ready message, then open
-[the local editor](http://127.0.0.1:8879/). Startup also prints the editor address and agent setup
-prompt. The browser opens the default workspace project immediately.
+**[http://127.0.0.1:8879/](http://127.0.0.1:8879/)** in your browser. You can now edit the default
+project. The terminal also prints the editor address and agent setup prompt.
 
-Keep the terminal running. `docker compose ps` in another terminal shows the service's status.
+Keep the terminal running. Run the following Docker Compose commands from `meltemi-local`.
+`docker compose ps` in another terminal shows the service's status.
 If port 8879 is occupied, stop the service using it before starting Meltemi; do not expose the
 container port on your network as a workaround.
 

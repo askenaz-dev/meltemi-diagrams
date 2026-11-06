@@ -34,6 +34,17 @@ derive from Git history instead of CI completion time.
 
 ## Publishing channels and configuration
 
+Installation guides resolve GitHub's `latest` release and clone that exact tag. They do not
+embed a version number or choose the highest Git tag: delivery reserves tags before publication.
+GitHub excludes drafts and prereleases from `latest`.
+
+The current main-push automation publishes full releases. Separate `stable` and `preview` tracks
+remain delivery work to define before introducing prereleases: stable as the default installation,
+explicit preview opt-in, SemVer prerelease names, matching npm/gallery channels and promotion
+after validation. Every approved main push must still produce a release; publishing a preview
+must not move the stable/default pointer. This documentation correction does not change that
+publication policy. See [GitHub's release rules](https://docs.github.com/en/rest/releases/releases#create-a-release).
+
 npm, Visual Studio Marketplace, Open VSX and GitHub run independently after the build. The final
 summary fails if any channel is incomplete. The family's Terraform in Meltemi Web supplies
 `NPM_TOKEN` and deployment configuration from its `infrastructure` environment. Both extension
