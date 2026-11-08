@@ -35,6 +35,6 @@
 
 ## 5. Documentation and release notes
 
-- [ ] 5.1 Update `docs/editor.md` and `docs/es/editor.md`: the context menu's effect items and **Reverse direction** (Effects, Free compositions, Sequence diagrams), **Number messages**, the badge menu in "Automatic and assisted layouts" with the confirmation, and the Commands table. Verify with `pnpm lint` (link check) and a read of both pages.
-- [ ] 5.2 Add the changelog entry under the unreleased section of `CHANGELOG.md` and write `docs/decisions/0074-context-actions-and-layout-menu.md` (context, decisions D1–D8, consequences). Verify the number is free in `docs/decisions/` and the note is linked from the changelog entry.
-- [ ] 5.3 Run the full gates: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm vscode:test-webview`, `pnpm player:test-browser`; all green before asking for review.
+- [x] 5.1 Update `docs/editor.md` and `docs/es/editor.md`: the context menu's effect items and **Reverse direction** (Effects, Free compositions, Sequence diagrams), **Number messages**, the badge menu in "Automatic and assisted layouts" with the confirmation, and the Commands table. Verify with `pnpm lint` (link check) and a read of both pages.
+- [x] 5.2 Add the changelog entry under the unreleased section of `CHANGELOG.md` and write `docs/decisions/0074-context-actions-and-layout-menu.md` (context, decisions D1–D8, consequences). Verify the number is free in `docs/decisions/` and the note is linked from the changelog entry.
+- [x] 5.3 Run the full gates: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm vscode:test-webview`, `pnpm player:test-browser`; all green before asking for review.
