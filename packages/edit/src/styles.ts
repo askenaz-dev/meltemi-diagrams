@@ -231,6 +231,27 @@ export function setDiagramProperty(
   const body = diagramBody(ctx);
   const statement = body.statements.find((s) => isKeyword(s, op.property));
   const edits: TextEdit[] = [];
+  if (op.property === "autonumber" && op.value === "") {
+    // `autonumber` written alone numbers from 1: the empty value writes the word by itself.
+    formatDiagramValue(op.property, 1, ctx.diagram.type);
+    if (statement?.kind === "KeywordStatement") {
+      const last = statement.args[statement.args.length - 1];
+      if (!last) return [];
+      edits.push({ start: statement.keyword.end, end: last.end, newText: "" });
+    } else {
+      edits.push(
+        insertDeclaration(
+          ctx,
+          body,
+          ctx.diagram.node.start,
+          () => op.property,
+          (s) => s.kind === "KeywordStatement" && DIAGRAM_PROPERTY_KEYWORDS.has(s.keyword.text),
+        ),
+      );
+    }
+    verifyNoNewErrors(ctx, edits);
+    return edits;
+  }
   if (op.value === null) {
     if (!statement) return [];
     edits.push(...deleteStatements(ctx.text, ctx.compilation.parse.root, [statement]));

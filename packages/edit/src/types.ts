@@ -263,6 +263,25 @@ export type EditOperation =
       readonly position?: number;
     }
   | {
+      /**
+       * Turns a relation around: the source and the target of a flow relation or a sequence
+       * message (by id or key) swap, its route turns with them and its label stays where it is
+       * drawn; a free line (by id) has its points reversed. Styles, effects and tags stay.
+       */
+      readonly kind: "reverseRelation";
+      readonly diagram: string;
+      readonly relation: string;
+    }
+  | {
+      /**
+       * Removes what `layout auto` ignores: the `place` of every arranged element and group (bands
+       * and what lists hold keep theirs) and the `via` lists of routes, removing a route or a
+       * `placement` block left with nothing.
+       */
+      readonly kind: "clearPlacement";
+      readonly diagram: string;
+    }
+  | {
       /** Switches a relation between `->` (solid) and `-->` (dashed). */
       readonly kind: "setRelationLine";
       readonly diagram: string;

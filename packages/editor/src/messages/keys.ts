@@ -3,9 +3,12 @@ import type { CanvasCommand } from "../canvas/keyboard.js";
 
 /**
  * The commands of the canvas that a key or a gesture triggers; `selectBelow` has no key (Alt+click
- * and the context menu).
+ * and the context menu). Reverse direction and Number messages are in the context menu only.
  */
-export type KeyCommand = Exclude<CanvasCommand, "convertToFree" | "createDivider" | "createDelay">;
+export type KeyCommand = Exclude<
+  CanvasCommand,
+  "convertToFree" | "createDivider" | "createDelay" | "reverseDirection" | "toggleAutonumber"
+>;
 
 const en: Readonly<Record<KeyCommand, string>> = {
   selectAll: "Select every element",

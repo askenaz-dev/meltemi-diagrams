@@ -8,17 +8,21 @@ import {
 import {
   arrowToken,
   relationNameAnchor,
+  type Element,
+  type LabelEntry,
   type Relation,
   type RouteEntry,
 } from "@meltemi/diagrams-model";
 import { reject, requireElement, requireNamedRelation, type EditContext } from "./context.js";
 import { freeId, requirePortOf } from "./create.js";
 import { deleteStatements } from "./delete.js";
+import { reversedLinePoints } from "./lines.js";
 import { endpointText, requireEndPosition, routeParts } from "./routes.js";
 import { insertPlacements, removeListItems, requireNewId, type OperationOf } from "./plan.js";
 import { messages, reasons } from "./messages/index.js";
-import { eventDependents, eventIdsOf, nestedInCalls } from "./sequence.js";
+import { eventDependents, eventIdsOf, nestedInCalls, reversedActivation } from "./sequence.js";
 import { renameInStories, storyDependents } from "./stories.js";
+import { formatNumber, sameNumber } from "./text.js";
 
 /** A relation by id or by key (`<from>-><to>#<n>`). */
 export function requireRelation(ctx: EditContext, name: string): Relation {
@@ -149,6 +153,91 @@ export function setRelationLine(ctx: EditContext, op: OperationOf<"setRelationLi
   const arrow = arrowToken(op.line, relation.heads);
   if (node.arrow.text === arrow) return [];
   return [{ start: node.arrow.start, end: node.arrow.end, newText: arrow }];
+}
+
+/**
+ * Turns a relation around: its source and target swap, its route's ends swap whole (element, port
+ * and point travel together) and its waypoints run the other way, and a label placed at `p%` moves
+ * to `(100 − p)%`, so it stays where it is drawn. A sequence message takes its written activation
+ * to the new receiver. A free line has its points reversed. Styles, effects and tags name the
+ * relation, so they stay: the heads and the effects follow the new direction.
+ */
+export function reverseRelation(ctx: EditContext, op: OperationOf<"reverseRelation">): TextEdit[] {
+  const words = reasons().relations;
+  const element = ctx.diagram.elementsById.get(op.relation);
+  if (element?.kind === "line") return reverseLine(ctx, element);
+  if (element) reject("edit.unsafe-target", words.notReversible(op.relation));
+  const relation = requireRelation(ctx, op.relation);
+  if (ctx.diagram.type === "c4") reject("edit.unsafe-target", words.reverseInModel(relation.key));
+  const node = relation.node;
+  if (node.kind !== "RelationStatement") reject("edit.unsafe-target", words.reverseReturn);
+  if (relation.from === relation.to) reject("edit.unsafe-target", words.reverseSelf(relation.key));
+  if (node.target.kind !== "QualifiedRef") {
+    reject("edit.unsafe-target", reasons().placement.expectedEndpoint);
+  }
+  const text = (start: number, end: number) => ctx.text.slice(start, end);
+  const edits: TextEdit[] = [
+    {
+      start: node.source.start,
+      end: node.source.end,
+      newText: text(node.target.start, node.target.end),
+    },
+    {
+      start: node.target.start,
+      end: node.target.end,
+      newText: text(node.source.start, node.source.end),
+    },
+  ];
+  const route = routeOf(ctx, relation);
+  if (route) {
+    const parts = routeParts(route.node);
+    if (parts.fromRef?.kind !== "QualifiedRef" || parts.toRef?.kind !== "QualifiedRef") {
+      reject("edit.unsafe-target", words.routeUnreadable);
+    }
+    const from = { start: parts.fromRef.start, end: (parts.fromAt ?? parts.fromRef).end };
+    const to = { start: parts.toRef.start, end: (parts.toAt ?? parts.toRef).end };
+    edits.push(
+      { ...from, newText: text(to.start, to.end) },
+      { ...to, newText: text(from.start, from.end) },
+    );
+    const list = parts.viaList?.kind === "List" ? parts.viaList : undefined;
+    if (list && list.items.length > 1) {
+      // Each waypoint takes the text of its mirror, so separators and comments stay.
+      const items = list.items;
+      items.forEach((item, i) => {
+        const mirror = items[items.length - 1 - i]!;
+        if (mirror !== item) {
+          edits.push({ start: item.start, end: item.end, newText: text(mirror.start, mirror.end) });
+        }
+      });
+    }
+  }
+  edits.push(...mirroredLabel(ctx, relation.key));
+  if (ctx.diagram.type === "sequence") edits.push(...reversedActivation(ctx, relation));
+  return edits;
+}
+
+/** A free line turned around, with its label kept where it is drawn. */
+function reverseLine(ctx: EditContext, line: Element): TextEdit[] {
+  return [...reversedLinePoints(ctx, line.id), ...mirroredLabel(ctx, line.id)];
+}
+
+/** `label <key> at p%` moved to `(100 − p)%`, so the label stays where it is drawn. */
+function mirroredLabel(ctx: EditContext, key: string): TextEdit[] {
+  const entry = ctx.diagram.placement.find(
+    (p): p is LabelEntry => p.statement === "label" && p.target === key,
+  );
+  const percentage = entry?.node.args[2];
+  if (!entry || percentage?.kind !== "NumberLiteral") return [];
+  const mirrored = Math.round((100 - entry.at) * 1000) / 1000;
+  if (sameNumber(mirrored, entry.at)) return [];
+  return [
+    {
+      start: percentage.token.start,
+      end: percentage.token.end,
+      newText: `${formatNumber(mirrored)}%`,
+    },
+  ];
 }
 
 function routeOf(ctx: EditContext, relation: Relation): RouteEntry | undefined {

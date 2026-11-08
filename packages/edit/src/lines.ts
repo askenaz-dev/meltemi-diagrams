@@ -108,6 +108,29 @@ function tupleEdits(tuple: Arg, point: Point): TextEdit[] {
 }
 
 /**
+ * The points of a free line in reverse, as text: the `from` and `to` tuples swap and each waypoint
+ * of the `via` list takes the text of its mirror, so spacing and comments stay where they are.
+ */
+export function reversedLinePoints(ctx: EditContext, id: string): TextEdit[] {
+  const element = requireElement(ctx, id);
+  if (element.kind !== "line" || element.node?.kind !== "KeywordStatement") {
+    reject("edit.invalid-value", reasons().lines.notALine(id));
+  }
+  const parts = lineParts(element.node as KeywordStatement);
+  const text = (arg: Arg) => ctx.text.slice(arg.start, arg.end);
+  const edits: TextEdit[] = [
+    { start: parts.from.start, end: parts.from.end, newText: text(parts.to) },
+    { start: parts.to.start, end: parts.to.end, newText: text(parts.from) },
+  ];
+  const list = parts.viaList?.kind === "List" ? parts.viaList : undefined;
+  list?.items.forEach((item, i, items) => {
+    const mirror = items[items.length - 1 - i]!;
+    if (mirror !== item) edits.push({ start: item.start, end: item.end, newText: text(mirror) });
+  });
+  return edits;
+}
+
+/**
  * Moves the points of a free line: the tuples after `from` and `to` change number by number, and
  * the bends are written in a `via` list after `to`, inserted when they appear and removed with
  * the word when none is left. Points are in the parent's interior coordinates, rounded.

@@ -240,6 +240,17 @@ export const en = {
       /** `edit.anonymous-relation`: a statement would name a relation that has no id. */
       unnamed: (key: string) =>
         `The relation \`${key}\` has no id for a statement to name; give it one first.`,
+      /** `edit.unsafe-target`: reversing something that is neither a relation nor a free line. */
+      notReversible: (id: string) =>
+        `\`${id}\` is not a relation or a free line, so it has no direction to reverse.`,
+      /** `edit.unsafe-target`: reversing a relation of a C4 view. */
+      reverseInModel: (relation: string) =>
+        `\`${relation}\` comes from the model; reverse it there, in the model relation.`,
+      /** `edit.unsafe-target`: reversing a `return`. */
+      reverseReturn: "A `return` answers its call and follows it; reverse the call instead.",
+      /** `edit.unsafe-target`: reversing a relation from an element to itself. */
+      reverseSelf: (relation: string) =>
+        `\`${relation}\` goes from an element to itself, so reversing it changes nothing.`,
     },
 
     /** Statements of the `placement` block. */
@@ -816,6 +827,9 @@ export const en = {
 
   /** Notes of plans: what the person should know about an edit that was made. */
   notes: {
+    /** A reversed message takes its written activation to its new receiver. */
+    activationMoved: (from: string, to: string) =>
+      `The activation of \`${from}\` after the message now activates \`${to}\`.`,
     /** A comment that names a renamed element. */
     commentMentions: (line: number, id: string) =>
       `The comment on line ${line} mentions \`${id}\` and was not changed.`,

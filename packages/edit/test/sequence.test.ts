@@ -1284,3 +1284,94 @@ describe("tag operations", () => {
     );
   });
 });
+
+describe("reversing messages", () => {
+  it("swaps the participants and takes the written activation to the new receiver", () => {
+    const after = run(payment, { kind: "reverseRelation", diagram: "payment", relation: "pay" });
+    expect(after).toContain('api -> customer: "Pagar" as pay\n  activate customer');
+    expect(after).toContain("  deactivate customer\n");
+    expect(after).not.toContain("activate api");
+    // The events keep their order.
+    expect(statements(after)).toEqual(
+      statements(payment).map((l) =>
+        l === 'customer -> api: "Pagar" as pay' ? 'api -> customer: "Pagar" as pay' : l,
+      ),
+    );
+    const result = planEdit(compile(payment), {
+      kind: "reverseRelation",
+      diagram: "payment",
+      relation: "pay",
+    });
+    expect(result.ok && result.plan.notes.join(" ")).toContain("customer");
+  });
+
+  it("keeps a reply a reply", () => {
+    const after = run(payment, {
+      kind: "reverseRelation",
+      diagram: "payment",
+      relation: "approved",
+    });
+    expect(after).toContain('api --> bank: "OK" as approved');
+  });
+
+  it("leaves a call's block where it is", () => {
+    const text = `diagram s: sequence {
+  participant a "A"
+  participant b "B"
+  a -> b: "Call" as call {
+    b -> b: "Work"
+    return "Done"
+  }
+}
+`;
+    const after = run(text, { kind: "reverseRelation", diagram: "s", relation: "call" });
+    expect(after).toContain('b -> a: "Call" as call {\n    b -> b: "Work"\n    return "Done"\n  }');
+  });
+
+  it("refuses a self message and a return", () => {
+    const text = `diagram s: sequence {
+  participant a "A"
+  participant b "B"
+  a -> a: "Retry" as retry
+  a -> b: "Call" as call {
+    return "Done"
+  }
+}
+`;
+    expect(refused(text, { kind: "reverseRelation", diagram: "s", relation: "retry" })).toMatch(
+      /^edit\.unsafe-target: .*itself/,
+    );
+    const back = compile(text).document.diagrams[0]!.relations.find((r) => r.returns !== null)!;
+    expect(refused(text, { kind: "reverseRelation", diagram: "s", relation: back.key })).toMatch(
+      /^edit\.unsafe-target: .*return/,
+    );
+  });
+});
+
+describe("numbering messages", () => {
+  it("writes autonumber alone, and the word alone again over a start", () => {
+    const on = run(payment, {
+      kind: "setDiagramProperty",
+      diagram: "payment",
+      property: "autonumber",
+      value: "",
+    });
+    expect(on).toMatch(/\n {2}autonumber\n/);
+    expect(compile(on).document.diagrams[0]!.properties.autonumber).toBe(1);
+    const from10 = on.replace("autonumber\n", "autonumber 10\n");
+    const bare = run(from10, {
+      kind: "setDiagramProperty",
+      diagram: "payment",
+      property: "autonumber",
+      value: "",
+    });
+    expect(bare).toBe(on);
+    const off = run(from10, {
+      kind: "setDiagramProperty",
+      diagram: "payment",
+      property: "autonumber",
+      value: null,
+    });
+    expect(off).toBe(payment);
+  });
+});

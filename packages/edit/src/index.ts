@@ -15,5 +15,6 @@ export {
 } from "./animate.js";
 export { deleteStatements } from "./delete.js";
 export { activationPair } from "./sequence.js";
+export { placementCleared, placementToClear, type ClearedPlacement } from "./placement.js";
 export { CREATABLE_DIAGRAMS, newDiagramId, newStoryId } from "./diagrams.js";
 export { formatNumber, quoteString } from "./text.js";

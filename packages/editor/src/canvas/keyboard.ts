@@ -90,6 +90,10 @@ export type CanvasCommand =
   | "nestInCall"
   | "unnestCall"
   | "addReturn"
+  /** The selected relation, message or free line turned around (the context menu). */
+  | "reverseDirection"
+  /** Sequence diagrams: `autonumber` written or removed (the context menu, the palette). */
+  | "toggleAutonumber"
   | "addEntity"
   /** Gantt charts: a task after the selected one, a milestone, a marker at the pointer's date. */
   | "createTask"

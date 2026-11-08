@@ -30,8 +30,8 @@ refused.
 - **THEN** the text reads `customer --> api: "Receipt"` and the message is still a reply
 
 #### Scenario: Reverse a free line
-- **WHEN** `reverseRelation` runs on `line l1 [(40, 40), (120, 40), (120, 100)]` with `style l1 { arrowhead arrow }`
-- **THEN** the points read `[(120, 100), (120, 40), (40, 40)]` and the arrowhead is drawn at (40, 40)
+- **WHEN** `reverseRelation` runs on `line l1 from (40, 40) to (120, 100) via [(120, 40), (80, 70)]` with `style l1 { arrowhead arrow }`
+- **THEN** the statement reads `line l1 from (120, 100) to (40, 40) via [(80, 70), (120, 40)]` and the style is unchanged, so the arrowhead is drawn at (40, 40)
 
 #### Scenario: Nothing to reverse
 - **WHEN** `reverseRelation` runs on `api -> api: "retry"`, on a `return`, or on a relation of a C4 view

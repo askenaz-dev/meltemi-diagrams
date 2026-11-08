@@ -17,6 +17,7 @@ import {
   type MessageEvent,
   type ParticipantEvent,
   type PlacementEntry,
+  type Relation,
   type SequenceEvent,
 } from "@meltemi/diagrams-model";
 import { insertStatement, reject, requireElement, type EditContext } from "./context.js";
@@ -34,7 +35,7 @@ import {
   reindent,
   verifyNoNewErrors,
 } from "./insert.js";
-import { reasons } from "./messages/index.js";
+import { messages, reasons } from "./messages/index.js";
 import { insertPlacements, removeListItems, requireNewId, type OperationOf } from "./plan.js";
 import { relationDependents } from "./relations.js";
 import { formatNumber, isCommentTrivia, lineIndent, lineStart, quoteString } from "./text.js";
@@ -889,6 +890,29 @@ export function toggleActivation(
   }
   verifyNoNewErrors(ctx, edits);
   return edits;
+}
+
+/**
+ * A message turned around takes its written activation with it: when the event right after it in
+ * its block activates its receiver, that `activate` and its `deactivate` name the sender instead,
+ * which becomes the receiver. A call's block activates the receiver by itself, so it needs nothing.
+ */
+export function reversedActivation(ctx: EditContext, relation: Relation): TextEdit[] {
+  const message = withNested(ctx.diagram.events).find(
+    (e): e is MessageEvent => e.kind === "message" && e.relation === relation.key,
+  );
+  if (!message) return [];
+  const events = eventsOfBlock(ctx, message);
+  const next = events[events.indexOf(message) + 1];
+  if (next?.kind !== "activate" || next.participant !== relation.to) return [];
+  const pair = activationPair(ctx.diagram, next);
+  const rename = (event: ParticipantEvent): TextEdit => ({
+    start: event.participantRange.start.offset,
+    end: event.participantRange.end.offset,
+    newText: relation.from,
+  });
+  ctx.notes.push(messages().notes.activationMoved(relation.to, relation.from));
+  return pair ? [rename(next), rename(pair)] : [rename(next)];
 }
 
 /** The events of the block that holds `event`, in order. */

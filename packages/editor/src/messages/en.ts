@@ -375,6 +375,25 @@ export const en = {
     convert: "Only flow diagrams that are drawn can be converted to a free composition.",
     cannotArrange: (problem: string) =>
       `Fix the problems of the diagram before arranging it: ${problem}`,
+    /**
+     * `edit.loses-placement`: what the switch to automatic layout would remove, which the canvas
+     * shows in its confirmation.
+     */
+    losesPlacement: (places: number, routes: number) => {
+      const parts = [
+        ...(places === 1 ? ["position"] : places > 1 ? [`${places} positions`] : []),
+        ...(routes === 1 ? ["route"] : routes > 1 ? [`${routes} routes`] : []),
+      ];
+      return `The engine will place everything again, and the ${parts.join(" and ")} you moved by hand will be lost. You can undo it afterwards.`;
+    },
+    /** Numbering asked of a diagram that is not a sequence diagram. */
+    numbering: "Only the messages of sequence diagrams are numbered.",
+    numbered: "The messages are numbered from 1.",
+    unnumbered: "The messages are no longer numbered.",
+    /** Reverse direction with nothing that has a direction selected. */
+    reverseWhat: "Select a relation, a message or a free line to reverse it.",
+    reversed: (from: string, to: string) => `The relation now goes from \`${from}\` to \`${to}\`.`,
+    lineReversed: (id: string) => `\`${id}\` now runs the other way.`,
     container: (id: string, children: readonly string[]) =>
       children.length === 0
         ? `${code(id)} is now a container.`
@@ -423,6 +442,8 @@ export const en = {
     align: "Sequence diagrams keep their columns and rows; drag participants to reorder them.",
     distribute: "Sequence diagrams keep their columns and rows; use `gap` and `space`.",
     arrange: "Sequence diagrams are arranged by the order of events.",
+    setLayoutMode:
+      "Sequence diagrams are arranged by the order of events; they have no layout mode.",
     reorder: "Sequence diagrams draw everything in order; there is no stacking order.",
     convert: "Only flow diagrams convert to a free composition.",
     addLayer: "Layers belong to flow diagrams and free compositions.",
@@ -594,6 +615,10 @@ export const en = {
     align: "Rows are in order and bars are placed by their dates.",
     distribute: "Rows are in order and bars are placed by their dates.",
     arrange: "A chart is arranged by its dates and the order of its rows.",
+    setLayoutMode:
+      "A chart is arranged by its dates and the order of its rows; it has no layout mode.",
+    reverse:
+      "Dependencies run from the end of a task to the start of the next; change them in After.",
     reorder: "A chart draws everything in order; there is no stacking order.",
     convert: "Only flow diagrams convert to a free composition.",
     addLayer: "Layers belong to flow diagrams and free compositions.",
