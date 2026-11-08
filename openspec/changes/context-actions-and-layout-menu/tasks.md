@@ -30,8 +30,8 @@
 
 ## 4. Playground scenarios and visual check
 
-- [ ] 4.1 Add browser scenarios in `packages/playground/test/browser`: Flow particles from the menu on an anonymous relation (named and animated), Reverse direction on a flow relation and on a sequence message with an activation, Number messages on and off, the badge menu switching to Assisted and Manual, and the confirmation dialog in EN and ES with Cancel and Arrange. Verify with `pnpm player:test-browser` and the playground browser suite green.
-- [ ] 4.2 Review the menus at 1280 px and on a 320 px wide canvas: no menu overflows, the badge button has the same size and colours as the span, the dialog fits and traps focus. Record screenshots in `artifacts/context-actions-and-layout-menu/`.
+- [x] 4.1 Add browser scenarios in `packages/playground/test/browser`: Flow particles from the menu on an anonymous relation (named and animated), Reverse direction on a flow relation and on a sequence message with an activation, Number messages on and off, the badge menu switching to Assisted and Manual, and the confirmation dialog in EN and ES with Cancel and Arrange. Verify with `pnpm player:test-browser` and the playground browser suite green.
+- [x] 4.2 Review the menus at 1280 px and on a 320 px wide canvas: no menu overflows, the badge button has the same size and colours as the span, the dialog fits and traps focus. Record screenshots in `artifacts/context-actions-and-layout-menu/`.
 
 ## 5. Documentation and release notes
 
