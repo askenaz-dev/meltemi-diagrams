@@ -24,6 +24,7 @@ import {
   type CDPSession,
   type Locator,
   type Page,
+  type Request,
   type Route,
 } from "playwright-core";
 import { findFfmpeg } from "../../../capture/src/index.js";
@@ -7321,6 +7322,15 @@ async function main(): Promise<void> {
       });
       if (test.init) await context.addInitScript(test.init);
       const page = await context.newPage();
+      // A request issued before its frame exists comes from a frame being made, never from the
+      // page's main frame, and Playwright throws when asked for that frame.
+      const fromMainFrame = (request: Request) => {
+        try {
+          return request.frame() === page.mainFrame();
+        } catch {
+          return false;
+        }
+      };
       const pageOrigin = test.hostedOrigin ?? origin;
       const url = `${pageOrigin}/index.html`;
       if (test.hostedOrigin) {
@@ -7343,7 +7353,7 @@ async function main(): Promise<void> {
         // The browser's own pages (its downloads list) are not the page's requests.
         const expectedNavigation =
           request.isNavigationRequest() &&
-          request.frame() === page.mainFrame() &&
+          fromMainFrame(request) &&
           test.expectedNavigations?.includes(target);
         if (
           /^(https?|wss?|ftp):/.test(target) &&
