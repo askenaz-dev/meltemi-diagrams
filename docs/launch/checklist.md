@@ -17,8 +17,10 @@ repository, and everything runs as GitHub pipelines.
 - [ ] **Accounts.** The npm organisation `meltemi` (it exists), the `meltemi` publisher on the
       Visual Studio Marketplace and the `meltemi` namespace on Open VSX, with two-factor
       authentication. Marketplace uses its Trusted Publishing policy for `release.yml` with no
-      environment. npm and Open VSX tokens go to `askenaz-dev/meltemi-web`'s `infrastructure`
-      environment; Terraform places `NPM_TOKEN` and `OVSX_PAT` here
+      environment; npm's packages and Open VSX trust `release.yml` in their own environments. The
+      npm token (until those registrations replace it) and the Open VSX token for a first version
+      go to `askenaz-dev/meltemi-web`'s `infrastructure` environment; Terraform places
+      `NPM_TOKEN` and `OVSX_PAT` here
       ([releasing](../../RELEASING.md#publishing-channels-and-configuration)).
 - [ ] **Security reports.** Turn on private vulnerability reporting in the repository's security
       settings ([security policy](../../SECURITY.md)); no Terraform resource exists for it.

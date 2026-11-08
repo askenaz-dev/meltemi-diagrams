@@ -126,6 +126,8 @@ jobs:
   npm:
     needs: check
     runs-on: ubuntu-latest
+    # Match each package's npm trusted publisher; this environment permits main only.
+    environment: npm
     permissions:
       contents: read
       id-token: write
@@ -143,6 +145,13 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+      # From 11.21.0 npm exchanges the job's OIDC identity for dist-tag as well as publish.
+      - name: npm with trusted dist-tags
+        env:
+          NODE_AUTH_TOKEN: ""
+        run: npm install --global npm@11.21.1
+      # npm tries OIDC first and falls back to the token only while a package has no trusted
+      # publisher; the job's log counts both until NPM_TOKEN is retired.
       - name: Publish and safely promote npm packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

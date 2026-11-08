@@ -9,7 +9,7 @@ import { REPO_ROOT } from "../src/corpus.js";
 const { publishGithub, verifyGithubAssets } = await import(
   /* @vite-ignore */ pathToFileURL(join(REPO_ROOT, "scripts/publish-github.mjs")).href
 );
-const { publishNpm, NPM_PACKAGE_NAMES } = await import(
+const { publishNpm, NPM_PACKAGE_NAMES, credentialProblem, publisherOf } = await import(
   /* @vite-ignore */ pathToFileURL(join(REPO_ROOT, "scripts/publish-npm.mjs")).href
 );
 const plan = {
@@ -149,11 +149,15 @@ describe("npm partial publication", () => {
   }
   it("skips identical existing bytes, publishes missing packages and keeps a newer latest", () => {
     const f = fixture();
-    publishNpm(f.directory, f.run, f.unpack);
+    const published = publishNpm(f.directory, f.run, f.unpack);
     expect(f.calls.filter((c) => c[0] === "publish")).toHaveLength(19);
     expect(f.calls.filter((c) => c[0] === "dist-tag")).toHaveLength(0);
     for (const call of f.calls.filter((c) => c[0] === "publish"))
       expect(call).toContain("release-1.10.1");
+    // The packages it published, for the report of how each one was authorized.
+    expect(published).toEqual(
+      (NPM_PACKAGE_NAMES as string[]).filter((name) => name !== "@meltemi/diagrams-assets"),
+    );
   });
   it("checks a late existing conflict before publishing any earlier missing package", () => {
     const f = fixture();
@@ -192,5 +196,66 @@ describe("npm partial publication", () => {
     publishNpm(f.directory, f.run, f.unpack);
     expect(f.calls.filter((c) => c[0] === "publish")).toHaveLength(19);
     expect(f.calls.filter((c) => c[0] === "dist-tag")).toHaveLength(0);
+  });
+});
+
+describe("npm trusted publishing", () => {
+  const oidc = {
+    ACTIONS_ID_TOKEN_REQUEST_URL: "https://example",
+    ACTIONS_ID_TOKEN_REQUEST_TOKEN: "t",
+  };
+
+  it("accepts the job's OIDC identity without NPM_TOKEN, and the token without the identity", () => {
+    expect(credentialProblem({ ...oidc, NODE_AUTH_TOKEN: "" }, "11.21.1")).toBeUndefined();
+    expect(credentialProblem({ NODE_AUTH_TOKEN: "npm_x" }, "11.21.1")).toBeUndefined();
+    expect(credentialProblem({ ...oidc }, "12.2.0")).toBeUndefined();
+    expect(credentialProblem({ ...oidc }, "13.0.0")).toBeUndefined();
+  });
+
+  it("names a job with neither credential", () => {
+    expect(credentialProblem({ NODE_AUTH_TOKEN: " " }, "11.21.1")).toMatch(/neither/);
+    expect(
+      credentialProblem({ ACTIONS_ID_TOKEN_REQUEST_URL: "https://example" }, "11.21.1"),
+    ).toMatch(/neither/);
+  });
+
+  it.each(["11.12.1", "11.20.0", "12.1.0", "10.9.4"])(
+    "refuses npm %s, which moves dist-tags with the token only",
+    (version) => {
+      expect(credentialProblem({ ...oidc, NODE_AUTH_TOKEN: "npm_x" }, version)).toMatch(
+        /cannot move dist-tags/,
+      );
+    },
+  );
+
+  it("reads who published a version from the registry, and never fails on a lagging read", () => {
+    const answer = (text: string) => () => text;
+    expect(
+      publisherOf(
+        "@meltemi/diagrams-cli",
+        "1.11.34",
+        answer('"GitHub Actions <npm-oidc-no-reply@github.com>"'),
+      ),
+    ).toBe("trusted");
+    expect(
+      publisherOf(
+        "@meltemi/diagrams-cli",
+        "1.11.34",
+        answer(
+          '{"name":"GitHub Actions","email":"npm-oidc-no-reply@github.com","trustedPublisher":{"id":"github"}}',
+        ),
+      ),
+    ).toBe("trusted");
+    expect(
+      publisherOf("@meltemi/diagrams-cli", "1.11.34", answer('"owner <owner@example.com>"')),
+    ).toBe("token");
+    expect(publisherOf("@meltemi/diagrams-cli", "1.11.34", answer(""))).toBe("unknown");
+    const lagging = () => {
+      throw { stdout: '{"error":{"code":"E404"}}' };
+    };
+    expect(publisherOf("@meltemi/diagrams-cli", "1.11.34", lagging)).toBe("unknown");
+    const calls: string[][] = [];
+    publisherOf("@meltemi/diagrams-cli", "1.11.34", (args: string[]) => (calls.push(args), ""));
+    expect(calls).toEqual([["view", "@meltemi/diagrams-cli@1.11.34", "_npmUser", "--json"]]);
   });
 });
