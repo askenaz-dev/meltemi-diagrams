@@ -47,6 +47,9 @@ const VIEW_OPERATIONS: ReadonlySet<string> = new Set([
   "setRoute",
   "setLabelAnchor",
   "arrange",
+  "clearPlacement",
+  // Refused with its own reason: the relations of a view come from the model.
+  "reverseRelation",
   "setDiagramProperty",
   "setStyleProperty",
   "setAnimation",

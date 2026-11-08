@@ -14,6 +14,7 @@
   "command.exportPlayer.title": "Export HTML Player",
   "command.arrangeUnplaced.title": "Arrange Unplaced Elements",
   "command.recomputeLayout.title": "Recompute Layout",
+  "command.numberMessages.title": "Number Messages",
   "command.convertToFree.title": "Convert to Free Composition",
   "command.openModel.title": "Open the Model",
   "command.formatDocument.title": "Format Document",

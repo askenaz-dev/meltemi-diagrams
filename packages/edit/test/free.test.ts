@@ -1537,3 +1537,43 @@ describe("converting to free", () => {
     ).toMatch(/has no drawn box/);
   });
 });
+
+describe("reversing and clearing in free compositions", () => {
+  it("reverses a free line's points with its label kept in place", () => {
+    const text = free(
+      "  line l1 from (40, 40) to (120, 100) via [(120, 40), (80, 70)]\n  style l1 { arrowhead arrow }\n  placement {\n    label l1 at 25%\n  }",
+    );
+    const after = run(text, { kind: "reverseRelation", diagram: "s", relation: "l1" });
+    expect(after).toContain("line l1 from (120, 100) to (40, 40) via [(80, 70), (120, 40)]");
+    expect(after).toContain("style l1 { arrowhead arrow }");
+    expect(after).toContain("label l1 at 75%");
+  });
+
+  it("refuses a pen and a box", () => {
+    const text = free("  box a\n  pen p1 [(0, 0), (20, 20)]");
+    expect(refused(text, { kind: "reverseRelation", diagram: "s", relation: "p1" })).toMatch(
+      /^edit\.unsafe-target/,
+    );
+    expect(refused(text, { kind: "reverseRelation", diagram: "s", relation: "a" })).toMatch(
+      /^edit\.unsafe-target/,
+    );
+  });
+
+  it("clears the places of group children and keeps the group's size", () => {
+    const text = free(
+      "  group team {\n    box a\n    box b\n  }\n  placement {\n    place team at (40, 40)\n    size team (300, 120)\n    place a at (20, 20)\n    place b at (120, 20)\n  }",
+    );
+    const after = run(text, { kind: "clearPlacement", diagram: "s" });
+    expect(after).not.toContain("place ");
+    expect(after).toContain("size team (300, 120)");
+  });
+
+  it("keeps what a list holds", () => {
+    const text = free(
+      "  group col {\n    layout column\n    box a\n  }\n  placement {\n    place col at (40, 40)\n    place a at (0, 0)\n  }",
+    );
+    const after = run(text, { kind: "clearPlacement", diagram: "s" });
+    expect(after).not.toContain("place col");
+    expect(after).toContain("place a at (0, 0)");
+  });
+});

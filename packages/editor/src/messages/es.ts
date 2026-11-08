@@ -320,6 +320,21 @@ export const es: typeof en = {
     convert: "Solo los diagramas de flujo que se dibujan se pueden convertir en composición libre.",
     cannotArrange: (problem) =>
       `Corrige los problemas del diagrama antes de organizarlo: ${problem}`,
+    losesPlacement: (places, routes) => {
+      const parts = [
+        ...(places === 1 ? ["la posición"] : places > 1 ? [`las ${places} posiciones`] : []),
+        // "Ruta", as the canvas calls routes: "recorrido" is the name of the trace effect.
+        ...(routes === 1 ? ["la ruta"] : routes > 1 ? [`las ${routes} rutas`] : []),
+      ];
+      const lost = places + routes === 1 ? "perderá" : "perderán";
+      return `El motor va a colocar todo de nuevo y se ${lost} ${parts.join(" y ")} que moviste a mano. Puedes deshacerlo después.`;
+    },
+    numbering: "Solo se numeran los mensajes de los diagramas de secuencia.",
+    numbered: "Los mensajes se numeran desde 1.",
+    unnumbered: "Los mensajes ya no se numeran.",
+    reverseWhat: "Selecciona una relación, un mensaje o una línea libre para invertirla.",
+    reversed: (from, to) => `La relación ahora va de ${code(from)} a ${code(to)}.`,
+    lineReversed: (id) => `${code(id)} ahora va en sentido contrario.`,
     container: (id, children) =>
       children.length === 0
         ? `${code(id)} es ahora un contenedor.`
@@ -365,6 +380,8 @@ export const es: typeof en = {
       "Los diagramas de secuencia mantienen sus columnas y filas; arrastra los participantes para reordenarlos.",
     distribute: "Los diagramas de secuencia mantienen sus columnas y filas; usa `gap` y `space`.",
     arrange: "Los diagramas de secuencia se organizan según el orden de los eventos.",
+    setLayoutMode:
+      "Los diagramas de secuencia se organizan según el orden de los eventos; no tienen modo de disposición.",
     reorder: "Los diagramas de secuencia dibujan todo en orden; no hay orden de apilamiento.",
     convert: "Solo los diagramas de flujo se convierten en composición libre.",
     addLayer: "Las capas pertenecen a los diagramas de flujo y a las composiciones libres.",
@@ -512,6 +529,10 @@ export const es: typeof en = {
     align: "Las filas van en orden y las barras se colocan por sus fechas.",
     distribute: "Las filas van en orden y las barras se colocan por sus fechas.",
     arrange: "Un diagrama de Gantt se organiza por sus fechas y el orden de sus filas.",
+    setLayoutMode:
+      "Un diagrama de Gantt se organiza por sus fechas y el orden de sus filas; no tiene modo de disposición.",
+    reverse:
+      "Las dependencias van del final de una tarea al inicio de la siguiente; cámbialas en Después de.",
     reorder: "Un diagrama de Gantt dibuja todo en orden; no hay orden de apilamiento.",
     convert: "Solo los diagramas de flujo se convierten en composición libre.",
     addLayer: "Las capas pertenecen a los diagramas de flujo y a las composiciones libres.",

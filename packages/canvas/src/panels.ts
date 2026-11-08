@@ -8,8 +8,12 @@ export interface MenuItem {
   readonly disabled?: boolean;
   /** A picture before the label, such as a kind of arrow. */
   readonly picture?: Node;
-  /** An item of a choice: checked when it is the current one (a radio item). */
+  /**
+   * Checked or not: an item of a choice, checked when it is the current one (a radio item), or
+   * with `check: "checkbox"` an item that turns something on and off on its own (an effect).
+   */
   readonly checked?: boolean;
+  readonly check?: "radio" | "checkbox";
   /** Attributes for tests and styles, such as `data-kind`. */
   readonly data?: Readonly<Record<string, string>>;
   readonly run: () => void;
@@ -63,7 +67,12 @@ export class Menu {
       const entry = h(
         "div",
         {
-          role: item.checked === undefined ? "menuitem" : "menuitemradio",
+          role:
+            item.checked === undefined
+              ? "menuitem"
+              : item.check === "checkbox"
+                ? "menuitemcheckbox"
+                : "menuitemradio",
           tabindex: -1,
           "aria-disabled": item.disabled ? "true" : undefined,
           "aria-checked": item.checked === undefined ? undefined : String(item.checked),
@@ -94,7 +103,12 @@ export class Menu {
     this.element.style.left = `${place.left}px`;
     this.element.style.top = `${place.top}px`;
     const entries = this.items();
-    const first = entries.find((e) => e.getAttribute("aria-checked") === "true") ?? entries[0];
+    // The current one of a choice is focused first; checkboxes leave the first item focused.
+    const first =
+      entries.find(
+        (e) =>
+          e.getAttribute("role") === "menuitemradio" && e.getAttribute("aria-checked") === "true",
+      ) ?? entries[0];
     if (first) this.focusItem(first);
   }
 
@@ -111,7 +125,7 @@ export class Menu {
   private items(): HTMLElement[] {
     return [
       ...this.element.querySelectorAll<HTMLElement>(
-        ':is([role="menuitem"], [role="menuitemradio"]):not([aria-disabled="true"])',
+        ':is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]):not([aria-disabled="true"])',
       ),
     ];
   }
@@ -326,6 +340,35 @@ export class Dialog {
   }
 
   /**
+   * Asks before automatic layout removes the positions and routes written by hand: `reason` says
+   * how many; **Arrange** runs `onConfirm`, **Cancel** and Escape close without writing.
+   */
+  confirmArrange(reason: string, onConfirm: () => void): void {
+    this.returnFocus = document.activeElement as HTMLElement | null;
+    clear(this.element);
+    const words = messages().dialogs;
+    const arrange = h("button", { class: "primary", type: "button" }, words.arrange);
+    const cancel = h("button", { type: "button" }, words.cancel);
+    const box = h(
+      "div",
+      { class: "box", "data-dialog": "arrange" },
+      h("div", { id: "mdg-dialog-title", class: "title" }, words.arrangeTitle),
+      h("p", { id: "mdg-dialog-body" }, reason),
+      h("div", { class: "buttons" }, cancel, arrange),
+    );
+    this.element.setAttribute("aria-describedby", "mdg-dialog-body");
+    this.element.append(box);
+    this.element.hidden = false;
+    arrange.addEventListener("click", () => {
+      this.close();
+      onConfirm();
+    });
+    cancel.addEventListener("click", () => this.close());
+    // The safe choice has the focus: Enter alone removes nothing.
+    cancel.focus();
+  }
+
+  /**
    * Asks the id of a theme that extends `current` and whether it lives in this file or in the
    * project (offered only inside a project).
    */
@@ -410,6 +453,7 @@ export class Dialog {
   close(): void {
     if (this.element.hidden) return;
     this.element.hidden = true;
+    this.element.removeAttribute("aria-describedby");
     this.returnFocus?.focus();
   }
 }

@@ -352,6 +352,7 @@ describe("grammar", () => {
         "meltemi.exportSvg",
         "meltemi.arrangeUnplaced",
         "meltemi.recomputeLayout",
+        "meltemi.numberMessages",
         "meltemi.formatDocument",
       ]),
     );

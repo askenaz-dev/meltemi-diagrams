@@ -10,6 +10,7 @@ import {
   defaultLabel,
   newDiagramId,
   newStoryId,
+  placementCleared,
   planEdit,
   type EditOperation,
   type EditPlan,
@@ -699,6 +700,7 @@ export class CanvasSession {
       events,
       scenarios: diagram.scenarios.map((s) => ({ id: s.id, label: s.label })),
       scenario: scenario ?? null,
+      ...(diagram.type === "sequence" ? { autonumber: diagram.properties.autonumber } : {}),
       effects,
       playing,
       ...(this.inProject() ? { project: true } : {}),
@@ -2699,6 +2701,15 @@ export class CanvasSession {
         break;
       }
       case "setField": {
+        // The diagram's Layout field changes the mode as the badge's menu does: `auto` asks first
+        // when it would remove written positions. Sequence diagrams and charts have no mode.
+        const moded = diagram.type !== "gantt" && diagram.type !== "sequence";
+        if (action.ids.length === 0 && action.field === "layout" && moded) {
+          const value = action.value === "" ? null : action.value;
+          if (value === null || value === "auto" || value === "assisted" || value === "manual") {
+            return this.layoutMode(view, { kind: "setLayoutMode", mode: value });
+          }
+        }
         const result = fieldOperations(this.analysis!, d, action.ids, action.field, action.value);
         if (!result.ok)
           return {
@@ -2823,6 +2834,28 @@ export class CanvasSession {
         }
         break;
       }
+      case "setLayoutMode":
+        return this.layoutMode(view, action);
+      case "setAutonumber": {
+        if (diagram.type !== "sequence") {
+          return {
+            messages: [
+              { type: "rejected", code: "edit.invalid-value", reason: words.session.numbering },
+            ],
+          };
+        }
+        // `autonumber` alone numbers from 1; turning it off removes it, whatever its start.
+        ops.push({
+          kind: "setDiagramProperty",
+          diagram: d,
+          property: "autonumber",
+          value: action.on ? "" : null,
+        });
+        this.pendingStatus = action.on ? words.session.numbered : words.session.unnumbered;
+        break;
+      }
+      case "reverse":
+        return this.reverse(view, action.ids);
     }
     const planned = this.planned(view, action.kind, ops);
     if (action.kind === "moveActivation" && planned.plan?.edits.length === 0) {
@@ -2841,6 +2874,113 @@ export class CanvasSession {
         written: planned.plan.inverse,
         revision: this.analysis!.revision,
       };
+    }
+    return planned;
+  }
+
+  /**
+   * The layout mode of the diagram shown, from the badge's menu or the inspector's Layout field.
+   * `assisted` writes the statement. `manual` first writes the places the engine gives the
+   * unplaced boxes, so that the diagram keeps its picture and compiles. `auto` removes what the
+   * engine would ignore (`clearPlacement`) in the same edit; when that is something, it is refused
+   * with `edit.loses-placement`, the counts in the reason, until the canvas confirms with the
+   * retry. A null mode removes the statement: the profile's default (`manual` for free
+   * compositions, `auto` otherwise) decides which of the three it is.
+   */
+  private layoutMode(
+    view: DiagramView,
+    action: Extract<CanvasAction, { kind: "setLayoutMode" }>,
+  ): SessionResult {
+    const d = view.id;
+    const words = wording().session;
+    const mode = action.mode ?? (view.diagram.type === "free" ? "manual" : "auto");
+    const set: EditOperation = {
+      kind: "setDiagramProperty",
+      diagram: d,
+      property: "layout",
+      value: action.mode,
+    };
+    if (mode === "auto") {
+      const cleared = placementCleared(this.analysis!.compilation, d);
+      if (cleared.places + cleared.routes > 0 && action.confirmed !== true) {
+        return {
+          messages: [
+            {
+              type: "rejected",
+              code: "edit.loses-placement",
+              reason: words.losesPlacement(cleared.places, cleared.routes),
+              retry: { ...action, confirmed: true },
+            },
+          ],
+        };
+      }
+      return this.planned(view, action.kind, [set, { kind: "clearPlacement", diagram: d }]);
+    }
+    if (mode === "manual") {
+      const attempt = arrangeAttempt(this.analysis!, d, "unplaced");
+      if (attempt.problem !== undefined) {
+        return {
+          messages: [
+            {
+              type: "rejected",
+              code: "layout.cannot-arrange",
+              reason: words.cannotArrange(attempt.problem),
+            },
+          ],
+        };
+      }
+      return this.planned(view, action.kind, [
+        ...(attempt.operation ? [attempt.operation] : []),
+        set,
+      ]);
+    }
+    return this.planned(view, action.kind, [set]);
+  }
+
+  /**
+   * The last of `ids` turned around (`reverseRelation`): a relation or a message keeps the
+   * selection under the key it takes, and the status line names its new direction, and the
+   * participant a written activation now activates.
+   */
+  private reverse(view: DiagramView, ids: readonly string[]): SessionResult {
+    const id = ids[ids.length - 1];
+    if (id === undefined) return NONE;
+    const diagram = view.diagram;
+    const words = wording().session;
+    const relation = diagram.relationsByKey.get(id);
+    const line = diagram.elementsById.get(id);
+    const ends = relation
+      ? { from: relation.from, to: relation.to }
+      : line?.line
+        ? { from: line.id, to: line.id }
+        : undefined;
+    if (!ends) {
+      return {
+        messages: [{ type: "rejected", code: "edit.unsafe-target", reason: words.reverseWhat }],
+      };
+    }
+    const planned = this.planned(view, "reverse", [
+      { kind: "reverseRelation", diagram: view.id, relation: id },
+    ]);
+    if (!planned.plan) return planned;
+    if (relation) {
+      // An anonymous relation is keyed by its ends: it is the n-th from its new source to its new
+      // target, counted in the order of the relations.
+      let key = relation.id;
+      if (key === null) {
+        const index = diagram.relations.indexOf(relation);
+        const before = diagram.relations
+          .slice(0, index)
+          .filter((r) => r.from === relation.to && r.to === relation.from).length;
+        key = `${relation.to}->${relation.from}#${before + 1}`;
+      }
+      this.pendingSelection = [key];
+      this.pendingStatus = [words.reversed(relation.to, relation.from), ...planned.plan.notes].join(
+        " ",
+      );
+    } else {
+      this.pendingSelection = [id];
+      this.pendingStatus = words.lineReversed(id);
     }
     return planned;
   }

@@ -8,6 +8,7 @@ import { propertyTabTests } from "./property-tabs.js";
 import { manipulationTests } from "./manipulation.js";
 import { touchTests } from "./touch.js";
 import { connectionPreviewTests } from "./connection-preview.js";
+import { contextActionTests } from "./context-actions.js";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1863,6 +1864,7 @@ const tests: {
   ...touchTests,
   ...connectionPreviewTests(output),
   ...propertyTabTests(output),
+  ...contextActionTests(output),
   {
     name: "renders the diagram, the toolbar, the inspector and the minimap",
     async run(h) {
@@ -6519,7 +6521,9 @@ const tests: {
       assert.equal(await picker.inputValue(), "overview");
       assert.match((await page.locator(".inspector h2").textContent()) ?? "", /overview/);
       assert.equal(await page.locator(".minimap").isVisible(), true);
-      assert.equal(await page.locator(".toolbar .badge").textContent(), "layout manual");
+      // A canvas that edits a flow diagram names the mode with the badge's button.
+      assert.equal(await page.locator(".toolbar .layout-badge").textContent(), "layout manual");
+      assert.equal(await page.locator(".toolbar .layout-badge").isVisible(), true);
       const db = await h.centre("db");
       await page.mouse.click(db.x, db.y);
       await h.settled();
@@ -6534,6 +6538,7 @@ const tests: {
       assert.equal(await page.locator(".minimap").isVisible(), false);
       assert.equal(await page.locator(".minimap .map").innerHTML(), "");
       assert.equal(await page.locator(".toolbar .badge").isVisible(), false);
+      assert.equal(await page.locator(".toolbar .layout-badge").isVisible(), false);
       assert.equal(await page.locator(".banner").isVisible(), false);
       assert.equal(await page.locator(".status").textContent(), "");
       assert.equal(await page.locator(".content").innerHTML(), "");

@@ -37,6 +37,7 @@ import { es } from "../../src/messages/es.js";
 import { encodeShare, SHARE_LIMITS } from "../../src/share.js";
 import { readZip, writeZip } from "../../src/zip.js";
 import { BROKEN_STORY, FLOWS_SOURCE, PURCHASE_SOURCE } from "../../../../test-support/flows.js";
+import { contextActionTests } from "./context-actions.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "..", "..", "dist");
@@ -7163,6 +7164,7 @@ const tests: Test[] = [
       assert.equal(await save.isVisible(), true);
     },
   }),
+  ...contextActionTests({ output, analysed, until }),
 ];
 
 /** A project somebody shared by its link (its metadata and its files, for anybody), or one that is not found. */

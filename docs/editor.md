@@ -30,7 +30,9 @@ Extensions view to disable, uninstall or install another published version.
   - opens beside the code when you open a `.meltemi` file;
   - the toolbar holds the diagram picker with **New diagram** beside it, the palette, zoom, grid,
     snapping, minimap and inspector toggles, arrange and export;
-  - the badge shows the layout mode.
+  - the badge shows the layout mode; on a flow diagram, a free composition or a C4 view that
+    the canvas edits, it is a button whose menu changes the mode and arranges the diagram
+    ([automatic and assisted layouts](#automatic-and-assisted-layouts)).
 - **Inspector**: tabs separate **Style** (shape, fill, stroke and icons), **Text** (font, size,
   weight, text colour and alignment), **Layout** (position, size and routes), **Effects**, and
   **Details** (identity and content). Only categories available for the selection appear.
@@ -282,6 +284,13 @@ the range, and the text stays as it was.
   text, the boxes move alone. Escape brings back the drawing from before the drag. Sequence
   diagrams have their own live moves of events; bends and labels are not previewed. Hosts pass
   `preview` messages on like any other.
+- **Reverse direction.** The context menu of one selected relation, sequence message or free line
+  offers **Reverse direction**: the source and the target swap, and so do the ends of its `route`
+  with their ports, sides and points, its waypoints run the other way, and `label … at p%`
+  becomes `(100 − p)%` so the label stays where it is drawn. Styles, effects and tags stay with
+  the relation, so the heads and the particles follow the new direction. An anonymous relation
+  stays selected under the key it takes, and the status line names the new direction. A relation
+  of a C4 view comes from the model and is not offered it.
 - **One step each.** Every action is one undo step, whichever pane you undo from.
 
 ### Empty shapes and text in place
@@ -351,6 +360,20 @@ auto` draws it, and writes what it draws: every `place`, the `place` and `size` 
   Double-click a bend to drop it, or recompute again to rewrite them. When the diagram cannot be
   arranged, the status line says why, such as a band inside a group the engine arranges. Both are
   in the toolbar menu, the context menu and the command palette.
+- **The badge's menu.** On a canvas that edits a flow diagram, a free composition or a C4 view,
+  the badge that names the mode (`layout assisted`) is a button. Its menu lists **Automatic**,
+  **Assisted** and **Manual**, the current mode checked, then **Arrange unplaced elements** and
+  **Recompute layout**; Enter or Space opens it and Escape gives the focus back to the badge.
+  **Assisted** writes `layout assisted`. **Manual** first writes a `place` for every box that has
+  none, where it is drawn, then `layout manual`, in one edit, so the diagram keeps its picture.
+  **Automatic** writes `layout auto` and removes, in the same edit, what the engine would ignore:
+  the `place` of every arranged box and group (a band and what a list holds keep theirs) and the
+  waypoints of every route; a route that pins neither end goes, and named ports, sides, points and
+  sizes stay. When that removes anything, a dialog asks first, **Back to automatic layout**, with
+  how many positions and routes would be lost: **Arrange** writes it as one undo step, and
+  **Cancel** or Escape writes nothing. The inspector's **Layout** field, with nothing selected,
+  asks the same, and goes back to the written mode on **Cancel**. Stories, scenario previews,
+  sequence diagrams, gantt charts and canvases that only show keep the plain badge.
 
 ## The keyboard
 
@@ -885,6 +908,14 @@ coordinates.
   reason under it. **Tags** lists one field per tag, which rewrites it and, emptied, removes it,
   each with a **Remove** button, and an empty field whose text adds a tag at the end; an empty or
   repeated tag is refused with the reason.
+- **Numbering and direction.** The context menu offers **Number messages**, checked while the
+  diagram has `autonumber`: it writes `autonumber` alone (from 1) or removes the statement,
+  whatever its start; **Number messages from** in the inspector chooses another start, and the
+  **Number Messages** command does the same as the menu. One selected message, not a `return` and
+  not to itself, gets **Reverse direction**: its participants swap, a reply stays a reply, its call
+  block stays with it, and a written activation of its receiver right after it (`activate` and its
+  `deactivate`) now names the new receiver, which the status line says. The menu also lists the
+  effects the selection takes ([effects](#effects)).
 - **Scenarios.** When the diagram has scenarios, the toolbar offers them beside **All events**.
   Picking one previews that path read-only; pick **All events** to edit again. **Export SVG** asks
   for "All events" or a scenario and writes `<file>.<scenario>.svg` for a scenario.
@@ -1173,6 +1204,13 @@ declared in that model, in this file or in the model's own file.
   diagram starts paused until Play is pressed. Without effects the button is disabled. Turning an
   effect on while the diagram is paused says so in the status line. Selection, editing and live
   previews keep working while effects play.
+- **Context menu.** The context menu of a selection that takes effects lists them as items that
+  turn on and off, **Flow particles**, **Moving dash**, **Pulse** and **Trace**, only those the
+  selection takes, each checked when every selected item has it. Choosing one writes what the
+  inspector's toggle writes: the effect with its defaults where it is missing (a target without an
+  id named first, as above), or off for all when all have it. The inspector keeps its settings.
+  The items come with the selection's properties, so a menu opened on a new selection shows them
+  a moment later. A canvas that only shows offers none.
 
 ## Stories
 
@@ -1237,6 +1275,7 @@ declared in that model, in this file or in the model's own file.
 | Build Catalog                               | Builds the offline HTML catalog of the project of the file or folder (`docs/catalog.md`) and offers to open it in the browser                                                                                                                                     |
 | Run Export Profile                          | Writes one `export` profile of the file, or all of them, where the profiles say (`docs/language/export.md`)                                                                                                                                                       |
 | Arrange Unplaced Elements, Recompute Layout | As above                                                                                                                                                                                                                                                          |
+| Number Messages                             | Writes `autonumber` in the sequence diagram on the canvas, or under the cursor, or removes it when it is there ([sequence.md](language/sequence.md))                                                                                                              |
 | Open the Model                              | Shows the model of the C4 view on the canvas, or under the cursor, in this file or the imported one                                                                                                                                                               |
 | Convert to Free Composition                 | Copies the flow diagram on the canvas, or under the cursor, into a new free diagram and shows it                                                                                                                                                                  |
 | Format Document                             | The canonical layout                                                                                                                                                                                                                                              |

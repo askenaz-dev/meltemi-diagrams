@@ -238,6 +238,13 @@ export const es: typeof en = {
       oneWay: "Las relaciones de las vistas C4 van en un solo sentido: `->`.",
       unnamed: (key) =>
         `La relación \`${key}\` no tiene id con el que nombrarla; dale uno primero.`,
+      notReversible: (id) =>
+        `${code(id)} no es una relación ni una línea libre, así que no tiene sentido que invertir.`,
+      reverseInModel: (relation) =>
+        `${code(relation)} viene del modelo; inviértela allí, en la relación del modelo.`,
+      reverseReturn: "Un `return` responde a su llamada y la sigue; invierte la llamada.",
+      reverseSelf: (relation) =>
+        `${code(relation)} va de un elemento a sí mismo, así que invertirla no cambia nada.`,
     },
 
     placement: {
@@ -597,6 +604,8 @@ export const es: typeof en = {
   },
 
   notes: {
+    activationMoved: (from, to) =>
+      `La activación de ${code(from)} tras el mensaje ahora activa a ${code(to)}.`,
     commentMentions: (line, id) =>
       `El comentario de la línea ${line} menciona ${code(id)} y no se cambió.`,
     removedComment: (line, text) => `Se quitó el comentario de la línea ${line}: ${text}`,

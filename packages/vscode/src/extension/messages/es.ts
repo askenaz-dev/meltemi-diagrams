@@ -89,6 +89,10 @@ export const es: typeof en = {
     positionsWritten: "Todas las posiciones ya están escritas.",
     noModelView: "Para abrir el modelo, muestra una vista C4 cuyo modelo se pueda resolver.",
     noFlowDiagram: "Muestra un diagrama de flujo sin problemas para convertirlo.",
+    noSequenceDiagram:
+      "Muestra un diagrama de secuencia, o pon el cursor en uno, para numerar sus mensajes.",
+    numbered: "Los mensajes se numeran desde 1.",
+    unnumbered: "Los mensajes ya no se numeran.",
   },
   assist: {
     openSettings: "Abrir los ajustes",

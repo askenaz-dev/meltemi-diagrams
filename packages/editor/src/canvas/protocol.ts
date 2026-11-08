@@ -402,6 +402,11 @@ export interface CanvasRender {
   readonly scenarios: readonly { readonly id: string; readonly label: string }[];
   /** The scenario previewed read-only, or null for every event. */
   readonly scenario: string | null;
+  /**
+   * Sequence diagrams: the number of the first message when `autonumber` is written, which the
+   * context menu's **Number messages** shows checked; absent for the other profiles.
+   */
+  readonly autonumber?: number | null;
   /** How many effects the diagram's `animate` statements run; the toolbar plays them. */
   readonly effects: number;
   /** True while the canvas shows the effects running. */
@@ -887,7 +892,11 @@ export type HostMessage =
       readonly code: string;
       readonly reason: string;
       readonly dependents?: readonly DependentInfo[];
-      /** The action to send again with `cascade: true` after confirmation. */
+      /**
+       * The action to send again once the person confirms: with `cascade: true` after
+       * `edit.has-dependents` (the dependents listed), with `confirmed: true` after
+       * `edit.loses-placement` (`reason` says how many positions and routes would go).
+       */
       readonly retry?: CanvasAction;
       /**
        * The elements the refusal is about, which the canvas flashes in the theme's `danger` colour
@@ -1284,6 +1293,22 @@ export type CanvasAction =
   | { readonly kind: "duplicate"; readonly ids: readonly string[] }
   | { readonly kind: "cut"; readonly ids: readonly string[] }
   | { readonly kind: "arrange"; readonly scope: "unplaced" | "all" }
+  /**
+   * The layout mode of the diagram shown, from the badge's menu or the inspector's Layout field;
+   * null removes the statement, leaving the profile's default. `assisted` writes the statement;
+   * `manual` first writes the positions the engine gives the unplaced boxes; `auto` removes what
+   * it ignores (`clearPlacement`), and is refused with `edit.loses-placement` and a retry carrying
+   * `confirmed: true` while something would go and the person has not confirmed it.
+   */
+  | {
+      readonly kind: "setLayoutMode";
+      readonly mode: "auto" | "assisted" | "manual" | null;
+      readonly confirmed?: boolean;
+    }
+  /** Sequence diagrams: numbers the messages (`autonumber`), or stops numbering them. */
+  | { readonly kind: "setAutonumber"; readonly on: boolean }
+  /** The last of `ids`, a relation, a sequence message or a free line, turned around. */
+  | { readonly kind: "reverse"; readonly ids: readonly string[] }
   | { readonly kind: "reorder"; readonly ids: readonly string[]; readonly to: ZOrder }
   /** Layers: a new one named `layer<n>` before `main`; rename; remove (its things go to `main`). */
   | { readonly kind: "addLayer" }
@@ -1765,6 +1790,15 @@ function isAction(a: unknown): a is CanvasAction {
       return a.at === undefined || isPoint(a.at);
     case "arrange":
       return oneOf(a.scope, ["unplaced", "all"]);
+    case "setLayoutMode":
+      return (
+        (a.mode === null || oneOf(a.mode, ["auto", "assisted", "manual"])) &&
+        (a.confirmed === undefined || typeof a.confirmed === "boolean")
+      );
+    case "setAutonumber":
+      return typeof a.on === "boolean";
+    case "reverse":
+      return isStrings(a.ids);
     case "reorder":
       return isStrings(a.ids) && oneOf(a.to, ["front", "back", "forward", "backward"]);
     case "addLayer":

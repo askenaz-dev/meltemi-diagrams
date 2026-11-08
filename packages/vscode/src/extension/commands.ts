@@ -722,6 +722,52 @@ async function arrange(
 }
 
 /**
+ * Numbers the messages of the sequence diagram shown on the canvas, or under the text cursor, or
+ * stops numbering them: `autonumber` written alone, or removed whatever its start. Returns
+ * "numbered", "unnumbered", or why nothing was written.
+ */
+export async function numberMessages(
+  host: CanvasHost,
+  document: vscode.TextDocument,
+): Promise<string> {
+  const analysis = host.analyses.now(document);
+  const current = host.panels.get(document.uri)?.session.current;
+  const editor = vscode.window.visibleTextEditors.find((e) => e.document === document);
+  const offset = editor ? document.offsetAt(editor.selection.active) : -1;
+  const sequences = analysis.diagrams.filter((d) => d.diagram.type === "sequence");
+  const view =
+    sequences.find((d) => d.id === current) ??
+    sequences.find((d) => d.diagram.node.start <= offset && offset <= d.diagram.node.end) ??
+    (sequences.length === 1 ? sequences[0] : undefined);
+  if (!view) {
+    const message = messages().commands.noSequenceDiagram;
+    void vscode.window.showWarningMessage(message);
+    return message;
+  }
+  const on = view.diagram.properties.autonumber === null;
+  const result = planEdit(
+    analysis.compilation,
+    {
+      kind: "setDiagramProperty",
+      diagram: view.id,
+      property: "autonumber",
+      value: on ? "" : null,
+    },
+    { revision: analysis.revision },
+  );
+  if (!result.ok) {
+    void vscode.window.showWarningMessage(result.rejection.reason);
+    return result.rejection.reason;
+  }
+  if (!(await applyPlan(document, result.plan))) return "the text changed";
+  vscode.window.setStatusBarMessage(
+    on ? messages().commands.numbered : messages().commands.unnumbered,
+    3000,
+  );
+  return on ? "numbered" : "unnumbered";
+}
+
+/**
  * Copies the flow diagram shown on the canvas, or the one under the text cursor, into a new free
  * diagram, and shows it on the canvas. Returns the id of the copy.
  */
@@ -882,6 +928,10 @@ export function registerCommands(host: CanvasHost): vscode.Disposable[] {
     vscode.commands.registerCommand(
       "meltemi.recomputeLayout",
       withDocument((document) => arrange(host, document, "all")),
+    ),
+    vscode.commands.registerCommand(
+      "meltemi.numberMessages",
+      withDocument((document) => numberMessages(host, document)),
     ),
     vscode.commands.registerCommand(
       "meltemi.convertToFree",

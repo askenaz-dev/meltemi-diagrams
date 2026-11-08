@@ -282,6 +282,10 @@ export const es: typeof en = {
     auto: "ELK organiza este diagrama; mover una caja escribe todas las posiciones y cambia a assisted.",
     assisted: "Las cajas colocadas se mantienen; ELK organiza las demás.",
     manual: "Cada caja tiene una posición escrita.",
+    menu: (mode) => `Modo de disposición: ${mode}. Cámbialo u organiza el diagrama`,
+    automatic: "Automático",
+    assistedMode: "Asistido",
+    manualMode: "Manual",
   },
 
   stage: {
@@ -524,6 +528,8 @@ export const es: typeof en = {
     labelInView: "Etiquetar en esta vista",
     renameInModel: "Cambiar el nombre en el modelo",
     openModel: "Abrir el modelo",
+    reverseDirection: "Invertir dirección",
+    numberMessages: "Numerar mensajes",
     removeFromView: "Quitar de la vista",
     messageTo: "Mensaje a…",
     makeReply: "Convertir en respuesta",
@@ -853,6 +859,8 @@ export const es: typeof en = {
 
   dialogs: {
     deleteAll: "Eliminar todo",
+    arrangeTitle: "Volver al orden automático",
+    arrange: "Reordenar",
     cancel: "Cancelar",
     newTheme: "Nuevo tema a partir de este",
     id: "Id",

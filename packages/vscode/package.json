@@ -144,6 +144,11 @@
         "category": "%category%"
       },
       {
+        "command": "meltemi.numberMessages",
+        "title": "%command.numberMessages.title%",
+        "category": "%category%"
+      },
+      {
         "command": "meltemi.convertToFree",
         "title": "%command.convertToFree.title%",
         "category": "%category%"
@@ -276,6 +281,10 @@
         },
         {
           "command": "meltemi.recomputeLayout",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.numberMessages",
           "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
         },
         {

@@ -992,6 +992,30 @@ export class CanvasApp {
   private readonly main: HTMLElement;
   /** The layout of the diagram shown, or story mode; hidden while no diagram is drawn. */
   private readonly modeBadge = h("span", { class: "badge", hidden: true });
+  /**
+   * The badge of a flow diagram, a free composition or a C4 view on a canvas that edits, in place
+   * of the plain one: it names the layout mode the same way and opens the menu of the three modes
+   * and the arrange actions (decision 0074).
+   */
+  private readonly layoutBadge = h("button", {
+    type: "button",
+    class: "layout-badge",
+    hidden: true,
+    "aria-haspopup": "menu",
+    "aria-expanded": "false",
+  });
+  /**
+   * Where the context menu was last opened, and its pill: a menu opened on a selection whose
+   * properties have not arrived yet is drawn again with its effect items when they do, once.
+   */
+  private menuOpening:
+    | {
+        readonly at: Point;
+        readonly pill: { readonly owner: string; readonly index: number } | undefined;
+        readonly redrawn: boolean;
+      }
+    | undefined;
+  private menuWaits = false;
   /** Says, quietly and to assistive technology too, that the canvas only shows. */
   private readonly readOnlyBadge = h("span", { class: "view-only-badge", hidden: true });
   private readonly toggles = new Map<string, HTMLButtonElement>();
@@ -1340,15 +1364,23 @@ export class CanvasApp {
               this.glide(back, this.motion("--mdg-motion"));
             }
           } else if (!drawing) this.resetPreview();
+          const confirming =
+            message.code === "edit.has-dependents" || message.code === "edit.loses-placement";
           if (message.code === "edit.has-dependents" && message.dependents && message.retry) {
             const retry = message.retry;
             this.dialog.confirm(message.reason, message.dependents, () => this.act(retry));
+          } else if (message.code === "edit.loses-placement" && message.retry) {
+            // Automatic layout would remove positions written by hand: asked first. A Layout
+            // field that asked goes back to the written mode until the person confirms.
+            const retry = message.retry;
+            this.inspector.redraw();
+            this.dialog.confirmArrange(message.reason, () => this.act(retry));
           } else if (!again) {
             this.announce(message.reason, true);
           }
           // A field of the properties refused says why under itself, where the text was typed.
           const sent = this.lastAction;
-          if (sent?.kind === "setField" && message.code !== "edit.has-dependents") {
+          if (sent?.kind === "setField" && !confirming) {
             this.inspector.refuse(sent.ids, sent.field, message.reason);
           }
           // What the refusal is about flashes in the theme's danger colour.
@@ -1400,6 +1432,15 @@ export class CanvasApp {
       }
       case "inspector":
         this.inspector.show(message.model);
+        // A context menu opened on a new selection gains its effect items now that they came,
+        // drawn again once: what is being chosen in it is not taken away a second time.
+        if (this.menuWaits && this.menu.isOpen && this.menuOpening?.redrawn === false) {
+          const { at, pill } = this.menuOpening;
+          this.menuWaits = false;
+          this.menuPill = pill;
+          this.openMenu(at);
+          if (this.menuOpening) this.menuOpening = { ...this.menuOpening, redrawn: true };
+        }
         // The Choose… that opened the icon picker, drawn anew, is marked as its opener again.
         this.iconPicker.syncOpener();
         // The font button too; the families are asked for again, for the faces that arrived.
@@ -2375,6 +2416,7 @@ export class CanvasApp {
     if (message.playback) {
       const entering = !was || this.storyPanel.story !== message.playback.id;
       this.setStoryMode(true);
+      this.layoutBadge.hidden = true;
       this.modeBadge.hidden = false;
       this.modeBadge.textContent = words.mode.story;
       this.modeBadge.title = words.mode.storyTitle;
@@ -2396,6 +2438,7 @@ export class CanvasApp {
     } else {
       clear(this.content);
       this.modeBadge.hidden = true;
+      this.layoutBadge.hidden = true;
       this.showEmpty(this.emptyText, this.emptyCreatable);
     }
   }
@@ -2503,6 +2546,7 @@ export class CanvasApp {
       this.modeBadge.textContent = "";
       this.modeBadge.title = "";
     }
+    this.layoutBadge.hidden = true;
     this.toolbar.classList.add("no-diagram");
     this.noDiagram = true;
     this.inspector.clear();
@@ -2524,6 +2568,11 @@ export class CanvasApp {
     const on = this.readOnly;
     const words = messages();
     this.root.classList.toggle("view-only", on);
+    // A canvas that only shows names the layout mode with the plain badge, which opens nothing.
+    if (on && !this.layoutBadge.hidden) {
+      this.layoutBadge.hidden = true;
+      this.modeBadge.hidden = false;
+    } else if (!on) this.syncLayoutBadge();
     this.readOnlyBadge.hidden = !on;
     this.readOnlyBadge.textContent = on ? words.readOnly.badge : "";
     this.readOnlyBadge.title = on ? words.readOnly.badgeTitle : "";
@@ -5336,7 +5385,9 @@ export class CanvasApp {
       exportButton,
       this.readOnlyBadge,
       this.modeBadge,
+      this.layoutBadge,
     );
+    this.layoutBadge.addEventListener("click", () => this.openLayoutMenu());
     // Story mode is read-only: these go while a story plays.
     for (const element of [
       newDiagram,
@@ -6104,6 +6155,7 @@ export class CanvasApp {
     const words = messages();
     this.toolbar.classList.remove("no-diagram");
     this.modeBadge.hidden = false;
+    this.layoutBadge.hidden = true;
     clear(this.diagramSelect);
     for (const d of r.diagrams) {
       this.diagramSelect.append(
@@ -6195,6 +6247,71 @@ export class CanvasApp {
         : r.mode === "assisted"
           ? words.mode.assisted
           : words.mode.manual;
+    this.syncLayoutBadge();
+  }
+
+  /**
+   * Which badge names the layout mode: on a canvas that edits a flow diagram, a free composition
+   * or a C4 view, the button that opens the menu of modes, with the plain badge's words; the plain
+   * badge everywhere else (stories, previews, sequence diagrams, charts, canvases that only show).
+   */
+  private syncLayoutBadge(): void {
+    const r = this.render;
+    const menu =
+      r !== undefined &&
+      !this.readOnly &&
+      !this.noDiagram &&
+      !this.storyPanel.active &&
+      (r.profile === "flow" || r.profile === "free" || r.profile === "c4");
+    this.layoutBadge.hidden = !menu;
+    if (!menu) return;
+    this.layoutBadge.textContent = this.modeBadge.textContent;
+    this.layoutBadge.title = this.modeBadge.title;
+    this.layoutBadge.setAttribute("aria-label", messages().mode.menu(r.mode));
+    this.modeBadge.hidden = true;
+  }
+
+  /**
+   * The layout badge's menu: the three modes, the one written (or implied) checked, then the two
+   * arrange actions. A mode goes to the editor as the inspector's Layout field does: automatic
+   * layout asks first when it would remove positions written by hand.
+   */
+  private openLayoutMenu(): void {
+    const r = this.render;
+    if (!r || this.readOnly || this.layoutBadge.hidden) return;
+    const words = messages();
+    const mode = (value: "auto" | "assisted" | "manual", label: string): MenuItem => ({
+      label,
+      checked: r.mode === value,
+      data: { "data-menu": `layout-${value}` },
+      run: () => {
+        if (r.mode !== value) this.act({ kind: "setLayoutMode", mode: value });
+      },
+    });
+    const rect = this.layoutBadge.getBoundingClientRect();
+    const base = this.main.getBoundingClientRect();
+    this.layoutBadge.setAttribute("aria-expanded", "true");
+    this.menu.open(
+      [
+        mode("auto", words.mode.automatic),
+        mode("assisted", words.mode.assistedMode),
+        mode("manual", words.mode.manualMode),
+        "-",
+        {
+          label: words.commands.arrangeUnplaced,
+          data: { "data-menu": "arrange-unplaced" },
+          run: () => this.act({ kind: "arrange", scope: "unplaced" }),
+        },
+        {
+          label: words.commands.recomputeLayout,
+          data: { "data-menu": "recompute-layout" },
+          run: () => this.act({ kind: "arrange", scope: "all" }),
+        },
+      ],
+      { x: rect.left - base.left, y: 0 },
+      base,
+      () => this.layoutBadge.setAttribute("aria-expanded", "false"),
+    );
   }
 
   /**
@@ -9395,6 +9512,13 @@ export class CanvasApp {
       case "addReturn":
         this.act({ kind: command, ids: this.selection });
         return;
+      case "reverseDirection":
+        if (primary) this.act({ kind: "reverse", ids: [primary] });
+        return;
+      case "toggleAutonumber":
+        if (this.render?.profile !== "sequence") return;
+        this.act({ kind: "setAutonumber", on: (this.render.autonumber ?? null) === null });
+        return;
       case "growText":
       case "shrinkText":
         // The session says the new size, or why nothing changed, on the status line.
@@ -10374,7 +10498,53 @@ export class CanvasApp {
     return [{ label: menu.selectBelow, key: keys.altClick, run: () => this.selectBelow(point) }];
   }
 
+  /**
+   * The effects the selection takes, as items that turn each one on and off (decision 0074). They
+   * are read from the properties the editor sent for this very selection, and write what the
+   * inspector's toggles write: an effect goes on where it is missing (a target without an id named
+   * first), or off for all when all have it. None until those properties arrive: the menu is drawn
+   * again then.
+   */
+  private effectItems(): MenuItem[] {
+    if (this.readOnly || this.selection.length === 0) return [];
+    const model = this.inspector.current;
+    const ids = model?.target.ids ?? [];
+    const same =
+      model !== undefined &&
+      model.target.kind !== "diagram" &&
+      ids.length === this.selection.length &&
+      ids.every((id) => this.selection.includes(id));
+    if (!model || !same) {
+      this.menuWaits = true;
+      return [];
+    }
+    const preview = (this.render?.scenario ?? null) !== null;
+    return model.fields
+      .filter((f) => f.name.startsWith("effect.") && f.name.split(".").length === 2)
+      .map((f) => {
+        const on = f.value === "on" && f.mixed !== true;
+        return {
+          label: f.label,
+          check: "checkbox" as const,
+          checked: on,
+          disabled: preview || f.readonly === true,
+          data: { "data-menu": f.name },
+          run: () => this.act({ kind: "setField", ids, field: f.name, value: on ? null : "on" }),
+        };
+      });
+  }
+
+  /** The effect items after `items`, in a group of their own. */
+  private withEffects(items: (MenuItem | "-")[]): void {
+    const effects = this.effectItems();
+    if (effects.length === 0) return;
+    if (items.length > 0 && items[items.length - 1] !== "-") items.push("-");
+    items.push(...effects);
+  }
+
   private openMenu(at: Point): void {
+    this.menuOpening = { at, pill: this.menuPill, redrawn: false };
+    this.menuWaits = false;
     if (this.readOnly) {
       this.openReadOnlyMenu(at);
       return;
@@ -10460,6 +10630,15 @@ export class CanvasApp {
         },
       );
     }
+    // One relation or one free line turns around: its ends swap, its route and heads with them.
+    if (this.selection.length === 1 && (relation || element?.kind === "line")) {
+      items.push({
+        label: words.reverseDirection,
+        data: { "data-menu": "reverse" },
+        run: run("reverseDirection"),
+      });
+    }
+    this.withEffects(items);
     if (items.length > 0) items.push("-");
     items.push(
       { label: words.cut, key: "Ctrl+X", disabled: elementIds.length === 0, run: run("cut") },
@@ -10620,6 +10799,8 @@ export class CanvasApp {
       items.push({ label: words.connectTo, key: "C", run: run("connect") });
     }
     if (!relation) items.push(...this.belowItems(at));
+    // A view's relations come from the model: they take effects, and are reversed there.
+    this.withEffects(items);
     if (items.length > 0) items.push("-");
     items.push(
       { label: commands.addFromModel, key: "A", run: () => this.addEntity(at) },
@@ -10680,6 +10861,7 @@ export class CanvasApp {
         items.push({ label: words.putInSection, key: "Alt+G", run: run("group") });
       }
     }
+    this.withEffects(items);
     if (element || relation) items.push("-");
     items.push(
       { label: words.addTask, key: "T", run: run("createTask") },
@@ -10834,6 +11016,21 @@ export class CanvasApp {
         });
       }
     }
+    // One message turns around: not a `return`, which follows its call, nor a message to itself.
+    if (
+      this.selection.length === 1 &&
+      relation &&
+      relation.returns === undefined &&
+      relation.from !== relation.to
+    ) {
+      items.push({
+        label: words.reverseDirection,
+        disabled: preview,
+        data: { "data-menu": "reverse" },
+        run: run("reverseDirection"),
+      });
+    }
+    this.withEffects(items);
     if (items.length > 0) items.push("-");
     items.push(
       { label: words.addNote, key: "O", disabled: preview, run: run("createSequenceNote") },
@@ -10845,6 +11042,14 @@ export class CanvasApp {
       },
       { label: words.addDivider, disabled: preview, run: run("createDivider") },
       { label: words.addDelay, disabled: preview, run: run("createDelay") },
+      {
+        label: words.numberMessages,
+        check: "checkbox",
+        checked: (this.render?.autonumber ?? null) !== null,
+        disabled: preview,
+        data: { "data-menu": "number-messages" },
+        run: run("toggleAutonumber"),
+      },
       "-",
       {
         label: words.delete,

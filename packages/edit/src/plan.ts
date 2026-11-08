@@ -70,7 +70,14 @@ import { endpointText, requireEndPosition, routeParts } from "./routes.js";
 import { insertAfter } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
 import { setClasses, setDescription, setElementKind, setElementLabel } from "./labels.js";
-import { reconnectRelation, removeRelation, renameRelation, setRelationLine } from "./relations.js";
+import { clearPlacement } from "./placement.js";
+import {
+  reconnectRelation,
+  removeRelation,
+  renameRelation,
+  reverseRelation,
+  setRelationLine,
+} from "./relations.js";
 import {
   convertToFree,
   removedLinks,
@@ -292,7 +299,9 @@ function run(
   >,
 ): TextEdit[] {
   refuseInChart(ctx, operation);
-  if (["setPosition", "setSize", "setRoute", "arrange"].includes(operation.kind)) {
+  if (
+    ["setPosition", "setSize", "setRoute", "arrange", "clearPlacement"].includes(operation.kind)
+  ) {
     refuseFlowGeometry(ctx, operation.kind);
   }
   // A move between groups, a conversion to a container and the tag operations explain their own
@@ -355,6 +364,10 @@ function run(
       return removeRelation(ctx, operation);
     case "reconnectRelation":
       return reconnectRelation(ctx, operation);
+    case "reverseRelation":
+      return reverseRelation(ctx, operation);
+    case "clearPlacement":
+      return clearPlacement(ctx, operation);
     case "setRelationLine":
       return setRelationLine(ctx, operation);
     case "setElementLabel":

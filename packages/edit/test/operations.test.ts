@@ -1331,3 +1331,134 @@ describe("creating diagrams", () => {
     expect(applyTextEdits(after, result.plan.inverse)).toBe(text);
   });
 });
+
+describe("reverseRelation", () => {
+  const routed = `diagram d: flow {
+  layout assisted
+  api["API"]
+  db[("DB")] {
+    port in west
+  }
+  api -> db: "save" as save
+  style save { arrowhead diamond }
+  animate save { effect flow }
+  placement {
+    route save from api.east 25% to db.in via [(300, 40), /* bend */ (300, 120)]
+    label save at 30% offset (0, -8)
+  }
+}
+`;
+
+  it("swaps the ends, turns the route and keeps the label where it is drawn", () => {
+    const after = apply({ kind: "reverseRelation", diagram: "d", relation: "save" }, routed);
+    expect(after).toContain('db -> api: "save" as save');
+    expect(after).toContain(
+      "route save from db.in to api.east 25% via [(300, 120), /* bend */ (300, 40)]",
+    );
+    expect(after).toContain("label save at 70% offset (0, -8)");
+    // Styles and effects name the relation, so they follow it.
+    expect(after).toContain("style save { arrowhead diamond }");
+    expect(after).toContain("animate save { effect flow }");
+    const relation = compile(after).document.diagrams[0]!.relationsByKey.get("save")!;
+    expect([relation.from, relation.to]).toEqual(["db", "api"]);
+  });
+
+  it("reverses an anonymous relation by its key", () => {
+    const after = apply(
+      { kind: "reverseRelation", diagram: "d", relation: "a->b#1" },
+      `diagram d: flow {\n  a["A"]\n  b["B"]\n  a --> b: "async"\n}\n`,
+    );
+    expect(after).toContain('b --> a: "async"');
+  });
+
+  it("refuses a self relation, an element and a relation of a C4 view", () => {
+    expect(
+      refused(
+        { kind: "reverseRelation", diagram: "d", relation: "loop" },
+        `diagram d: flow {\n  a["A"]\n  a -> a as loop\n}\n`,
+      ).code,
+    ).toBe("edit.unsafe-target");
+    expect(refused({ kind: "reverseRelation", diagram: "d", relation: "api" }, routed)).toEqual(
+      expect.objectContaining({ code: "edit.unsafe-target" }),
+    );
+    const c4 = readFileSync(join(CORPUS_ROOT, "valid", "c4", "commerce.meltemi"), "utf8");
+    const view = compile(c4).document.diagrams.find((d) => d.id === "context")!;
+    const key = view.relations[0]!.key;
+    const rejection = refused({ kind: "reverseRelation", diagram: "context", relation: key }, c4);
+    expect(rejection.code).toBe("edit.unsafe-target");
+    expect(rejection.reason).toContain("model");
+  });
+});
+
+describe("clearPlacement", () => {
+  const placed = `diagram d: flow {
+  layout assisted
+  api["API"]
+  db[("DB")]
+  cache["Cache"]
+  api -> db as save
+  api -> cache as warm
+  placement {
+    // hand-made
+    place api at (200, 120)
+    place db at (400, 120)
+    size api (160, 60)
+    route save from api.east to db.west via [(300, 40)]
+    route warm from api to cache via [(260, 200)]
+  }
+}
+`;
+
+  it("removes places and waypoints, keeps sizes and pinned ends, and drops empty routes", () => {
+    const after = apply({ kind: "clearPlacement", diagram: "d" }, placed);
+    expect(after).not.toContain("place ");
+    expect(after).toContain("size api (160, 60)");
+    expect(after).toContain("route save from api.east to db.west\n");
+    expect(after).not.toContain("route warm");
+    expect(after).toContain("// hand-made");
+  });
+
+  it("keeps a band at the top level", () => {
+    const after = apply(
+      { kind: "clearPlacement", diagram: "d" },
+      `diagram d: flow {
+  layout assisted
+  group lane "Lane" { }
+  a["A"]
+  placement {
+    place lane at (0, 0)
+    size lane (600, 120)
+    place a at (100, 60)
+  }
+}
+`,
+    );
+    expect(after).toContain("place lane at (0, 0)");
+    expect(after).toContain("size lane (600, 120)");
+    expect(after).not.toContain("place a at");
+  });
+
+  it("removes a placement block left with nothing", () => {
+    const after = apply(
+      { kind: "clearPlacement", diagram: "d" },
+      `diagram d: flow {\n  layout assisted\n  a["A"]\n  b["B"]\n  a -> b as ab\n  placement {\n    place a at (0, 0)\n    place b at (200, 0)\n    route ab from a to b via [(100, 80)]\n  }\n}\n`,
+    );
+    expect(after).toBe(
+      `diagram d: flow {\n  layout assisted\n  a["A"]\n  b["B"]\n  a -> b as ab\n}\n`,
+    );
+  });
+
+  it("plans nothing when nothing is written", () => {
+    const result = plan(
+      { kind: "clearPlacement", diagram: "d" },
+      `diagram d: flow {\n  a["A"]\n}\n`,
+    );
+    expect(result.ok && result.plan.edits).toEqual([]);
+  });
+
+  it("refuses an unknown diagram", () => {
+    expect(refused({ kind: "clearPlacement", diagram: "nope" }, placed).code).toBe(
+      "edit.unsafe-target",
+    );
+  });
+});
