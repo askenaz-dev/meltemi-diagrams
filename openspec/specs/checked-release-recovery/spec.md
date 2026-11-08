@@ -1,7 +1,7 @@
 # checked-release-recovery Specification
 
 ## Purpose
-TBD - created by archiving change recover-checked-release-artifacts. Update Purpose after archive.
+A release whose publication stopped partway is finished from the artifact its original run checked, never from a rebuild, and every channel compares what it already holds with that artifact before it writes.
 
 ## Requirements
 

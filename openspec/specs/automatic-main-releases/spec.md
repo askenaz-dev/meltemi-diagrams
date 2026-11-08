@@ -1,7 +1,7 @@
 # automatic-main-releases Specification
 
 ## Purpose
-TBD - created by archiving change automatic-main-releases. Update Purpose after archive.
+Every push to `main` whose CI passes becomes a release: a version taken in source order, one checked build, independent publication to npm, the Visual Studio Marketplace, Open VSX and GitHub, and a hosted deployment that never goes back to an older source.
 
 ## Requirements
 

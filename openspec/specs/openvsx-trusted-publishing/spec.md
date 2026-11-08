@@ -1,7 +1,7 @@
 # openvsx-trusted-publishing Specification
 
 ## Purpose
-TBD - created by archiving change openvsx-trusted-publishing. Update Purpose after archive.
+The VS Code extension reaches Open VSX through trusted publishing from the release workflow on `main`, with the namespace token kept only for the first version of an extension the registry does not know yet.
 
 ## Requirements
 
