@@ -9,7 +9,7 @@
 
 - [x] 2.1 Run workflow/script tests, typecheck, lint, package tests and relevant build checks.
 - [x] 2.2 Review the diff and record exact verification and remaining external setup here.
-- [ ] 2.3 Owner merges and observes the first CI, deployment and release; verify all four public channels.
+- [x] 2.3 Owner merges and observes the first CI, deployment and release; verify all four public channels.
 - [x] 2.4 Preserve authentic npm/Sigstore runner coordinates after the first production validation
       exposed a source-ref mismatch; verify deterministic package source metadata and recovery.
 - [x] 2.5 Preserve Terraform's observability settings in both Worker deployment configurations
@@ -45,3 +45,13 @@ Focused ESLint, Prettier and `git diff --check` passed.
   guarded structurally by the workflow suite; the release manifest carries no generated timestamp.
 - No push, merge or publication performed in this implementation step. Marketplace policy,
   Open VSX agreement/namespace/token and production workflow execution remain external verification.
+
+## Production verification on 2026-11-03
+
+The run numbers below belong to the repository before its recreation on 2026-11-04.
+
+- The owner authorized the merge. Main `aea41d1` passed CI run 41702203078, then release run
+  41704004624 and deploy run 41704004473 passed.
+- 1.10.19 became latest in the 19 npm packages, the Visual Studio Marketplace, Open VSX and
+  GitHub, with integrity and provenance verified. Both galleries served the same VSIX as GitHub.
+- Every push to `main` since then has released automatically; 1.11.28 is the latest at archive.
