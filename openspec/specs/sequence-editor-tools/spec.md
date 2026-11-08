@@ -2,7 +2,9 @@
 
 ## Purpose
 The canvas, the inspector, the language services and the commands for sequence diagrams in the editor.
+
 ## Requirements
+
 ### Requirement: Sequence canvas
 On a sequence diagram the render SHALL carry `profile: "sequence"`, the participants as elements, the messages as relations (returns included), and the event rows, nested events with their call as `parent`; each message and participant with its tags and their pills (`tags`), each message with `activation` (`written` when an `activate` of its receiver follows it in its block, `block` when its block activates the receiver, absent otherwise), and each `activate` with its bar's box and its `deactivate` (`pair`). The palette SHALL offer participant (P), actor (A), message (C), note (O), fragment (F), divider, delay, tag (T) and **Activate**, and the other participant kinds in its menu.
 
@@ -214,3 +216,26 @@ The inline editor of a sequence message's label that wraps SHALL be exactly as w
 - **WHEN** a wrapped label is edited and Escape is pressed
 - **THEN** the text is unchanged and the label is drawn as before
 
+### Requirement: Number messages toggle
+The context menu of a sequence diagram on a canvas that edits SHALL offer **Number messages** as
+a checkable item, checked when the diagram has `autonumber`, and the command palette SHALL offer
+the same command. Choosing it SHALL write `autonumber` among the diagram's properties when it is
+off, or remove the statement, whatever its start, when it is on. The inspector's **Number messages
+from** field SHALL keep choosing the first number. A scenario preview SHALL offer the item
+disabled.
+
+#### Scenario: Turn numbering on
+- **WHEN** the context menu opens on the payment canvas without `autonumber` and **Number messages** is chosen
+- **THEN** the text gains `autonumber`, the messages show their discs, and the menu item is checked the next time
+
+#### Scenario: Turn numbering off
+- **WHEN** the diagram has `autonumber 10` and **Number messages** is chosen
+- **THEN** the statement is removed and the discs disappear
+
+#### Scenario: From the palette
+- **WHEN** the **Number messages** command runs while a sequence diagram is shown
+- **THEN** it writes or removes `autonumber` as the menu item does, and on another kind of diagram it is unavailable
+
+#### Scenario: Disabled in a preview
+- **WHEN** a scenario is previewed and the context menu opens
+- **THEN** **Number messages** is listed disabled and choosing it writes nothing
