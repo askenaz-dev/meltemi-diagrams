@@ -194,7 +194,7 @@ describe("materialise (in-memory store)", () => {
     );
     const apply = store.applyMaterialisation.bind(store);
     vi.spyOn(store, "applyMaterialisation").mockImplementation(async (input) => {
-      // The weekly collection takes the row between the moment the text is found to exist and the
+      // The scheduled collection takes the row between the moment the text is found to exist and the
       // moment the batch that references it is applied.
       const taken = await store.deleteBlobs([sha("back again\n")], T);
       expect(taken).toEqual([sha("back again\n")]);
@@ -211,7 +211,7 @@ describe("materialise (in-memory store)", () => {
     expect(row?.createdAt).toBe(T);
   });
 
-  it("renews the time of a blob row it finds, so that the weekly collection does not take a text that was just wanted again", async () => {
+  it("renews the time of a blob row it finds, so that the scheduled collection does not take a text that was just wanted again", async () => {
     const store = memoryStore();
     const w = await world(store);
     const old = new Date(Date.parse(T) - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -561,7 +561,7 @@ describe.skipIf(!sqliteAvailable)("materialise (d1Store on the real migration)",
       w.db.raw.prepare("SELECT COUNT(*) AS n FROM project_files").get() as unknown as { n: number },
     ).toEqual({ n: 0 });
     // The blob rows were written in the same batch, which the existence check does not stop: they
-    // wait for the weekly collection, as the store's documentation says.
+    // wait for the scheduled collection, as the store's documentation says.
     expect(w.blobs.keys()).toHaveLength(5);
   });
 

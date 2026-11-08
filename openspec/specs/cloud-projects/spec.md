@@ -134,20 +134,28 @@ body or another type SHALL answer `413 thumbnail.too-large` or `400 thumbnail.in
 - **THEN** the answer is `429 thumbnail.rate` and the first thumbnail stays
 
 ### Requirement: Usage and storage quota
+
 `GET /api/account/usage` SHALL answer the number of projects and the bytes of the distinct
 blobs the account's projects and versions reference, refreshed at materialisation, version
 creation and binary upload; a binary upload that would take the account over 200 MiB SHALL
 answer `413 quota.storage` (text and versions count in the usage but are never refused for it).
-A weekly scheduled run SHALL delete blobs referenced by nothing and older than
-seven days.
+A twice-monthly hosted run SHALL delete blobs referenced by nothing and older than seven days.
 
 #### Scenario: Shared bytes count once
+
 - **WHEN** two projects of one account hold the same image
 - **THEN** usage counts its bytes once
 
 #### Scenario: Over quota
+
 - **WHEN** an account at 199 MiB uploads a 2 MiB image
 - **THEN** the answer is `413 quota.storage` and nothing is stored
+
+#### Scenario: Collection eligibility stays unchanged
+
+- **WHEN** a scheduled run sees referenced blobs, unreferenced blobs no older than seven days,
+  and unreferenced blobs older than seven days
+- **THEN** it keeps the first two groups and collects only the last group
 
 ### Requirement: Deleting the account deletes its projects
 A `user.deleted` event SHALL delete the person's projects, their file and `project_blobs` rows,
@@ -181,3 +189,14 @@ account.
 #### Scenario: A bad key
 - **WHEN** the header holds 65 characters or a control character
 - **THEN** the answer is `400 request.invalid` and nothing changes
+
+### Requirement: Hosted maintenance schedule
+
+Production and staging SHALL schedule hosted maintenance at 03:00 UTC on the first and fifteenth
+of each month, using `0 3 1,15 * *`. This is a twice-monthly calendar schedule with 14–17 days
+between runs.
+
+#### Scenario: Hosted calendar schedule
+
+- **WHEN** the Worker configuration is prepared for production or staging
+- **THEN** its only hosted maintenance cron is `0 3 1,15 * *`

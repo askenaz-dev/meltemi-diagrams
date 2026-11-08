@@ -96,7 +96,7 @@ async function checkStorage(
  * of requests that ran together, each sees the others' rows that came first, so the account never
  * ends over its bytes (two that race may both be refused, never both let through). An upload that
  * is over takes its `project_blobs` row back when the project did not hold the hash before; the
- * bytes in R2 are the weekly collection's.
+ * bytes in R2 are the scheduled collection's.
  */
 async function confirmStorage(
   store: CloudStore,

@@ -173,7 +173,7 @@ export const duplicateProjectRoute: Route = async (ctx) => {
  * `DELETE /api/projects/:id` (the owner's: `manage`): the room's storage is destroyed (its sockets
  * closed), the thumbnail and the published pages are deleted, then the rows go in one atomic step
  * (the files, `project_blobs`, the versions, the members, invitations and publications); the blobs
- * stay for the weekly collection. Each step is safe to repeat, so a failure partway is answered as
+ * stay for the scheduled collection. Each step is safe to repeat, so a failure partway is answered as
  * an error and the person deletes again.
  */
 export const deleteProjectRoute: Route = async (ctx) => {

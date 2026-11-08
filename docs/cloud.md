@@ -1013,7 +1013,7 @@ success or a `4xx`, a stale push's `409 revision.mismatch` among them); a failur
 (`5xx`) or a rate (`429`) lets go of the key, so that a retry runs again. The key is claimed before the
 change and answered after it , and a claim nobody
 answered for a minute is taken over. Migration 0008 keeps them (`idempotency`); the account's next
-key sweeps its expired ones and the weekly cron everyone's. The MCP tools `create_project` and
+key sweeps its expired ones and the scheduled cron everyone's. The MCP tools `create_project` and
 `write_files` take the same key as `idempotencyKey`: the same key and body through either door are one
 request.
 
@@ -1818,7 +1818,8 @@ blob a hundred versions share counts once.
 
 Content is shared by hash and remains while a project, upload or version references it.
 Unreferenced content is eligible for cleanup once its stored record is more than seven days old.
-Cleanup runs weekly in bounded batches, so a backlog or a failed cleanup can retain it longer;
+Cleanup runs twice a month in bounded batches, so a backlog or a failed cleanup can retain it
+longer;
 this is not a recovery or version-history feature.
 
 An image or font removed while offline, without a successful asset deletion, can remain counted

@@ -1,4 +1,4 @@
-// The weekly collection of blobs (`cloud-projects`, "Usage and storage quota"): what no project, no
+// The scheduled collection of blobs (`cloud-projects`, "Usage and storage quota"): what no project, no
 // upload and no version references is removed once it is more than seven days old. Plain functions over
 // the store and the bucket, with the clock injected, so that every rule runs in Node.
 //
@@ -16,7 +16,7 @@
 //      found by listing the bucket, the only way to find an object nobody has a row for.
 //
 // Each run is bounded (a few thousand blobs and objects), so a Worker invocation never runs long;
-// what is left is collected by the next run, a week on.
+// what is left is collected by the next scheduled run.
 
 import type { R2Like } from "./env.js";
 import { BLOB_HASH } from "./document.js";

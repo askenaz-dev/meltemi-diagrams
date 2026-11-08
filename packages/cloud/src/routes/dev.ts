@@ -9,7 +9,7 @@ import { fail } from "../errors.js";
 import { MAX_JSON_BYTES, json, readCappedBytes } from "../http.js";
 
 /**
- * `POST /api/dev/collect` with an optional `{ olderThanDays? }`: runs the weekly collection now, for
+ * `POST /api/dev/collect` with an optional `{ olderThanDays? }`: runs the scheduled collection now, for
  * the browser suite, which cannot wait a week. Any signed-in person may ask (it touches nothing but
  * what no project references); `olderThanDays` (a number from 0, 7 by default) is how old a blob must be.
  * Answers what the run did: `{ rows, objects, orphans, failures, truncated }`.

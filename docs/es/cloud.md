@@ -1037,7 +1037,7 @@ de la propia petición (un éxito o un `4xx`, entre ellos el `409 revision.misma
 desfasado); un fallo del servicio (`5xx`) o un límite de ritmo (`429`) suelta la clave, para que un
 reintento se ejecute otra vez. La clave se reserva antes del cambio y se responde después , y una reserva que nadie respondió en un minuto se retoma. La
 migración 0008 las guarda (`idempotency`); la siguiente clave de la cuenta barre las suyas caducadas y
-el cron semanal las de todos. Las herramientas MCP `create_project` y `write_files` toman la misma
+el cron programado las de todos. Las herramientas MCP `create_project` y `write_files` toman la misma
 clave como `idempotencyKey`: la misma clave y el mismo cuerpo por cualquiera de las dos puertas son una
 sola petición.
 
@@ -1873,7 +1873,7 @@ comparten blobs, y un blob que comparten cien versiones cuenta una sola vez.
 
 El contenido se comparte por hash y se conserva mientras lo referencie un proyecto, un archivo
 subido o una versión. El contenido sin referencias se puede limpiar cuando su registro almacenado
-tiene más de siete días. La limpieza corre semanalmente en lotes acotados, por lo que una
+tiene más de siete días. La limpieza corre dos veces al mes en lotes acotados, por lo que una
 acumulación o un fallo pueden retenerlo más tiempo; no es una función de recuperación ni de historial.
 
 Una imagen o fuente quitada sin conexión, sin una eliminación correcta del recurso, puede seguir

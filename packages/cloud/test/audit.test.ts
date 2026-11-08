@@ -995,7 +995,7 @@ describe("the development tools", () => {
     expect(code(join(PACKAGE, "src", "config.ts")).match(/"true"/g)).toHaveLength(1);
     // Everything else follows the flag that comes from there: the verifier, the two development
     // routes of the rooms (the counters and the cut), the one of the collection (it runs the
-    // weekly collection now) and the one that serves a publication from the Worker's own origin
+    // scheduled collection now) and the one that serves a publication from the Worker's own origin
     // (`/_published/`); each of those answers 404 unless the flag is on. The address a publication
     // is given (`operations/publish.ts`, which the route and the MCP tool share) is the one place the
     // flag changes an answer instead of refusing: development has no publish host, so it names that
