@@ -1,6 +1,7 @@
 // Structural delivery guards complement the executable API and Git fixtures in automatic-release.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { REPO_ROOT } from "../src/corpus.js";
 
@@ -90,6 +91,25 @@ describe("delivery workflows", () => {
     expect(secretsOf(text)).toEqual(["NPM_TOKEN", "OVSX_PAT", "WEB_DISPATCH_TOKEN"]);
     expect(text).toContain("node delivery/scripts/publish-github.mjs");
     expect(text).not.toContain("--clobber");
+  });
+
+  it("uses npm OIDC in its dedicated environment, with the token only as the publish step's fallback", async () => {
+    const text = read("release.yml");
+    const npm = text.split("  npm:\n")[1]!.split("  marketplace:\n")[0]!;
+    const step = (name: string) =>
+      npm.split(`- name: ${name}\n`)[1]!.split("      - name:")[0]!.split("      # ")[0]!;
+    const { TRUSTED_NPM } = await import(
+      /* @vite-ignore */ pathToFileURL(join(REPO_ROOT, "scripts/publish-npm.mjs")).href
+    );
+    expect(npm).toContain("environment: npm");
+    expect(npm).toContain("permissions:\n      contents: read\n      id-token: write");
+    const install = step("npm with trusted dist-tags");
+    expect(install).toContain(`run: npm install --global npm@${TRUSTED_NPM}`);
+    expect(install).toContain('NODE_AUTH_TOKEN: ""');
+    const publish = step("Publish and safely promote npm packages");
+    expect(publish).toContain("NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}");
+    expect(publish).toContain("run: node delivery/scripts/publish-npm.mjs");
+    expect(secretsOf(npm)).toEqual(["NPM_TOKEN"]);
   });
 
   it("tells Meltemi Web after the GitHub release, with the narrow token only and never a failure for its absence", () => {

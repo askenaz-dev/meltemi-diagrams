@@ -47,8 +47,8 @@ publication policy. See [GitHub's release rules](https://docs.github.com/en/rest
 
 npm, Visual Studio Marketplace, Open VSX and GitHub run independently after the build. The final
 summary fails if any channel is incomplete. The family's Terraform in Meltemi Web supplies
-`NPM_TOKEN` and deployment configuration from its `infrastructure` environment. Both extension
-registries use separate GitHub OIDC registrations.
+deployment configuration from its `infrastructure` environment, and `NPM_TOKEN` until npm's trusted
+publishers replace it. npm and both extension registries use separate GitHub OIDC registrations.
 
 After the GitHub release, **tell the web** starts Meltemi Web's deploy, whose documentation portal
 at docs.meltemi.dev builds from each product's latest release. It reads `WEB_DISPATCH_TOKEN`, the
@@ -56,10 +56,19 @@ narrow token (Actions read and write on `meltemi-web` only) that Web's Terraform
 its admin token. Until the owner creates it the job warns and passes, and the portal updates on the
 web's next deploy. It is not a publishing channel, so the summary leaves it out.
 
-- **npm:** a granular token for the `meltemi` organization with publish/dist-tag rights and the
-  automation bypass of two-factor authentication. Packages publish under `release-<version>` first;
-  latest advances only after every tarball is present, and never to a lower version. Existing
-  versions must match the local tarball's SHA-512 integrity. Publication includes provenance.
+- **npm:** each of the twenty packages names a trusted publisher in npmjs.com → the package →
+  **Settings** → **Trusted publishing** → **GitHub Actions**: **Organization or user**
+  **askenaz-dev**, **Repository** **meltemi-diagrams**, **Workflow filename** **release.yml**,
+  **Environment name** **npm**, and the allowed actions **npm publish** and **npm dist-tag**. The
+  job uses that GitHub environment, restricted like `open-vsx` to one **Branch: main** rule,
+  `id-token: write` and npm 11.21.1, which exchanges the job's identity for `publish` and for
+  `dist-tag`. npm tries that identity first and uses `NPM_TOKEN` (a granular token for the
+  `meltemi` organization with publish/dist-tag rights and the automation bypass of two-factor
+  authentication) only for a package the registry does not trust yet; the job's log counts the
+  packages published each way and names those still on the token. Packages publish under
+  `release-<version>` first; latest advances only after every tarball is present, and never to a
+  lower version. Existing versions must match the local tarball's SHA-512 integrity. Publication
+  includes provenance.
 - **Marketplace:** publisher **meltemi**, Trusted Publishing policy with owner **askenaz-dev**,
   repository **meltemi-diagrams**, workflow **release.yml**, **Environment empty**. The job has no
   environment and uses `id-token: write` with pinned `@vscode/vsce@4.1.0 publish --oidc`.
@@ -91,6 +100,17 @@ registered, later versions publish through OIDC. The namespace claim
 of the extension disables its registration, and the next release bootstraps it again. The `open-vsx` environment restriction is intentional: without an environment,
 the registry trusts any ref running the registered workflow. Recovery dispatched from main uses
 the same identity and original checked VSIX; it does not restore the old PAT-based job.
+
+npm registers a trusted publisher only for a package that exists, and a new registration expires
+unless a publication uses it within two days, so a release follows the registrations soon after
+they are saved. `npm trust github` sets everything but the dist-tag permission, which only the web
+form grants. `NPM_TOKEN` retires once a release's npm job reports all twenty packages through
+trusted publishing: in each package's **Settings** → **Publishing access** choose **Require
+two-factor authentication and disallow tokens**, remove the token from Meltemi Web's Terraform and
+its `infrastructure` environment, and revoke it in npmjs.com → **Access Tokens**. From then on a
+package without a matching registration fails the npm channel instead of falling back. The `npm`
+environment restriction is intentional for the same reason as Open VSX's. See
+[npm trusted publishing](https://docs.npmjs.com/trusted-publishers).
 
 npm's publishing child process preserves the runner's actual `GITHUB_SHA`, `GITHUB_REF` and OIDC
 identity. Sigstore verifies them against the signing certificate; substituting a product tag or
