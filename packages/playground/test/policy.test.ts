@@ -274,9 +274,9 @@ describe("PAGE_HEADERS", () => {
 });
 
 describe("agentSetupPolicy", () => {
-  it("allows the agent setup page its stylesheet and icon, and nothing else", () => {
+  it("allows the setup page its same-origin copy module and assets, without inline code or connections", () => {
     expect(agentSetupPolicy()).toBe(
-      "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'",
+      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'",
     );
   });
 
@@ -286,6 +286,7 @@ describe("agentSetupPolicy", () => {
       'writeFileSync(join(dist, "agent-setup", "index.html"), agentSetupPage("en.html"));',
       'writeFileSync(join(dist, "es", "agent-setup", "index.html"), agentSetupPage("es.html"));',
       'copy(join(agentSetup, "agent-setup.css"), join(dist, "agent-setup", "agent-setup.css"));',
+      'outfile: join(dist, "agent-setup", "copy-prompt.js"),',
       'join(dist, "agent-setup", "prompt.md"),',
     ]) {
       expect(build).toContain(write);
