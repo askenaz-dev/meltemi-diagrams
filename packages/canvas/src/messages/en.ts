@@ -236,6 +236,11 @@ export const en = {
     auto: "ELK arranges this diagram; moving a box writes every position and switches to assisted.",
     assisted: "Placed boxes stay; ELK arranges the others.",
     manual: "Every box has a written position.",
+    /** The badge as a button: its name, and the three modes of its menu. */
+    menu: (mode: string) => `Layout mode: ${mode}. Change it or arrange the diagram`,
+    automatic: "Automatic",
+    assistedMode: "Assisted",
+    manualMode: "Manual",
   },
 
   /** The drawing area, its minimap, and what it shows when the text has problems. */
@@ -526,6 +531,10 @@ export const en = {
     labelInView: "Label in this view",
     renameInModel: "Rename in the model",
     openModel: "Open the model",
+    /** Swaps the ends of the selected relation, message or free line. */
+    reverseDirection: "Reverse direction",
+    /** Sequence diagrams: `autonumber` on or off. */
+    numberMessages: "Number messages",
     removeFromView: "Remove from the view",
     messageTo: "Message to…",
     makeReply: "Make it a reply",
@@ -968,6 +977,9 @@ export const en = {
   /** The dialogs: deleting what depends on an element, and a new theme. */
   dialogs: {
     deleteAll: "Delete all",
+    /** The confirmation before automatic layout removes positions written by hand. */
+    arrangeTitle: "Back to automatic layout",
+    arrange: "Arrange",
     cancel: "Cancel",
     newTheme: "New theme from this one",
     id: "Id",

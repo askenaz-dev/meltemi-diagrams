@@ -213,6 +213,20 @@ ${unplaced.getText()}`,
   assert.ok(document.getText().length > 0);
 });
 
+test("numbers the messages of a sequence diagram and stops numbering them", async () => {
+  const uri = file("numbered.meltemi");
+  writeFileSync(
+    uri.fsPath,
+    'diagram s: sequence {\n  participant a "A"\n  participant b "B"\n  a -> b: "Call"\n}\n',
+  );
+  const { document } = await open("numbered.meltemi");
+  await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+  assert.equal(await vscode.commands.executeCommand("meltemi.numberMessages", uri), "numbered");
+  await until(() => /\n {2}autonumber\n/.test(document.getText()), "autonumber written");
+  assert.equal(await vscode.commands.executeCommand("meltemi.numberMessages", uri), "unnumbered");
+  await until(() => !document.getText().includes("autonumber"), "autonumber removed");
+});
+
 test("exports PNG and PDF through the browser and runs export profiles", async () => {
   const uri = file("profiles.meltemi");
   writeFileSync(

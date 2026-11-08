@@ -8,6 +8,7 @@ import { propertyTabTests } from "./property-tabs.js";
 import { manipulationTests } from "./manipulation.js";
 import { touchTests } from "./touch.js";
 import { connectionPreviewTests } from "./connection-preview.js";
+import { contextActionTests } from "./context-actions.js";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1863,6 +1864,7 @@ const tests: {
   ...touchTests,
   ...connectionPreviewTests(output),
   ...propertyTabTests(output),
+  ...contextActionTests(output),
   {
     name: "renders the diagram, the toolbar, the inspector and the minimap",
     async run(h) {

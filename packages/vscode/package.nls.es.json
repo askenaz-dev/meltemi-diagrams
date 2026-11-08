@@ -14,6 +14,7 @@
   "command.exportPlayer.title": "Exportar el reproductor HTML",
   "command.arrangeUnplaced.title": "Organizar los elementos sin colocar",
   "command.recomputeLayout.title": "Recalcular la disposición",
+  "command.numberMessages.title": "Numerar los mensajes",
   "command.convertToFree.title": "Convertir en composición libre",
   "command.openModel.title": "Abrir el modelo",
   "command.formatDocument.title": "Dar formato al documento",

@@ -402,6 +402,11 @@ export interface CanvasRender {
   readonly scenarios: readonly { readonly id: string; readonly label: string }[];
   /** The scenario previewed read-only, or null for every event. */
   readonly scenario: string | null;
+  /**
+   * Sequence diagrams: the number of the first message when `autonumber` is written, which the
+   * context menu's **Number messages** shows checked; absent for the other profiles.
+   */
+  readonly autonumber?: number | null;
   /** How many effects the diagram's `animate` statements run; the toolbar plays them. */
   readonly effects: number;
   /** True while the canvas shows the effects running. */

@@ -1761,6 +1761,22 @@ export class Inspector {
     this.show(model);
   }
 
+  /** The properties shown, for the context menu's effect items; undefined while cleared. */
+  get current(): InspectorModel | undefined {
+    return this.model;
+  }
+
+  /**
+   * Draws the properties again as they are written: a value chosen in a field and then cancelled
+   * (the confirmation before automatic layout) goes back to the written one.
+   */
+  redraw(): void {
+    const model = this.model;
+    if (!model) return;
+    this.model = undefined;
+    this.show(model);
+  }
+
   show(model: InspectorModel): void {
     // Keep the field being typed in: a render while typing must not steal focus.
     const focused = document.activeElement as HTMLElement | null;

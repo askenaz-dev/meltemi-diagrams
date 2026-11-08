@@ -108,6 +108,9 @@ const COMMANDS = {
   moveRowUp: false,
   moveRowDown: false,
   toggleLibraries: false,
+  // The context menu's direction and numbering write the text.
+  reverseDirection: false,
+  toggleAutonumber: false,
 } as const satisfies Record<CanvasCommand, boolean>;
 
 describe("the commands of a read-only canvas", () => {
@@ -180,6 +183,9 @@ const ACTIONS: readonly CanvasAction[] = [
   { kind: "duplicate", ids: ["a"] },
   { kind: "cut", ids: ["a"] },
   { kind: "arrange", scope: "all" },
+  { kind: "setLayoutMode", mode: "auto" },
+  { kind: "setAutonumber", on: true },
+  { kind: "reverse", ids: ["r"] },
   { kind: "reorder", ids: ["a"], to: "front" },
   { kind: "addLayer" },
   { kind: "renameLayer", layer: "l", name: "m" },
@@ -370,6 +376,9 @@ describe("the messages of a read-only canvas", () => {
       setPenPoints: 1,
       setFields: 1,
       attachNote: 1,
+      setLayoutMode: 1,
+      setAutonumber: 1,
+      reverse: 1,
     } as const satisfies Record<CanvasAction["kind"], 1>;
     expect(ACTIONS.map((a) => a.kind).sort()).toEqual(Object.keys(every).sort());
     for (const action of ACTIONS) {

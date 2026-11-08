@@ -95,6 +95,10 @@ export const en = {
     positionsWritten: "Every position is already written.",
     noModelView: "Show a C4 view whose model resolves to open the model.",
     noFlowDiagram: "Show a flow diagram without problems to convert it.",
+    /** Number Messages with no sequence diagram shown or under the cursor. */
+    noSequenceDiagram: "Show a sequence diagram, or put the cursor in one, to number its messages.",
+    numbered: "The messages are numbered from 1.",
+    unnumbered: "The messages are no longer numbered.",
   },
   /** AI assistance. */
   assist: {

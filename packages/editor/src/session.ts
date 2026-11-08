@@ -700,6 +700,7 @@ export class CanvasSession {
       events,
       scenarios: diagram.scenarios.map((s) => ({ id: s.id, label: s.label })),
       scenario: scenario ?? null,
+      ...(diagram.type === "sequence" ? { autonumber: diagram.properties.autonumber } : {}),
       effects,
       playing,
       ...(this.inProject() ? { project: true } : {}),

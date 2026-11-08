@@ -120,7 +120,7 @@ describe("the layout mode from the canvas", () => {
     const canvas = open(PLACED, "checkout");
     const refused = canvas.act({ kind: "setLayoutMode", mode: "auto" });
     expect((refused.messages[0] as { reason: string }).reason).toContain(
-      "se perderán las 2 posiciones y el recorrido que moviste a mano",
+      "se perderán las 2 posiciones y la ruta que moviste a mano",
     );
   });
 

@@ -143,7 +143,7 @@ and does not show the refusal under the inspector field. Wording:
   positions and M routes you moved by hand will be lost. You can undo it afterwards." /
   **Cancel**, **Arrange**.
 - ES: **Volver al orden automático** / "El motor va a colocar todo de nuevo y se perderán las
-  N posiciones y M recorridos que moviste a mano. Puedes deshacerlo después." / **Cancelar**,
+  N posiciones y M rutas que moviste a mano. Puedes deshacerlo después." / **Cancelar**,
   **Reordenar**. Singular forms through the existing `plural` helper.
 
 - Alternative: confirm in the canvas before sending, by counting `place` statements itself.

@@ -323,7 +323,8 @@ export const es: typeof en = {
     losesPlacement: (places, routes) => {
       const parts = [
         ...(places === 1 ? ["la posición"] : places > 1 ? [`las ${places} posiciones`] : []),
-        ...(routes === 1 ? ["el recorrido"] : routes > 1 ? [`los ${routes} recorridos`] : []),
+        // "Ruta", as the canvas calls routes: "recorrido" is the name of the trace effect.
+        ...(routes === 1 ? ["la ruta"] : routes > 1 ? [`las ${routes} rutas`] : []),
       ];
       const lost = places + routes === 1 ? "perderá" : "perderán";
       return `El motor va a colocar todo de nuevo y se ${lost} ${parts.join(" y ")} que moviste a mano. Puedes deshacerlo después.`;
