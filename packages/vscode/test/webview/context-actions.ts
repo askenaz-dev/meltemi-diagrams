@@ -41,36 +41,44 @@ const SEQUENCE = `diagram pay: sequence {
 /**
  * A whole page pixel on the drawn connector of a relation, where a press selects it: the point at
  * `at` of its length, or the nearest pixel around it that the connector covers, since the mouse
- * presses whole pixels and the stroke is thinner than two.
+ * presses whole pixels and the stroke is thinner than two. Asked again until the drawing has it: a
+ * render after an edit replaces the connector while it is measured.
  */
 async function onRelation(page: Page, key: string, at = 0.35): Promise<{ x: number; y: number }> {
-  const point = await page
-    .locator(
-      `.content g[data-role="relation"][data-id="${key}"] polyline, .content g[data-role="relation"][data-id="${key}"] path`,
-    )
-    .first()
-    .evaluate(
-      (line: SVGGeometryElement, [fraction, id]: [number, string]) => {
-        const along = line.getPointAtLength(line.getTotalLength() * fraction);
-        const m = line.getScreenCTM()!;
-        const x = along.x * m.a + along.y * m.c + m.e;
-        const y = along.x * m.b + along.y * m.d + m.f;
-        for (let r = 0; r <= 3; r++) {
-          for (let dx = -r; dx <= r; dx++) {
-            for (let dy = -r; dy <= r; dy++) {
-              const px = Math.round(x) + dx;
-              const py = Math.round(y) + dy;
-              const under = document.elementFromPoint(px, py);
-              if (under?.closest('[data-role="relation"]')?.getAttribute("data-id") === id) {
-                return { x: px, y: py };
+  const handle = await page.waitForFunction(
+    ([fraction, id]: [number, string]) => {
+      const lines = document.querySelectorAll<SVGGeometryElement>(
+        `.content g[data-role="relation"][data-id="${id}"] :is(polyline, path)`,
+      );
+      for (const line of lines) {
+        try {
+          const along = line.getPointAtLength(line.getTotalLength() * fraction);
+          const m = line.getScreenCTM();
+          if (!m) continue;
+          const x = along.x * m.a + along.y * m.c + m.e;
+          const y = along.x * m.b + along.y * m.d + m.f;
+          for (let r = 0; r <= 3; r++) {
+            for (let dx = -r; dx <= r; dx++) {
+              for (let dy = -r; dy <= r; dy++) {
+                const px = Math.round(x) + dx;
+                const py = Math.round(y) + dy;
+                const under = document.elementFromPoint(px, py);
+                if (under?.closest('[data-role="relation"]')?.getAttribute("data-id") === id) {
+                  return { x: px, y: py };
+                }
               }
             }
           }
+        } catch {
+          // Being replaced by the next render: the next try measures that one.
         }
-        return null;
-      },
-      [at, key] as [number, string],
-    );
+      }
+      return null;
+    },
+    [at, key] as [number, string],
+    { timeout: 10_000 },
+  );
+  const point = (await handle.jsonValue()) as { x: number; y: number } | null;
   assert.ok(point, `no pixel of ${key} to press`);
   return point;
 }
@@ -175,10 +183,7 @@ export function contextActionTests(output: string) {
         await page.screenshot({ path: join(output, "context-actions-layout-menu.png") });
         // Escape closes and gives the focus back to the badge.
         await page.keyboard.press("Escape");
-        assert.equal(
-          await page.evaluate(() => document.activeElement?.className),
-          "badge layout-badge",
-        );
+        assert.equal(await page.evaluate(() => document.activeElement?.className), "layout-badge");
         assert.equal(await badge.getAttribute("aria-expanded"), "false");
         // Enter opens it from the keyboard.
         await page.keyboard.press("Enter");

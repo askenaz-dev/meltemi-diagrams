@@ -108,8 +108,10 @@ playground's command list gets the same entry.
 
 ### D5. The badge becomes a menu button on profiles with a layout mode
 
-`modeBadge` is rendered as a `<button class="badge">` when the canvas edits a flow, free or C4
-view, and stays a `<span>` otherwise (stories, previews, sequence, gantt, read-only). Pressing it
+A `<button class="layout-badge">` takes the place of the plain `<span class="badge">` when the
+canvas edits a flow, free or C4 view, with the same words and the same pill; the span stays
+otherwise (stories, previews, sequence, gantt, read-only). The button has a class of its own so
+that `.badge` keeps naming the one plain label the toolbar shows. Pressing it
 opens `Menu` under it with **Automatic**, **Assisted**, **Manual** (radio items, the written or
 implied mode checked) and, after a separator, the Arrange button's two items. The mode items
 post a new canvas action `setLayoutMode { mode, confirmed? }`. The Arrange button keeps its menu.

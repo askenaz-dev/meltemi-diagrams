@@ -999,7 +999,7 @@ export class CanvasApp {
    */
   private readonly layoutBadge = h("button", {
     type: "button",
-    class: "badge layout-badge",
+    class: "layout-badge",
     hidden: true,
     "aria-haspopup": "menu",
     "aria-expanded": "false",
