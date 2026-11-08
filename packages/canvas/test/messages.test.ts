@@ -27,6 +27,8 @@ describe("the canvas catalog", () => {
         "Actor",
         "Control",
         "Id",
+        // The layout badge's menu: the mode is "Manual" in both.
+        "Manual",
         "inspector.options.no",
         "inspector.milliseconds",
       ]),

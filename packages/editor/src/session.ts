@@ -2702,8 +2702,9 @@ export class CanvasSession {
       }
       case "setField": {
         // The diagram's Layout field changes the mode as the badge's menu does: `auto` asks first
-        // when it would remove written positions.
-        if (action.ids.length === 0 && action.field === "layout" && diagram.type !== "gantt") {
+        // when it would remove written positions. Sequence diagrams and charts have no mode.
+        const moded = diagram.type !== "gantt" && diagram.type !== "sequence";
+        if (action.ids.length === 0 && action.field === "layout" && moded) {
           const value = action.value === "" ? null : action.value;
           if (value === null || value === "auto" || value === "assisted" || value === "manual") {
             return this.layoutMode(view, { kind: "setLayoutMode", mode: value });

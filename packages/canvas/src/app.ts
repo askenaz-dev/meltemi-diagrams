@@ -1006,12 +1006,13 @@ export class CanvasApp {
   });
   /**
    * Where the context menu was last opened, and its pill: a menu opened on a selection whose
-   * properties have not arrived yet is drawn again with its effect items when they do.
+   * properties have not arrived yet is drawn again with its effect items when they do, once.
    */
   private menuOpening:
     | {
         readonly at: Point;
         readonly pill: { readonly owner: string; readonly index: number } | undefined;
+        readonly redrawn: boolean;
       }
     | undefined;
   private menuWaits = false;
@@ -1431,11 +1432,14 @@ export class CanvasApp {
       }
       case "inspector":
         this.inspector.show(message.model);
-        // A context menu opened on a new selection gains its effect items now that they came.
-        if (this.menuWaits && this.menu.isOpen && this.menuOpening) {
+        // A context menu opened on a new selection gains its effect items now that they came,
+        // drawn again once: what is being chosen in it is not taken away a second time.
+        if (this.menuWaits && this.menu.isOpen && this.menuOpening?.redrawn === false) {
+          const { at, pill } = this.menuOpening;
           this.menuWaits = false;
-          this.menuPill = this.menuOpening.pill;
-          this.openMenu(this.menuOpening.at);
+          this.menuPill = pill;
+          this.openMenu(at);
+          if (this.menuOpening) this.menuOpening = { ...this.menuOpening, redrawn: true };
         }
         // The Choose… that opened the icon picker, drawn anew, is marked as its opener again.
         this.iconPicker.syncOpener();
@@ -2564,7 +2568,7 @@ export class CanvasApp {
     const on = this.readOnly;
     const words = messages();
     this.root.classList.toggle("view-only", on);
-    // The layout mode is only named on a canvas that only shows: the plain badge again.
+    // A canvas that only shows names the layout mode with the plain badge, which opens nothing.
     if (on && !this.layoutBadge.hidden) {
       this.layoutBadge.hidden = true;
       this.modeBadge.hidden = false;
@@ -10539,7 +10543,7 @@ export class CanvasApp {
   }
 
   private openMenu(at: Point): void {
-    this.menuOpening = { at, pill: this.menuPill };
+    this.menuOpening = { at, pill: this.menuPill, redrawn: false };
     this.menuWaits = false;
     if (this.readOnly) {
       this.openReadOnlyMenu(at);

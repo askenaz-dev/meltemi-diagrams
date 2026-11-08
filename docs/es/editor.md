@@ -32,7 +32,9 @@ en Extensiones para desactivarla, desinstalarla o instalar otra versión publica
   - la barra de herramientas tiene el selector de diagramas con **Nuevo diagrama** al lado, la
     paleta, el zoom, los botones de cuadrícula, ajuste a la cuadrícula, minimapa e inspector,
     organizar y exportar;
-  - la insignia muestra el modo de disposición.
+  - la insignia muestra el modo de disposición; en un diagrama de flujo, una composición libre o
+    una vista C4 que el lienzo edita, es un botón cuyo menú cambia el modo y organiza el diagrama
+    ([disposiciones automática y asistida](#disposiciones-automática-y-asistida)).
 - **Inspector**: las pestañas separan **Estilo** (forma, relleno, borde e iconos), **Texto**
   (fuente, tamaño, grosor, color y alineación), **Posición** (posición, tamaño y rutas),
   **Efectos** y **Datos** (identidad y contenido). Solo aparecen las categorías disponibles
@@ -303,6 +305,14 @@ rango se rechaza indicando el rango, y el texto queda como estaba.
   dibujo de antes del arrastre. Los diagramas de secuencia tienen sus propios movimientos de
   eventos en vivo; los puntos de paso y las etiquetas no se previsualizan. Los anfitriones pasan
   los mensajes `preview` como cualquier otro.
+- **Invertir dirección.** El menú contextual de una relación, un mensaje de secuencia o una línea
+  libre seleccionados ofrece **Invertir dirección**: el origen y el destino se intercambian, y
+  también los extremos de su `route` con sus puertos, lados y puntos, sus puntos de paso van en
+  sentido contrario y `label … at p%` pasa a `(100 − p)%`, para que la etiqueta quede donde se
+  dibuja. Los estilos, los efectos y las marcas siguen a la relación, así que las puntas y las
+  partículas siguen la nueva dirección. Una relación anónima sigue seleccionada con la clave que
+  toma, y la línea de estado nombra la nueva dirección. Una relación de una vista C4 viene del
+  modelo y no lo ofrece.
 - **Un paso cada una.** Cada acción es un paso de deshacer, sea cual sea el panel desde el que
   deshagas.
 
@@ -379,6 +389,22 @@ el texto y se mantiene centrado donde se dibuja el texto.
   diagrama no se puede organizar, la línea de estado dice por qué, como una banda dentro de un
   grupo que organiza el motor. Ambos están en el menú de la barra de herramientas, el menú
   contextual y la paleta de comandos.
+- **El menú de la insignia.** En un lienzo que edita un diagrama de flujo, una composición libre o
+  una vista C4, la insignia que nombra el modo (`layout assisted`) es un botón. Su menú lista
+  **Automático**, **Asistido** y **Manual**, con el modo actual marcado, y luego **Organizar los
+  elementos sin colocar** y **Recalcular la disposición**; Intro o Espacio lo abren y Escape
+  devuelve el foco a la insignia. **Asistido** escribe `layout assisted`. **Manual** escribe
+  antes un `place` para cada caja que no lo tiene, donde se dibuja, y luego `layout manual`, en
+  una sola edición, así que el diagrama conserva su dibujo. **Automático** escribe `layout auto`
+  y quita, en la misma edición, lo que el motor ignoraría: el `place` de cada caja y grupo que
+  organiza (una banda y lo que contiene una lista conservan el suyo) y los puntos de paso de cada
+  ruta; una ruta que no fija ningún extremo se va, y los puertos con nombre, los lados, los puntos
+  y los tamaños se quedan. Cuando eso quita algo, un diálogo pregunta antes, **Volver al orden
+  automático**, con cuántas posiciones y rutas se perderían: **Reordenar** lo escribe en un solo
+  paso de deshacer, y **Cancelar** o Escape no escriben nada. El campo **Disposición** del
+  inspector, sin nada seleccionado, pregunta lo mismo y vuelve al modo escrito al **Cancelar**.
+  Las historias, las vistas previas de escenarios, los diagramas de secuencia, los diagramas de
+  Gantt y los lienzos que solo muestran conservan la insignia simple.
 
 ## El teclado
 
@@ -964,6 +990,15 @@ coordenadas.
   por marca, que la reescribe y, vacío, la quita, cada uno con un botón **Quitar**, y un campo
   vacío cuyo texto agrega una marca al final; una marca vacía o repetida se rechaza indicando el
   motivo.
+- **Numeración y dirección.** El menú contextual ofrece **Numerar mensajes**, marcado mientras el
+  diagrama tiene `autonumber`: escribe `autonumber` solo (desde 1) o quita la instrucción,
+  empiece donde empiece; **Numerar los mensajes desde** en el inspector elige otro inicio, y el comando
+  **Numerar los mensajes** hace lo mismo que el menú. Un mensaje seleccionado, que no sea un
+  `return` ni vaya a sí mismo, tiene **Invertir dirección**: sus participantes se intercambian,
+  una respuesta sigue siendo respuesta, su bloque de llamada lo acompaña, y una activación escrita
+  de su receptor justo después (`activate` y su `deactivate`) pasa a nombrar al nuevo receptor,
+  lo que dice la línea de estado. El menú también lista los efectos que admite la selección
+  ([efectos](#efectos)).
 - **Escenarios.** Cuando el diagrama tiene escenarios, la barra de herramientas los ofrece junto a
   **Todos los eventos**. Elegir uno muestra una vista previa de ese camino, de solo lectura; elige
   **Todos los eventos** para volver a editar. **Exportar SVG** pregunta por "Todos los eventos" o un
@@ -1278,6 +1313,14 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   pausa hasta que se presiona Reproducir. Sin efectos el botón está desactivado. Activar un efecto
   mientras el diagrama está en pausa lo indica en la línea de estado. La selección, la edición y
   las vistas previas en vivo siguen funcionando mientras se reproducen los efectos.
+- **Menú contextual.** El menú contextual de una selección que admite efectos los lista como
+  elementos que se activan y desactivan, **Partículas**, **Trazo en movimiento**, **Pulso** y
+  **Recorrido**, solo los que admite la selección, cada uno marcado cuando todo lo seleccionado lo
+  tiene. Elegir uno escribe lo mismo que el interruptor del inspector: el efecto con sus valores
+  por defecto donde falta (nombrando antes un objetivo sin id, como arriba), o lo quita de todos
+  cuando todos lo tienen. El inspector conserva sus ajustes. Los elementos llegan con las
+  propiedades de la selección, así que un menú abierto sobre una selección nueva los muestra un
+  momento después. Un lienzo que solo muestra no ofrece ninguno.
 
 ## Historias
 
@@ -1347,6 +1390,7 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
 | Generar el catálogo                                            | Genera el catálogo HTML sin conexión del proyecto del archivo o la carpeta (`docs/catalog.md`) y ofrece abrirlo en el navegador                                                                                                                                                                 |
 | Ejecutar un perfil de exportación                              | Escribe un perfil `export` del archivo, o todos, donde indican los perfiles (`docs/language/export.md`)                                                                                                                                                                                         |
 | Organizar los elementos sin colocar, Recalcular la disposición | Como se describe más arriba                                                                                                                                                                                                                                                                     |
+| Numerar los mensajes                                           | Escribe `autonumber` en el diagrama de secuencia del lienzo, o bajo el cursor, o lo quita cuando ya está ([sequence.md](language/sequence.md))                                                                                                                                                  |
 | Abrir el modelo                                                | Muestra el modelo de la vista C4 del lienzo, o de la que está bajo el cursor, en este archivo o en el importado                                                                                                                                                                                 |
 | Convertir en composición libre                                 | Copia el diagrama de flujo del lienzo, o el que está bajo el cursor, en un nuevo diagrama libre y lo muestra                                                                                                                                                                                    |
 | Dar formato al documento                                       | El formato canónico                                                                                                                                                                                                                                                                             |

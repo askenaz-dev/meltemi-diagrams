@@ -71,7 +71,7 @@ labels.
 
 #### Scenario: Keyboard
 - **WHEN** the badge has focus and Enter or Space is pressed
-- **THEN** the menu opens with its first item focused, the arrows move between items and Escape closes it, returning focus to the badge
+- **THEN** the menu opens with the current mode focused, the arrows move between items and Escape closes it, returning focus to the badge
 
 ### Requirement: Confirmed switch to automatic layout
 When `layout auto` is chosen, from the badge menu or the inspector, on a diagram with positions or

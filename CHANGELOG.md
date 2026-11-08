@@ -6,6 +6,23 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 
 ## Unreleased
 
+### Canvas
+
+- The context menu lists the effects the selection takes, **Flow particles**, **Moving dash**,
+  **Pulse** and **Trace**, as items that turn each on and off with one click, writing what the
+  inspector's toggles write; the inspector keeps their settings
+  ([decision 0074](docs/decisions/0074-context-actions-and-layout-menu.md)).
+- **Reverse direction** in the context menu of one relation, sequence message or free line swaps
+  its ends with its route, ports and waypoints, keeps its label where it is drawn, and takes a
+  message's written activation to its new receiver (edit operation `reverseRelation`).
+- **Number messages** in the context menu of a sequence diagram, and the VS Code command **Number
+  Messages**, write `autonumber` or remove it.
+- The layout badge of a flow diagram, a free composition or a C4 view is a menu with **Automatic**,
+  **Assisted**, **Manual**, **Arrange unplaced elements** and **Recompute layout**. Manual writes
+  the missing positions first; Automatic removes the positions and waypoints `layout auto` ignores
+  (edit operation `clearPlacement`), after a confirmation in English and Spanish when there are
+  any, also from the inspector's Layout field.
+
 ### Local workspace
 
 - `docker compose up` starts the editor, project backend and Streamable HTTP MCP on loopback,
