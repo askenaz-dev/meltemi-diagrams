@@ -61,6 +61,8 @@ export const ICONS = {
   zoomIn: "M8 4v8|M4 8h8",
   zoomOut: "M4 8h8",
   fit: "M3 6V3h3|M10 3h3v3|M13 10v3h-3|M6 13H3v-3",
+  fullscreen: "M9.5 2.5h4v4|M13.5 2.5l-5 5|M6.5 13.5h-4v-4|M2.5 13.5l5-5",
+  exitFullscreen: "M2.5 6H6V2.5|M10 2.5V6h3.5|M13.5 10H10v3.5|M6 13.5V10H2.5",
   close: "M4 4l8 8|M12 4l-8 8",
   up: "M8 12.5v-9|M4 7.5l4-4 4 4",
   open: "M8 4v8|M4 8h8",

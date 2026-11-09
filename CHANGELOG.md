@@ -14,6 +14,21 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 
 ### Canvas
 
+- Stories have an explicit scene selector, separate editing/playing highlights, human-readable
+  story and scene names, and a locally resizable panel. The lower delete action removes a scene;
+  story deletion is available above and in the explorer. Source/revision guards prevent stale
+  confirmations, and empty scenes no longer force selection to the final row or create end scroll.
+- Opt-in `overlap <time>` starts adjacent scenes concurrently, with configurable transitions,
+  deterministic claim precedence and directed closing stills. Existing sequential stories retain
+  their timing and rendering; overlap limits also protect duration edits and scene insertion/removal.
+- HTML story export opens the chooser with independent heading, summary, details and controls
+  options. The offline player offers fullscreen, including with playback controls hidden, and
+  optional details can be omitted without disabling zoom/pan.
+- Story timeline clips can be inserted before or after actions in the same scene by dragging
+  their bodies, with a destination preview, keyboard/buttons and exact undo. Parallel blocks move
+  together; durations stay fixed and the right edge still resizes. Cancelled or stale moves write
+  nothing, and the selection follows the moved action after its source edit is acknowledged.
+
 - **New diagram** offers the same seven starters in every project and both editor hosts: flow,
   sequence, C4 architecture, Gantt, whiteboard, Kanban and free composition. C4 creates a model
   and context view together; whiteboard and Kanban prepare editable boards without replacing

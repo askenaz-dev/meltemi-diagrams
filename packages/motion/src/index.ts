@@ -25,10 +25,14 @@ export { animatedScene, MOTION_CLASS } from "./css.js";
 export { pointAlong, trackLength } from "./geometry.js";
 export {
   BEFORE_NEXT_SCENE,
+  activeSceneIndices,
   boundsOf,
   frameBox,
+  hasSceneOverlap,
   sceneStills,
   storyFrame,
+  storySceneFrame,
+  storySceneIndexAt,
   storyTimeline,
   storyViewData,
   viewKey,

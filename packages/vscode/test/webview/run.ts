@@ -12,6 +12,8 @@ import { connectorSelectionTests } from "./connector-selection.js";
 import { contextActionTests } from "./context-actions.js";
 import { diagramStarterTests } from "./diagram-starters.js";
 import { storyLifecycleTests } from "./story-lifecycle.js";
+import { storyReorderTests } from "./story-reorder.js";
+import { storyWorkspaceTests } from "./story-workspace.js";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,7 +27,7 @@ import {
 } from "@meltemi/diagrams-editor";
 import { resolveLocale, setLocale } from "@meltemi/diagrams-i18n";
 import { compile, readDiagramType, type DiagramTypeDefinition } from "@meltemi/diagrams-model";
-import { applyTextEdits } from "@meltemi/diagrams-language";
+import { applyTextEdits, type TextEdit } from "@meltemi/diagrams-language";
 import { chromium, type Browser, type Locator, type Page } from "playwright-core";
 import type { FontLibrary } from "@meltemi/diagrams-fonts";
 import { createNodeFontLibrary } from "@meltemi/diagrams-fonts/node";
@@ -623,6 +625,7 @@ class Harness {
     inspector: true,
   };
   private busy = 0;
+  private readonly undoEdits: (readonly TextEdit[])[] = [];
 
   constructor(
     readonly page: Page,
@@ -737,6 +740,13 @@ class Harness {
     await this.post(this.session.update(this.analyze(text, this.revision)));
   }
 
+  /** Applies the inverse of the last visual edit, as the editor host's undo does. */
+  async undo(): Promise<void> {
+    const edits = this.undoEdits.pop();
+    assert.ok(edits, "no visual edit to undo");
+    await this.type(applyTextEdits(this.text, edits));
+  }
+
   /**
    * Runs as each message of the canvas arrives, before the session takes it: a test changes the
    * text there (`typeNow`), as somebody else's edit that reached the host first.
@@ -768,6 +778,7 @@ class Harness {
     await this.post(result.messages);
     if (result.clipboard !== undefined) this.clipboard = result.clipboard;
     if (result.plan) {
+      this.undoEdits.push(result.plan.inverse);
       this.text = applyTextEdits(this.text, result.plan.edits);
       this.revision++;
       await this.post(this.session.update(this.analyze(this.text, this.revision)));
@@ -1884,6 +1895,8 @@ const tests: {
   ...contextActionTests(output),
   ...diagramStarterTests,
   ...storyLifecycleTests,
+  ...storyReorderTests,
+  ...storyWorkspaceTests(output),
   {
     name: "renders the diagram, the toolbar, the inspector and the minimap",
     async run(h) {
@@ -7586,7 +7599,10 @@ const tests: {
       await timeline.waitFor({ state: "visible" });
       assert.equal(await page.locator(".badge").textContent(), "historia");
       assert.equal(await page.locator(".timeline .clock").textContent(), "0 s / 6,2 s");
-      assert.equal(await page.locator(".timeline .scene-name").textContent(), "escena overview");
+      assert.equal(
+        await page.getByRole("combobox", { name: "Escena seleccionada", exact: true }).inputValue(),
+        "overview",
+      );
       // 1200 ms reads "1,2 s".
       assert.equal(
         await page.locator('.timeline .bar[data-path="1.0"]').getAttribute("aria-label"),

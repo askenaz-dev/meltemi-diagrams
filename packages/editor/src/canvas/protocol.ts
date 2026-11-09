@@ -631,6 +631,13 @@ export interface InspectorModel {
   readonly fields: readonly InspectorField[];
 }
 
+/** A source-verified acknowledgement of a top-level story action's new sibling position. */
+export interface StoryReorderInfo {
+  readonly story: string;
+  readonly path: readonly number[];
+  readonly index: number;
+}
+
 /** What the canvas needs to draw any instant of a story by itself. */
 export interface StoryPlaybackInfo {
   readonly id: string;
@@ -1001,6 +1008,8 @@ export type HostMessage =
       readonly document?: string;
       readonly stories: readonly { readonly id: string; readonly title: string | null }[];
       readonly playback: StoryPlaybackInfo | null;
+      /** Present once, only when the host observes the exact source produced by that reorder. */
+      readonly reordered?: StoryReorderInfo;
     };
 
 /** The kinds of diagram the canvas creates: C4 views need a model, written in text. */
@@ -1389,7 +1398,35 @@ export type CanvasAction =
       readonly durationMs?: number;
     }
   | { readonly kind: "removeStoryAction"; readonly story: string; readonly path: readonly number[] }
+  /** Stories: move one top-level action to its final sibling index in the same scene. */
+  | {
+      readonly kind: "reorderStoryAction";
+      readonly story: string;
+      readonly path: readonly number[];
+      readonly index: number;
+    }
   | { readonly kind: "removeStory"; readonly story: string; readonly cascade: boolean }
+  | { readonly kind: "setStoryTitle"; readonly story: string; readonly title: string | null }
+  | {
+      readonly kind: "setSceneTitle";
+      readonly story: string;
+      readonly scene: string;
+      readonly title: string | null;
+    }
+  | { readonly kind: "removeScene"; readonly story: string; readonly scene: string }
+  | {
+      readonly kind: "setSceneOverlap";
+      readonly story: string;
+      readonly scene: string;
+      readonly durationMs: number;
+    }
+  | {
+      readonly kind: "setSceneTransition";
+      readonly story: string;
+      readonly scene: string;
+      readonly transition: "cut" | "fade" | "morph";
+      readonly durationMs?: number;
+    }
   | {
       readonly kind: "setSceneDuration";
       readonly story: string;
@@ -1862,8 +1899,25 @@ function isAction(a: unknown): a is CanvasAction {
       );
     case "removeStoryAction":
       return isString(a.story) && isPath(a.path);
+    case "reorderStoryAction":
+      return isString(a.story) && isPath(a.path) && a.path.length === 2 && isIndex(a.index);
     case "removeStory":
       return isString(a.story) && typeof a.cascade === "boolean";
+    case "setStoryTitle":
+      return isString(a.story) && (a.title === null || isString(a.title));
+    case "setSceneTitle":
+      return isString(a.story) && isString(a.scene) && (a.title === null || isString(a.title));
+    case "removeScene":
+      return isString(a.story) && isString(a.scene);
+    case "setSceneOverlap":
+      return isString(a.story) && isString(a.scene) && isNumber(a.durationMs) && a.durationMs >= 0;
+    case "setSceneTransition":
+      return (
+        isString(a.story) &&
+        isString(a.scene) &&
+        oneOf(a.transition, ["cut", "fade", "morph"]) &&
+        (a.durationMs === undefined || (isNumber(a.durationMs) && a.durationMs >= 0))
+      );
     case "setSceneDuration":
       return isString(a.story) && isString(a.scene) && isNumber(a.durationMs) && a.durationMs >= 0;
     case "insertScene":

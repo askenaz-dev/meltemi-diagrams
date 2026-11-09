@@ -1,8 +1,11 @@
 import type { Scene } from "@meltemi/diagrams-layout";
 import {
   drillFrame,
+  hasSceneOverlap,
   sceneAt,
   storyFrame,
+  storySceneFrame,
+  storySceneIndexAt,
   type DrillSpec,
   type StoryViewData,
 } from "@meltemi/diagrams-motion";
@@ -18,6 +21,8 @@ export interface FrameOptions {
   readonly view?: string;
   /** Story documents: the index of the story to draw; the first by default. */
   readonly story?: number;
+  /** Static stories: the explicitly selected scene, including an overlapping closing frame. */
+  readonly scene?: number;
 }
 
 /**
@@ -32,7 +37,15 @@ export function frameScene(
   let scene: Scene | null;
   if (data.kind === "story") {
     const { timeline } = storyAt(data, options.story);
-    scene = storyFrame(timeline, (key) => data.views[key], t, { accent: data.accent });
+    scene =
+      options.static && hasSceneOverlap(timeline)
+        ? storySceneFrame(
+            timeline,
+            (key) => data.views[key],
+            options.scene ?? storySceneIndexAt(timeline, t),
+            { accent: data.accent },
+          )
+        : storyFrame(timeline, (key) => data.views[key], t, { accent: data.accent });
   } else {
     const view = data.views[options.view ?? data.key];
     scene = !view ? null : options.static ? view.scene : sceneAt(view.scene, view.plan, t);

@@ -458,6 +458,12 @@ export const en = {
     embed: "A fragment to paste into a page",
     autoplay: "Plays when it opens",
     loop: "Loops",
+    playerHeading: "Include heading and description",
+    playerSummary: "Include text summary",
+    playerDetails: "Include element details and links",
+    playerDetailsHint:
+      "Zoom and pan stay available. Diagram labels and playback data are always included.",
+    playerControls: "Include playback controls",
     fps: "Frames per second",
     duration: "Duration",
     commandLine: (reason: string, format: string) =>

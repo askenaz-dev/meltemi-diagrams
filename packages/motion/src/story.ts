@@ -58,6 +58,40 @@ export interface StoryTimeline {
   readonly views: readonly string[];
 }
 
+/** Whether any scene starts before its predecessor has finished. No source-only metadata. */
+export function hasSceneOverlap(timeline: Pick<StoryTimeline, "scenes">): boolean {
+  return timeline.scenes.some((scene, index, scenes) => {
+    const previous = scenes[index - 1];
+    if (!previous) return false;
+    const end = previous.startMs + previous.durationMs;
+    return (
+      end - scene.startMs > Number.EPSILON * Math.max(1, Math.abs(end), Math.abs(scene.startMs)) * 8
+    );
+  });
+}
+
+/** The latest scene that has started; source order breaks simultaneous-start ties. */
+export function storySceneIndexAt(timeline: Pick<StoryTimeline, "scenes">, t: number): number {
+  let index = 0;
+  for (let i = 0; i < timeline.scenes.length; i++) if (timeline.scenes[i]!.startMs <= t) index = i;
+  return index;
+}
+
+/** Active half-open scene intervals, including instantaneous scenes and the final closing frame. */
+export function activeSceneIndices(
+  timeline: Pick<StoryTimeline, "scenes" | "durationMs">,
+  t: number,
+): number[] {
+  const time = Math.min(Math.max(0, t), timeline.durationMs);
+  return timeline.scenes.flatMap((scene, index) => {
+    const end = scene.startMs + scene.durationMs;
+    return scene.startMs <= time &&
+      (time < end || (time === end && (scene.durationMs === 0 || end === timeline.durationMs)))
+      ? [index]
+      : [];
+  });
+}
+
 /** What a story needs of one view: its scene, its effects and the ends of its relations. */
 export interface StoryViewData {
   readonly scene: Scene;
@@ -144,13 +178,17 @@ export interface SceneStill {
  */
 export function sceneStills(timeline: Pick<StoryTimeline, "scenes">): SceneStill[] {
   const scenes = timeline.scenes;
+  const overlapping = hasSceneOverlap(timeline);
   return scenes.map((scene, i) => {
     const end = scene.startMs + scene.durationMs;
     return {
       id: scene.id,
       title: scene.title,
       view: scene.view,
-      atMs: i === scenes.length - 1 ? end : Math.max(scene.startMs, end - BEFORE_NEXT_SCENE),
+      atMs:
+        overlapping || i === scenes.length - 1
+          ? end
+          : Math.max(scene.startMs, end - BEFORE_NEXT_SCENE),
     };
   });
 }
@@ -358,6 +396,271 @@ function stateAt(timeline: StoryTimeline, t: number, views: StoryViews): StorySt
   // A camera set in another view does not frame this one.
   if (camera && cameraView !== scenes[index]?.view) camera = null;
   return { scene: index, opacity, highlights, traces, draws, focus, camera };
+}
+
+interface OverlapClaim {
+  readonly action: TimelineAction;
+  readonly scene: number;
+}
+
+const upperBound = (values: readonly number[], value: number): number => {
+  let low = 0;
+  let high = values.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (values[middle]! <= value) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+};
+
+/**
+ * Claims are in scene/action priority order, not clock order. Each interpolation captures its
+ * lower-priority value once at its own start. A range/point tree prepares those anchors without
+ * recursion or quadratic scans when a later scene starts before many earlier scene actions.
+ */
+class ClaimTrack<T> {
+  private readonly records: { claim: OverlapClaim; from: T; end: number }[] = [];
+
+  constructor(
+    private readonly initial: T,
+    claims: readonly OverlapClaim[],
+    private readonly sample: (claim: OverlapClaim, from: T, t: number) => T,
+    private readonly duration: number,
+    endOf: (claim: OverlapClaim) => number = () => Infinity,
+  ) {
+    const ends = claims.map(endOf);
+    const points = [
+      ...new Set([
+        0,
+        duration,
+        ...claims.map((c) => c.action.startMs),
+        ...ends.filter(Number.isFinite),
+      ]),
+    ].sort((a, b) => a - b);
+    const tree = new Int32Array(points.length * 4).fill(-1);
+    const query = (point: number, node = 1, left = 0, right = points.length - 1): number => {
+      if (left === right) return tree[node]!;
+      const middle = (left + right) >>> 1;
+      return Math.max(
+        tree[node]!,
+        point <= middle
+          ? query(point, node * 2, left, middle)
+          : query(point, node * 2 + 1, middle + 1, right),
+      );
+    };
+    const assign = (
+      from: number,
+      to: number,
+      value: number,
+      node = 1,
+      left = 0,
+      right = points.length - 1,
+    ): void => {
+      if (from > right || to < left || from > to) return;
+      if (from <= left && right <= to) {
+        tree[node] = value;
+        return;
+      }
+      const middle = (left + right) >>> 1;
+      assign(from, to, value, node * 2, left, middle);
+      assign(from, to, value, node * 2 + 1, middle + 1, right);
+    };
+    for (const [index, claim] of claims.entries()) {
+      const point = upperBound(points, claim.action.startMs) - 1;
+      const prior = this.records[query(point)];
+      const from = prior ? sample(prior.claim, prior.from, claim.action.startMs) : initial;
+      const end = ends[index]!;
+      this.records.push({ claim, from, end });
+      const last =
+        end === Infinity || end === duration ? points.length - 1 : upperBound(points, end) - 2;
+      assign(point, last, index);
+    }
+  }
+
+  /** The highest-priority started claim in the requested scene prefix. */
+  valueAt(t: number, throughScene: number, closing = false): T {
+    let low = 0;
+    let high = this.records.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (this.records[middle]!.claim.scene <= throughScene) low = middle + 1;
+      else high = middle;
+    }
+    for (let i = low - 1; i >= 0; i--) {
+      const record = this.records[i]!;
+      if (
+        record.claim.action.startMs <= t &&
+        (t < record.end || (t === record.end && (closing || record.end === this.duration)))
+      )
+        return this.sample(record.claim, record.from, t);
+    }
+    return this.initial;
+  }
+}
+
+interface OverlapView {
+  readonly claims: readonly OverlapClaim[];
+  readonly visibility: ReadonlyMap<string, ClaimTrack<number>>;
+  readonly camera: ClaimTrack<Box | null>;
+  readonly focus: ClaimTrack<StoryState["focus"]>;
+}
+
+interface OverlapComposition {
+  readonly sourceScenes: readonly (Scene | undefined)[];
+  readonly views: ReadonlyMap<string, OverlapView>;
+}
+
+const overlapCompositions = new WeakMap<StoryTimeline, OverlapComposition>();
+
+function overlapComposition(timeline: StoryTimeline, views: StoryViews): OverlapComposition {
+  const sourceScenes = timeline.views.map((key) => views(key)?.scene);
+  const cached = overlapCompositions.get(timeline);
+  if (cached && cached.sourceScenes.every((scene, index) => scene === sourceScenes[index]))
+    return cached;
+  const all = timeline.scenes.flatMap((scene, index) => flatten(scene.actions, index));
+  const prepared = new Map<string, OverlapView>();
+  for (const key of timeline.views) {
+    const data = views(key);
+    if (!data) continue;
+    const claims = all.filter((claim) => timeline.scenes[claim.scene]!.view === key);
+    const visibility = new Map<string, ClaimTrack<number>>();
+    const visibilityClaims = new Map<string, OverlapClaim[]>();
+    for (const claim of claims) {
+      if (!["reveal", "hide", "draw"].includes(claim.action.kind)) continue;
+      for (const target of claim.action.targets) {
+        const list = visibilityClaims.get(target.id) ?? [];
+        list.push(claim);
+        visibilityClaims.set(target.id, list);
+      }
+    }
+    for (const [id, list] of visibilityClaims) {
+      const first = list.reduce((a, b) => (b.action.startMs < a.action.startMs ? b : a));
+      visibility.set(
+        id,
+        new ClaimTrack(
+          first.action.kind === "hide" ? 1 : 0,
+          list,
+          ({ action }, from, t) =>
+            action.kind === "draw"
+              ? 1
+              : lerp(
+                  from,
+                  action.kind === "hide" ? 0 : 1,
+                  progress(t, action.startMs, action.durationMs),
+                ),
+          timeline.durationMs,
+        ),
+      );
+    }
+    const camera = new ClaimTrack<Box | null>(
+      null,
+      claims.filter((claim) => claim.action.kind === "camera"),
+      ({ action }, from, t) => {
+        const bounds = action.all
+          ? null
+          : boundsOf(
+              data.scene,
+              action.targets.map((target) => target.id),
+            );
+        return interpolateBox(
+          data.scene,
+          from,
+          bounds ? frameBox(data.scene, bounds) : null,
+          progress(t, action.startMs, action.durationMs),
+        );
+      },
+      timeline.durationMs,
+    );
+    const focus = new ClaimTrack<StoryState["focus"]>(
+      null,
+      claims.filter((claim) => claim.action.kind === "focus"),
+      ({ action }, from, t) => ({
+        ids: action.all
+          ? (from?.ids ?? new Set<string>())
+          : new Set(action.targets.map((target) => target.id)),
+        level: lerp(
+          from?.level ?? 0,
+          action.all ? 0 : 1,
+          progress(t, action.startMs, action.durationMs),
+        ),
+      }),
+      timeline.durationMs,
+      (claim) => {
+        const scene = timeline.scenes[claim.scene]!;
+        return scene.startMs + scene.durationMs;
+      },
+    );
+    prepared.set(key, { claims, visibility, camera, focus });
+  }
+  const composition = { sourceScenes, views: prepared };
+  overlapCompositions.set(timeline, composition);
+  return composition;
+}
+
+/** Per-view state, composed by channel with later-scene priority after a claim begins. */
+function overlapStateAt(
+  composition: OverlapComposition,
+  key: string,
+  t: number,
+  throughScene: number,
+  data: StoryViewData,
+  closing = false,
+): StoryState {
+  const prepared = composition.views.get(key)!;
+  const opacity = new Map(
+    [...prepared.visibility].map(([id, track]) => [id, track.valueAt(t, throughScene)]),
+  );
+  const highlights = new Map<string, number>();
+  const strokes = new Map<string, { kind: "trace" | "draw"; key: string; progress?: number }>();
+  for (const { action, scene } of prepared.claims) {
+    if (scene > throughScene || action.startMs > t) continue;
+    const p = progress(t, action.startMs, action.durationMs);
+    if (p >= 1) continue;
+    if (action.kind === "highlight") {
+      const ramp = Math.min(200, action.durationMs / 4);
+      const intensity =
+        ramp <= 0
+          ? 1
+          : Math.min(
+              1,
+              (t - action.startMs) / ramp,
+              (action.startMs + action.durationMs - t) / ramp,
+            );
+      for (const target of action.targets) highlights.set(target.id, intensity);
+    } else if (action.kind === "trace") {
+      const fractions = new Map(traceProgress(action, p, data.scene));
+      for (const target of action.targets)
+        strokes.set(target.id, {
+          kind: "trace",
+          key: target.id,
+          progress: fractions.get(target.id),
+        });
+    } else if (action.kind === "draw") {
+      const fractions = drawProgress(action, p, data.scene);
+      for (const target of action.targets) {
+        const targetId = targetKey(target.kind, target.id);
+        strokes.set(target.id, { kind: "draw", key: targetId, progress: fractions.get(targetId) });
+      }
+    }
+  }
+  const traces: StoryState["traces"] = [];
+  const draws: StoryState["draws"] = new Map();
+  for (const stroke of strokes.values()) {
+    if (stroke.progress === undefined) continue;
+    if (stroke.kind === "trace") traces.push({ id: stroke.key, progress: stroke.progress });
+    else if (stroke.progress < 1) draws.set(stroke.key, stroke.progress);
+  }
+  const box = prepared.camera.valueAt(t, throughScene);
+  return {
+    scene: throughScene,
+    opacity,
+    highlights: [...highlights].map(([id, intensity]) => ({ id, intensity })),
+    traces,
+    draws,
+    focus: prepared.focus.valueAt(t, throughScene, closing),
+    camera: box ? { from: box, to: box, progress: 1 } : null,
+  };
 }
 
 /** The group of a target in a scene: an element's or a relation's, by its kind. */
@@ -841,6 +1144,7 @@ export function storyFrame(
   t: number,
   options: StoryFrameOptions = {},
 ): Scene | null {
+  if (hasSceneOverlap(timeline)) return overlappingFrame(timeline, views, t, options);
   const accent = options.accent ?? "#1f6feb";
   const time = Math.min(Math.max(0, t), timeline.durationMs);
   const state = stateAt(timeline, time, views);
@@ -875,16 +1179,145 @@ export function storyFrame(
   const before = views(previous.view);
   if (!before) return frame;
   const old = drawView(before, state, time, accent);
+  return transitionFrames(old, frame, p, transition.kind);
+}
+
+interface FramePlacement {
+  readonly x: number;
+  readonly y: number;
+  readonly scale: number;
+}
+
+/** Bounds in the viewport where a composed frame is drawn, rather than its old local space. */
+function projectedBounds(
+  bounds: SceneBounds,
+  sx: number,
+  sy: number,
+  x: number,
+  y: number,
+): SceneBounds {
+  const rectangle = (box: Box): Box => ({
+    x: box.x * sx + x,
+    y: box.y * sy + y,
+    width: box.width * sx,
+    height: box.height * sy,
+  });
+  return {
+    ...bounds,
+    ...rectangle(bounds),
+    radius: bounds.radius * Math.min(Math.abs(sx), Math.abs(sy)),
+    ...(bounds.inner ? { inner: rectangle(bounds.inner) } : {}),
+    ...(bounds.label ? { label: rectangle(bounds.label) } : {}),
+  };
+}
+
+function placedBounds(items: readonly SceneItem[], place: FramePlacement): SceneItem[] {
+  return items.map((item) =>
+    item.kind === "group"
+      ? {
+          ...item,
+          ...(item.bounds
+            ? { bounds: projectedBounds(item.bounds, place.scale, place.scale, place.x, place.y) }
+            : {}),
+          items: placedBounds(item.items, place),
+        }
+      : item,
+  );
+}
+
+/** Fit the view box that each camera actually sees to one common transition viewport. */
+function framePlacement(scene: Scene, width: number, height: number): FramePlacement {
+  const box = scene.viewBox ?? fullBox(scene);
+  const scale = Math.min(width / box.width, height / box.height);
+  return {
+    x: (width - box.width * scale) / 2 - box.x * scale,
+    y: (height - box.height * scale) / 2 - box.y * scale,
+    scale,
+  };
+}
+
+function transitionFrames(
+  old: Scene,
+  frame: Scene,
+  p: number,
+  kind: "fade" | "morph",
+  cameras = false,
+): Scene {
   const width = Math.max(old.width, frame.width);
   const height = Math.max(old.height, frame.height);
-  if (transition.kind === "fade") {
+  const fromPlacement = cameras ? framePlacement(old, width, height) : null;
+  const toPlacement = cameras ? framePlacement(frame, width, height) : null;
+  const placed = (
+    items: readonly SceneItem[],
+    source: Scene,
+    place: FramePlacement | null,
+  ): readonly SceneItem[] => {
+    if (!place) return items;
+    const background: SceneItem[] =
+      source.background === "none" || source.background === "transparent"
+        ? []
+        : [
+            {
+              kind: "rect",
+              x: 0,
+              y: 0,
+              width,
+              height,
+              radius: 0,
+              fill: source.background,
+              stroke: "none",
+              strokeWidth: 0,
+              dashed: false,
+            },
+          ];
+    return [
+      ...background,
+      {
+        kind: "group",
+        id: "story-camera",
+        role: "motion",
+        transform: `translate(${place.x} ${place.y}) scale(${place.scale})`,
+        items: placedBounds(items, place),
+      },
+    ];
+  };
+  const viewport = cameras
+    ? {
+        viewBox: { x: 0, y: 0, width, height },
+        gradients: [
+          ...new Map(
+            [...old.gradients, ...frame.gradients].map((gradient) => [gradient.id, gradient]),
+          ).values(),
+        ],
+        patterns: [
+          ...new Map(
+            [...old.patterns, ...frame.patterns].map((pattern) => [pattern.id, pattern]),
+          ).values(),
+        ],
+        ...(old.styleSheet ? { styleSheet: `${old.styleSheet}\n${frame.styleSheet ?? ""}` } : {}),
+      }
+    : {};
+  if (kind === "fade") {
     return {
       ...frame,
+      ...viewport,
       width,
       height,
       items: [
-        { kind: "group", id: "before", role: "motion", items: old.items, opacity: round(1 - p) },
-        { kind: "group", id: "after", role: "motion", items: frame.items, opacity: round(p) },
+        {
+          kind: "group",
+          id: "before",
+          role: "motion",
+          items: placed(old.items, old, fromPlacement),
+          opacity: round(1 - p),
+        },
+        {
+          kind: "group",
+          id: "after",
+          role: "motion",
+          items: placed(frame.items, frame, toPlacement),
+          opacity: round(p),
+        },
       ],
     };
   }
@@ -902,8 +1335,17 @@ export function storyFrame(
   const morph = (items: readonly SceneItem[]): SceneItem[] =>
     items.map((item) => {
       if (item.kind !== "group") return item;
-      const from = item.role === "element" && item.bounds ? oldBounds.get(item.id) : undefined;
-      if (from && item.bounds) {
+      let from = item.role === "element" && item.bounds ? oldBounds.get(item.id) : undefined;
+      if (from && fromPlacement && toPlacement) {
+        from = {
+          ...from,
+          x: (from.x * fromPlacement.scale + fromPlacement.x - toPlacement.x) / toPlacement.scale,
+          y: (from.y * fromPlacement.scale + fromPlacement.y - toPlacement.y) / toPlacement.scale,
+          width: (from.width * fromPlacement.scale) / toPlacement.scale,
+          height: (from.height * fromPlacement.scale) / toPlacement.scale,
+        };
+      }
+      if (from && item.bounds && (!cameras || (item.bounds.width > 0 && item.bounds.height > 0))) {
         moved.add(item.id);
         const to = item.bounds;
         const x = lerp(from.x, to.x, p);
@@ -911,7 +1353,16 @@ export function storyFrame(
         const sx = lerp(from.width, to.width, p) / to.width;
         const sy = lerp(from.height, to.height, p) / to.height;
         const transform = `translate(${round(x - to.x * sx)} ${round(y - to.y * sy)}) scale(${round(sx * 1000) / 1000} ${round(sy * 1000) / 1000})`;
-        return { kind: "group", id: `${item.id}#morph`, role: "motion", items: [item], transform };
+        const positioned = cameras
+          ? { ...item, bounds: projectedBounds(to, sx, sy, x - to.x * sx, y - to.y * sy) }
+          : item;
+        return {
+          kind: "group",
+          id: `${item.id}#morph`,
+          role: "motion",
+          items: [positioned],
+          transform,
+        };
       }
       if (item.role === "element" || item.role === "relation" || item.role === "event") {
         return { ...item, opacity: round((item.opacity ?? 1) * p) };
@@ -929,7 +1380,89 @@ export function storyFrame(
       }
       return [{ ...item, items: leaving(item.items) }];
     });
-  return { ...frame, width, height, items: [...leaving(old.items), ...after] };
+  return {
+    ...frame,
+    ...viewport,
+    width,
+    height,
+    items: [
+      ...placed(leaving(old.items), old, fromPlacement),
+      ...placed(after, frame, toPlacement),
+    ],
+  };
+}
+
+function overlappingFrame(
+  timeline: StoryTimeline,
+  views: StoryViews,
+  t: number,
+  options: StoryFrameOptions,
+  throughScene?: number,
+): Scene | null {
+  const time = Math.min(Math.max(0, t), timeline.durationMs);
+  const composition = overlapComposition(timeline, views);
+  const accent = options.accent ?? "#1f6feb";
+  // Keep recursion out of arbitrarily long chains of concurrently entering transitions.
+  const entering: { frame: Scene; kind: "fade" | "morph"; progress: number }[] = [];
+  let index = throughScene ?? storySceneIndexAt(timeline, time);
+  let result: Scene | null = null;
+  while (index >= 0) {
+    const scene = timeline.scenes[index]!;
+    const data = views(scene.view);
+    if (!data) return null;
+    const state = overlapStateAt(
+      composition,
+      scene.view,
+      time,
+      index,
+      data,
+      throughScene !== undefined,
+    );
+    let frame = drawView(data, state, time, accent);
+    if (state.camera) {
+      const box = state.camera.to!;
+      frame = {
+        ...frame,
+        viewBox: {
+          x: round(box.x),
+          y: round(box.y),
+          width: round(box.width),
+          height: round(box.height),
+        },
+      };
+    }
+    const transition = scene.transition;
+    const p = transition ? progress(time, transition.startMs, transition.durationMs) : 1;
+    if (index > 0 && transition && transition.kind !== "cut" && p < 1) {
+      entering.push({ frame, kind: transition.kind, progress: p });
+      index--;
+    } else {
+      result = frame;
+      break;
+    }
+  }
+  for (const transition of entering.reverse())
+    result = transitionFrames(
+      result!,
+      transition.frame,
+      transition.progress,
+      transition.kind,
+      true,
+    );
+  return result;
+}
+
+/** The closing frame of one scene, without later scenes masking it during their overlap. */
+export function storySceneFrame(
+  timeline: StoryTimeline,
+  views: StoryViews,
+  sceneIndex: number,
+  options: StoryFrameOptions = {},
+): Scene | null {
+  const scene = timeline.scenes[sceneIndex];
+  if (!scene) return null;
+  // Keep future first-reveal targets initially hidden, while excluding their later claims.
+  return overlappingFrame(timeline, views, scene.startMs + scene.durationMs, options, sceneIndex);
 }
 
 /**

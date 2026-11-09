@@ -1,0 +1,7 @@
+diagram d: flow { node a }
+story tour for d {
+  scene first {
+    parallel { highlight a over 413ms; hold 179ms }
+    hold 453ms
+  }
+}

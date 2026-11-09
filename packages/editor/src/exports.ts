@@ -5,6 +5,7 @@ import type { LayoutResult, Scene } from "@meltemi/diagrams-layout";
 import type { ExportProfile, FlowDiagram, StoryDefinition } from "@meltemi/diagrams-model";
 import {
   animatedScene,
+  hasSceneOverlap,
   defaultMotionDuration,
   motionLoop,
   motionOptions,
@@ -12,6 +13,7 @@ import {
   sceneAt,
   sceneStills,
   storyFrame,
+  storySceneFrame,
 } from "@meltemi/diagrams-motion";
 import {
   effectsDocument,
@@ -24,6 +26,7 @@ import {
   type DrillViews,
   type LaidOutView,
   type PlayerDocument,
+  type PageOptions,
   type StoryPlayerDocument,
 } from "@meltemi/diagrams-player";
 import type { FileCompilation, Workspace } from "@meltemi/diagrams-project";
@@ -70,6 +73,11 @@ export interface ExportRequest {
   readonly embed: boolean;
   readonly autoplay: boolean;
   readonly loop: boolean;
+  /** Optional HTML presentation; omitted fields retain the player API's existing defaults. */
+  readonly player?: Pick<
+    PageOptions,
+    "heading" | "description" | "summary" | "details" | "controls"
+  >;
   /** Videos: frames per second, or null for the format's default. */
   readonly fps: number | null;
   /** Videos: how long they last, or null for the story's or the effects' end. */
@@ -262,7 +270,7 @@ function playerHtml(
   script: string,
   lang: Locale,
 ): string {
-  const options = { autoplay: request.autoplay, loop: request.loop, lang };
+  const options = { autoplay: request.autoplay, loop: request.loop, lang, ...request.player };
   return request.embed ? playerFragment(doc, script, options) : playerPage(doc, script, options);
 }
 
@@ -423,8 +431,10 @@ function produceScenes(
   const provider = context.projects.fontsFor(context.workspace);
   const { id, timeline } = doc.stories[0]!;
   const frames: { scene: string; drawn: { scene: Scene; background: string } }[] = [];
-  for (const still of sceneStills(timeline)) {
-    const frame = storyFrame(timeline, (key) => doc.views[key], still.atMs, { accent: doc.accent });
+  for (const [index, still] of sceneStills(timeline).entries()) {
+    const frame = hasSceneOverlap(timeline)
+      ? storySceneFrame(timeline, (key) => doc.views[key], index, { accent: doc.accent })
+      : storyFrame(timeline, (key) => doc.views[key], still.atMs, { accent: doc.accent });
     if (!frame) return { problem: problems.nothingToDraw(id) };
     frames.push({ scene: still.id, drawn: decorate(frame, request, colors) });
   }

@@ -38,6 +38,7 @@ interface Interval {
   start: number;
   end: number;
   at: Span;
+  scene: number;
 }
 
 export interface StoryResolver {
@@ -107,9 +108,15 @@ export function analyzeStory(
   let previousView = storyView;
   // Channels whose actions must not overlap: `<channel>:<view>[:<target>]`.
   const channels = new Map<string, Interval[]>();
+  // Subtracting an absolute scene start can leave its duration one final floating-point bit
+  // below an equal written overlap. Zero remains an exact bound for empty and first scenes.
+  const exceedsDuration = (amount: number, maximum: number) =>
+    amount > maximum &&
+    (maximum === 0 ||
+      amount - maximum > Number.EPSILON * Math.max(1, Math.abs(clock), amount, maximum) * 8);
 
   /** A time of `over` or `hold`, the keyword written. */
-  const time = (arg: Arg | undefined, keyword: "over" | "hold"): number | null => {
+  const time = (arg: Arg | undefined, keyword: "over" | "hold" | "overlap"): number | null => {
     if (arg?.kind === "NumberLiteral" && (arg.unit === "ms" || arg.unit === "s")) {
       const ms = arg.unit === "s" ? Math.round(arg.value * 1000 * 1000) / 1000 : arg.value;
       if (ms >= 0 && ms <= STORY_MAX_TIME) return ms;
@@ -182,7 +189,33 @@ export function analyzeStory(
     } else sceneIds.set(idToken.text, idToken);
     const sceneTitle = stmt.args[1]?.kind === "StringLiteral" ? stmt.args[1].value : null;
     const index = scenes.length;
-    const start = clock;
+    let overlap = 0;
+    let overlapNode: KeywordStatement | null = null;
+    let actionSeen = false;
+    for (const inner of stmt.block.statements) {
+      if (inner.kind !== "KeywordStatement" || headerHasError(inner)) continue;
+      if (ACTIONS.has(inner.keyword.text)) actionSeen = true;
+      if (inner.keyword.text !== "overlap") continue;
+      if (overlapNode || actionSeen || inner.block || inner.args.length !== 1) {
+        error("prop.invalid-value", messages().diagnostics.story.overlapHeader, spanOf(inner));
+        continue;
+      }
+      overlapNode = inner;
+      overlap = time(inner.args[0], "overlap") ?? 0;
+      const previous = scenes.at(-1);
+      if (exceedsDuration(overlap, previous?.durationMs ?? 0)) {
+        error(
+          "prop.invalid-value",
+          previous
+            ? messages().diagnostics.story.overlapPrevious(previous.durationMs)
+            : messages().diagnostics.story.overlapFirst,
+          spanOf(inner.args[0]!),
+        );
+        // Keep invalid recovered models on a nonnegative clock; exports still refuse the error.
+        overlap = 0;
+      }
+    }
+    const start = clock - overlap;
     let sceneView = previousView;
     let viewStatement: KeywordStatement | null = null;
     let transition: StoryTransition | null = null;
@@ -196,6 +229,7 @@ export function analyzeStory(
         continue;
       }
       const word = inner.keyword.text;
+      if (word === "overlap") continue;
       if (word === "view") {
         const ref = inner.args[0];
         if (
@@ -233,7 +267,9 @@ export function analyzeStory(
           timeRange: timeArg ? range(spanOf(timeArg)) : null,
           node: inner,
         };
-        cursor = start + transition.durationMs;
+        // An overlapping scene runs its actions while its transition blends it in. Sequential
+        // scenes retain their existing transition prefix, including explicitly written zero.
+        cursor = overlap > 0 ? start : start + transition.durationMs;
         continue;
       }
       if (!ACTIONS.has(word)) {
@@ -272,7 +308,16 @@ export function analyzeStory(
       );
     }
     previousView = sceneView;
-    clock = cursor;
+    const duration =
+      overlap > 0 ? Math.max(cursor - start, transition?.durationMs ?? 0) : cursor - start;
+    if (exceedsDuration(overlap, duration)) {
+      error(
+        "prop.invalid-value",
+        messages().diagnostics.story.overlapOwn(duration),
+        spanOf(overlapNode!.args[0]!),
+      );
+    }
+    clock = overlap > 0 ? Math.max(clock, start + duration) : cursor;
     // Focus lasts to the end of its scene.
     return {
       id: idToken.text,
@@ -282,7 +327,7 @@ export function analyzeStory(
       transition,
       actions,
       startMs: start,
-      durationMs: cursor - start,
+      durationMs: duration,
       range: range(spanOf(stmt)),
       idRange: range(spanOf(idToken)),
       node: stmt,
@@ -521,10 +566,12 @@ export function analyzeStory(
     for (const [index, key] of keys.entries()) {
       const list = channels.get(key) ?? [];
       const end = action.startMs + action.durationMs;
-      const clash = list.find((i) =>
-        action.durationMs === 0 && i.end === i.start
-          ? i.start === action.startMs
-          : action.startMs < i.end && i.start < end,
+      const clash = list.find(
+        (i) =>
+          i.scene === action.path[0] &&
+          (action.durationMs === 0 && i.end === i.start
+            ? i.start === action.startMs
+            : action.startMs < i.end && i.start < end),
       );
       const target = key.split(":").pop()!;
       if (clash && !reported.has(target)) {
@@ -542,7 +589,7 @@ export function analyzeStory(
           hints: [m.hints.story.conflict],
         });
       }
-      list.push({ start: action.startMs, end, at: span });
+      list.push({ start: action.startMs, end, at: span, scene: action.path[0]! });
       channels.set(key, list);
     }
   }

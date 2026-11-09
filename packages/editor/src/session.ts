@@ -76,6 +76,7 @@ import {
   type MoveAction,
   type PreviewedAction,
   type ResizeAction,
+  type StoryReorderInfo,
   type TagInfo,
   type TextPlace,
 } from "./canvas/protocol.js";
@@ -237,6 +238,17 @@ export class CanvasSession {
   private pendingDiagram: string | undefined;
   /** The story to play once it exists, after `createStory`. */
   private pendingStory: string | undefined;
+  /** Follow an indexed story action only after observing the exact planned text in this file. */
+  private pendingStoryReorder:
+    | {
+        readonly info: StoryReorderInfo;
+        readonly revision: number;
+        readonly document: string | undefined;
+        readonly before: string;
+        readonly expected: string;
+      }
+    | undefined;
+  private storyReordered: StoryReorderInfo | undefined;
   /**
    * The event whose statement the last planned edit moves, by its key before the edit, with the
    * spans of the edited text that the edit writes and the revision it was planned on: the next
@@ -324,6 +336,23 @@ export class CanvasSession {
 
   /** Takes a new analysis of the document and returns what the canvas must show. */
   update(analysis: DocumentAnalysis): HostMessage[] {
+    const reorder = this.pendingStoryReorder;
+    if (
+      reorder &&
+      (analysis.revision !== reorder.revision ||
+        analysis.text !== reorder.before ||
+        this.pathOf() !== reorder.document)
+    ) {
+      this.pendingStoryReorder = undefined;
+      if (
+        analysis.revision > reorder.revision &&
+        analysis.text === reorder.expected &&
+        this.pathOf() === reorder.document &&
+        this.story === reorder.info.story
+      ) {
+        this.storyReordered = reorder.info;
+      }
+    }
     this.analysis = analysis;
     const ids = analysis.diagrams.map((d) => d.id);
     if (this.pendingDiagram && ids.includes(this.pendingDiagram)) {
@@ -353,6 +382,8 @@ export class CanvasSession {
    */
   private storyMessages(): HostMessage[] {
     const analysis = this.analysis!;
+    const reordered = this.storyReordered;
+    this.storyReordered = undefined;
     const stories = storyChoices(analysis);
     if (this.story && !stories.some((s) => s.id === this.story)) this.story = undefined;
     const playback = this.story ? storyPlayback(analysis, this.story) : undefined;
@@ -365,6 +396,7 @@ export class CanvasSession {
         ...(document ? { document } : {}),
         stories,
         playback: playback ?? null,
+        ...(reordered && playback?.id === reordered.story ? { reordered } : {}),
       },
     ];
   }
@@ -894,6 +926,8 @@ export class CanvasSession {
         return { messages: this.state() };
       case "pickDiagram":
         if (!analysis.diagrams.some((d) => d.id === message.diagram)) return NONE;
+        this.pendingStoryReorder = undefined;
+        this.storyReordered = undefined;
         this.diagram = message.diagram;
         this.story = undefined;
         this.selection = [];
@@ -975,6 +1009,8 @@ export class CanvasSession {
         ) {
           return NONE;
         }
+        this.pendingStoryReorder = undefined;
+        this.storyReordered = undefined;
         this.story = message.story ?? undefined;
         if (this.story && !storyPlayback(analysis, this.story)) {
           this.story = undefined;
@@ -1142,6 +1178,13 @@ export class CanvasSession {
   private storyAction(action: CanvasAction): SessionResult | undefined {
     let operation: EditOperation;
     switch (action.kind) {
+      case "setStoryTitle":
+      case "setSceneTitle":
+      case "removeScene":
+      case "setSceneOverlap":
+      case "setSceneTransition":
+        operation = action;
+        break;
       case "setStoryTiming":
         operation = {
           kind: "setStoryTiming",
@@ -1152,6 +1195,14 @@ export class CanvasSession {
         break;
       case "removeStoryAction":
         operation = { kind: "removeStoryAction", story: action.story, path: action.path };
+        break;
+      case "reorderStoryAction":
+        operation = {
+          kind: "reorderStoryAction",
+          story: action.story,
+          path: action.path,
+          index: action.index,
+        };
         break;
       case "removeStory":
         operation = { kind: "removeStory", story: action.story, cascade: action.cascade };
@@ -1221,6 +1272,15 @@ export class CanvasSession {
               : {}),
           },
         ],
+      };
+    }
+    if (action.kind === "reorderStoryAction" && result.plan.edits.length > 0) {
+      this.pendingStoryReorder = {
+        info: { story: action.story, path: [...action.path], index: action.index },
+        revision: this.analysis!.revision,
+        document: this.pathOf(),
+        before: this.analysis!.text,
+        expected: applyTextEdits(this.analysis!.text, result.plan.edits),
       };
     }
     return { messages: [], plan: result.plan };

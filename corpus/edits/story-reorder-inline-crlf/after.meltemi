@@ -1,0 +1,8 @@
+diagram d: flow { node a }
+story tour for d {
+  scene first {
+    /* Second. */ hold 227ms // Keep second.
+    hold 115ms
+    hold 453ms
+  }
+}

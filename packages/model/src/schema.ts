@@ -1041,7 +1041,7 @@ export const EXPORT_EXTENSIONS: Readonly<Record<Format, string>> = {
 
 /** Statements of a `story` block, of a scene, and the actions a scene runs. */
 export const STORY_STATEMENTS = ["title", "description", "scene"] as const;
-export const SCENE_STATEMENTS = ["view", "transition"] as const;
+export const SCENE_STATEMENTS = ["view", "transition", "overlap"] as const;
 export const STORY_ACTIONS = [
   "reveal",
   "hide",

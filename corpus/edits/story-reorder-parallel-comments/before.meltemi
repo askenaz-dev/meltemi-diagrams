@@ -1,0 +1,15 @@
+diagram d: flow { node a; node b }
+story tour for d {
+  scene first {
+    transition fade over 333ms
+    hold 115ms
+    // Move these together.
+    parallel {
+      camera a over 287ms
+      parallel { highlight b over 413ms; hold 179ms }
+    } // Keep the group.
+    hold 453ms
+  }
+  scene second { hold 1s }
+}
+export film for tour { format html }

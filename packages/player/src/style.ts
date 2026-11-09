@@ -14,6 +14,16 @@ export const STYLE = `
     --meltemi-rise: 0px; --meltemi-slide: 0px; --meltemi-pop-scale: 1; }
 }
 .player { position: relative; margin: 0; }
+.fullscreen-standalone { position: absolute; top: 8px; right: 8px; z-index: 10; }
+.body:has(.details:not([hidden])) > .fullscreen-standalone { right: auto; left: 8px; }
+:host(:fullscreen) { width: 100vw; height: 100vh; box-sizing: border-box; padding: 12px;
+  background: Canvas; color: CanvasText; }
+:host(:fullscreen) .player { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+:host(:fullscreen) .body { flex: 1; width: 100%; min-height: 0; max-width: none; }
+:host(:fullscreen) .frame { height: 100%; aspect-ratio: auto; }
+:host(:fullscreen) .controls { flex: none; }
+:host(:fullscreen) .summary, :host(:fullscreen) .details, :host(:fullscreen) .card,
+:host(:fullscreen) .trail, :host(:fullscreen) .overlay { display: none !important; }
 .body { position: relative; max-width: var(--meltemi-w, 100%); margin: 0 auto; }
 .frame { position: relative; width: 100%; aspect-ratio: var(--meltemi-ratio, 16 / 9);
   border-radius: 6px; overflow: hidden; outline: none; }

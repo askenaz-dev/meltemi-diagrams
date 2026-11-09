@@ -30,6 +30,7 @@ import {
   type StoryPlayerDocument,
 } from "../../src/index.js";
 import { playerScript } from "../../src/node.js";
+import { playerPresentationTests } from "./presentation.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const output = join(here, "..", "..", ".test-output");
@@ -349,6 +350,7 @@ const tests: {
   touch?: boolean;
   run: (page: Page) => Promise<void>;
 }[] = [
+  ...playerPresentationTests({ document: purchase, script, output }),
   {
     name: "draws the exporter's frames and starts with revealed boxes hidden",
     html: playerPage(purchase, script),
@@ -1311,8 +1313,12 @@ const tests: {
 async function main(): Promise<void> {
   const browser: Browser = await chromium.launch({ executablePath: browserPath(), headless: true });
   let failed = 0;
+  const filters = (process.env["PLAYER_TEST_FILTER"] ?? "").split("|").filter(Boolean);
+  const chosen = filters.length
+    ? tests.filter((test) => filters.some((filter) => test.name.includes(filter)))
+    : tests;
   try {
-    for (const test of tests) {
+    for (const test of chosen) {
       const page = await browser.newPage(
         test.touch
           ? { viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true }
@@ -1350,7 +1356,7 @@ async function main(): Promise<void> {
   } finally {
     await browser.close();
   }
-  console.log(`\n${tests.length - failed} passed, ${failed} failed`);
+  console.log(`\n${chosen.length - failed} passed, ${failed} failed`);
   if (failed > 0) process.exitCode = 1;
 }
 

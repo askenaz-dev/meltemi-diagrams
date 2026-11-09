@@ -220,25 +220,15 @@ async function run(
   }
 }
 
-/** Writes the HTML player of a story, or opens the dialog on the HTML player of the diagram. */
+/** Opens the HTML chooser, preselecting the timeline's story when supplied. */
 export async function writePlayer(
   playground: Playground,
   story: string | undefined,
 ): Promise<void> {
-  if (story === undefined) {
-    openExportDialog(playground, { format: "html" });
-    return;
-  }
-  const stem = stemOf(playground.studio.open);
-  const outcome = await run(playground, (context) => {
-    const target = context.file.compilation.document.stories.find((s) => s.id === story);
-    if (!target) return messages().exports.noStory(story);
-    return {
-      request: baseRequest({ kind: "story", story: target }, "html"),
-      name: `${stem}.${story}.html`,
-    };
+  openExportDialog(playground, {
+    format: "html",
+    ...(story !== undefined ? { target: `story:${story}` } : {}),
   });
-  playground.status(outcome.message);
 }
 
 function baseRequest(target: ExportRequest["target"], format: WritableFormat): ExportRequest {
@@ -394,6 +384,11 @@ export function openExportDialog(
   scenes.checked = preset.scenes === true;
   const autoplay = h("input", { type: "checkbox" });
   const loop = h("input", { type: "checkbox" });
+  const playerHeading = h("input", { type: "checkbox", id: "export-player-heading" });
+  const playerSummary = h("input", { type: "checkbox", id: "export-player-summary" });
+  const playerDetails = h("input", { type: "checkbox", id: "export-player-details" });
+  const playerControls = h("input", { type: "checkbox", id: "export-player-controls" });
+  playerControls.checked = true;
   const fps = h("input", { type: "number", min: 1, max: 60, step: 1, placeholder: "30 (GIF 15)" });
   const duration = h("input", {
     type: "text",
@@ -426,6 +421,10 @@ export function openExportDialog(
     embed: check(m.embed, embed),
     autoplay: check(m.autoplay, autoplay),
     loop: check(m.loop, loop),
+    playerHeading: check(m.playerHeading, playerHeading),
+    playerSummary: check(m.playerSummary, playerSummary),
+    playerDetails: check(m.playerDetails, playerDetails, m.playerDetailsHint),
+    playerControls: check(m.playerControls, playerControls),
     fps: field(m.fps, fps),
     duration: field(m.duration, duration),
   };
@@ -454,7 +453,17 @@ export function openExportDialog(
       );
     if (f === "png") ["at", "scale", "size", "background"].forEach((r) => visible.add(r));
     if (f === "pdf") ["at", "size", "background", "link"].forEach((r) => visible.add(r));
-    if (f === "html") ["fonts", "embed", "autoplay", "loop"].forEach((r) => visible.add(r));
+    if (f === "html")
+      [
+        "fonts",
+        "embed",
+        "autoplay",
+        "loop",
+        "playerHeading",
+        "playerSummary",
+        "playerDetails",
+        "playerControls",
+      ].forEach((r) => visible.add(r));
     if (VIDEO.has(f)) ["size", "background", "fps", "duration"].forEach((r) => visible.add(r));
     // A story's picture of every scene's final state: no instant to choose then.
     if (story && (f === "svg" || f === "png" || f === "pdf")) {
@@ -558,6 +567,14 @@ export function openExportDialog(
     if (!rows.embed!.hidden) request.embed = embed.checked;
     if (!rows.autoplay!.hidden) request.autoplay = autoplay.checked;
     if (!rows.loop!.hidden) request.loop = loop.checked;
+    if (f === "html")
+      request.player = {
+        heading: playerHeading.checked,
+        description: playerHeading.checked,
+        summary: playerSummary.checked,
+        details: playerDetails.checked,
+        controls: playerControls.checked,
+      };
     if (!rows.fps!.hidden && fps.value) {
       const value = Number(fps.value);
       if (!Number.isInteger(value) || value < 1 || value > 60) return m.badFps;

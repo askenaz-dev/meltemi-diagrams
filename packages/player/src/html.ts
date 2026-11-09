@@ -1,12 +1,21 @@
 import { DEFAULT_LOCALE, resolveLocale } from "@meltemi/diagrams-i18n";
-import type { PlayerDocument } from "./format.js";
+import type { SceneItem } from "@meltemi/diagrams-layout";
+import type { PlayerDocument, ViewDetails } from "./format.js";
 
 export interface ElementOptions {
   readonly autoplay?: boolean;
   readonly loop?: boolean;
   readonly static?: boolean;
-  /** False hides the controls; the keyboard still works. True by default. */
+  /** False hides playback/zoom controls; keyboard and fullscreen remain. True by default. */
   readonly controls?: boolean;
+  /** False omits the text summary. True by default. */
+  readonly summary?: boolean;
+  /** False omits inspection details, keeping zoom and pan. True by default. */
+  readonly details?: boolean;
+  /** False omits the fullscreen affordance. True by default. */
+  readonly fullscreen?: boolean;
+  /** False omits optional document/story descriptions from the exported data. */
+  readonly description?: boolean;
   /**
    * A document of several stories: the id of the story shown first, written as the element's
    * `story` attribute; the first story when it names none of them.
@@ -20,6 +29,8 @@ export interface ElementOptions {
 }
 
 export interface PageOptions extends ElementOptions {
+  /** False omits the visible page heading. True by default. */
+  readonly heading?: boolean;
   /** The language of the page and of the player's words; `en` by default. */
   readonly lang?: string;
 }
@@ -30,6 +41,76 @@ export const PLAYER_POLICY =
 
 const escapeHtml = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** Keep only metadata needed by the chosen presentation, without changing frames or timing. */
+function presentationData(document: PlayerDocument, options: ElementOptions): PlayerDocument {
+  if (options.details !== false && options.description !== false) return document;
+  let details = document.details;
+  if (options.details === false) {
+    details = {};
+    // A text summary distinguishes Gantt bars from strokes by kind. No descriptive data is needed.
+    if (options.summary !== false) {
+      details = Object.fromEntries(
+        Object.entries(document.details).map(([key, view]) => [
+          key,
+          {
+            elements: Object.fromEntries(
+              Object.entries(view.elements)
+                .filter(([, item]) => item.kind === "task")
+                .map(([id]) => [
+                  id,
+                  {
+                    kind: "task",
+                    type: null,
+                    technology: null,
+                    description: null,
+                    url: null,
+                    external: false,
+                    entity: null,
+                    opens: null,
+                  },
+                ]),
+            ),
+            relations: {},
+            c4: null,
+            parent: null,
+          } satisfies ViewDetails,
+        ]),
+      );
+    }
+  }
+  const description = options.description === false ? null : document.description;
+  const itemsWithoutLinks = (items: readonly SceneItem[]): SceneItem[] =>
+    items.map((item) => {
+      if (item.kind !== "group") return item;
+      const group = { ...item, items: itemsWithoutLinks(item.items) };
+      delete group.href;
+      return group;
+    });
+  const views = Object.fromEntries(
+    Object.entries(document.views).map(([key, view]) => {
+      const scene = {
+        ...view.scene,
+        ...(options.description === false ? { description: null } : {}),
+        ...(options.details === false ? { items: itemsWithoutLinks(view.scene.items) } : {}),
+      };
+      if (options.details === false) delete scene.link;
+      return [key, { ...view, scene }];
+    }),
+  );
+  return document.kind === "story"
+    ? {
+        ...document,
+        views: views as typeof document.views,
+        details,
+        description,
+        stories: document.stories.map((story) => ({
+          ...story,
+          description: options.description === false ? null : story.description,
+        })),
+      }
+    : { ...document, views: views as typeof document.views, details, description };
+}
 
 /**
  * The document as JSON safe inside a `<script>` element: `<` is escaped, so nothing in it can
@@ -57,9 +138,12 @@ export function playerElement(document: PlayerDocument, options: ElementOptions 
     options.loop ? " loop" : "",
     options.static ? " static" : "",
     options.controls === false ? ' controls="false"' : "",
+    options.summary === false ? ' summary="false"' : "",
+    options.details === false ? ' details="false"' : "",
+    options.fullscreen === false ? ' fullscreen="false"' : "",
     options.story !== undefined ? ` story="${escapeHtml(options.story)}"` : "",
   ].join("");
-  return `<meltemi-player${attributes}><script type="application/json">${playerData(document)}</script></meltemi-player>`;
+  return `<meltemi-player${attributes}><script type="application/json">${playerData(presentationData(document, options))}</script></meltemi-player>`;
 }
 
 /**
@@ -83,9 +167,9 @@ export function playerPage(
   script: string,
   options: PageOptions = {},
 ): string {
-  const { lang = DEFAULT_LOCALE, ...element } = options;
+  const { lang = DEFAULT_LOCALE, heading = true, ...element } = options;
   const title = document.title ?? document.id;
-  const description = document.description;
+  const description = options.description === false ? null : document.description;
   return [
     "<!doctype html>",
     `<html lang="${escapeHtml(lang)}">`,
@@ -109,7 +193,7 @@ export function playerPage(
     "</head>",
     "<body>",
     "<main>",
-    `<h1>${escapeHtml(title)}</h1>`,
+    ...(heading ? [`<h1>${escapeHtml(title)}</h1>`] : []),
     ...(description ? [`<p>${escapeHtml(description)}</p>`] : []),
     playerElement(document, element),
     "</main>",

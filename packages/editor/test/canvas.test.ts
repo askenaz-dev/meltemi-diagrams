@@ -662,6 +662,19 @@ describe("keys and messages", () => {
     expect(SHAPES).toEqual(BOX_SHAPES);
   });
 
+  it("accepts only bounded top-level story reorder positions over the canvas protocol", () => {
+    const action = (a: unknown) => isCanvasMessage({ type: "action", revision: 1, action: a });
+    const reorder = { kind: "reorderStoryAction", story: "tour", path: [1, 2], index: 0 };
+    expect(action(reorder)).toBe(true);
+    for (const path of [[], [1], [1, 2, 0], [-1, 0], [0, 0.5], [0, NaN], [0, Infinity]]) {
+      expect(action({ ...reorder, path })).toBe(false);
+    }
+    for (const index of [-1, 0.5, NaN, Infinity, 100001, "1"]) {
+      expect(action({ ...reorder, index })).toBe(false);
+    }
+    expect(action({ ...reorder, story: 1 })).toBe(false);
+  });
+
   it("accepts a shape, a target group and a two-way arrow, and nothing else", () => {
     const action = (a: unknown) => isCanvasMessage({ type: "action", revision: 1, action: a });
     const at = { x: 1, y: 2 };

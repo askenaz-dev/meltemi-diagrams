@@ -1363,7 +1363,30 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   paralelos. El campo explica el mínimo del contenido; acortarlo más requiere editar primero sus
   acciones o transición. Entrar o salir del campo confirma una sola vez; Escape cancela. Consulta
   [los tiempos de historias](language/stories.md#en-el-editor).
-- **Eliminar historia.** El botón de la línea de tiempo y el menú/tecla Suprimir del explorador
+- **Reordenar acciones.** Arrastra el cuerpo de una acción de primer nivel antes o después de
+  otra de la misma escena. El indicador muestra su nuevo inicio; al soltar se mueve su sentencia
+  sin cambiar ninguna duración ni el total de la escena. **Mover antes** / **Mover después**, o
+  Alt+Izquierda/Derecha sobre el bloque seleccionado, mueven una posición. La cabecera **En paralelo**
+  mueve su bloque completo; sus hijos siguen simultáneos y conservan el ajuste individual de duración.
+  Las transiciones permanecen al inicio. Es una ordenación por inserción, sin posicionamiento temporal
+  libre. El extremo derecho sigue ajustando la duración. Escape, soltar fuera de la escena o una
+  actualización concurrente del texto cancela; Deshacer restaura el texto exacto. La selección y el
+  campo de duración siguen a la acción movida.
+  Las acciones muy cortas fuera de grupos tienen un cuerpo accesible; las escenas formadas solo por acciones
+  instantáneas se ordenan con los botones o el teclado, porque no tienen posiciones temporales distintas.
+- **Seleccionar y nombrar escenas.** **Escena seleccionada** elige qué se edita, independientemente
+  de la reproducción, incluso cuando varias escenas vacías empiezan al mismo tiempo. Su fila
+  conserva la selección y las filas en reproducción se marcan por separado. **Nombre de la
+  historia** y **Nombre de la escena** cambian títulos visibles con Entrar o al salir del campo;
+  Escape cancela. Las filas admiten F2/doble clic y las historias del explorador, Renombrar/F2.
+- **Altura del panel.** Arrastra el separador superior de la línea de tiempo o usa sus flechas
+  cuando tenga el foco. Escape cancela el arrastre. El tamaño se conserva localmente en la vista.
+- **Colocación de escenas.** **Inicio de la escena** permite **Secuencial** o **Solapar**. Ajusta
+  **Duración del solapamiento (s)** y elige **Transición** y su duración por separado. El intervalo
+  compartido está limitado por ambas escenas; no puedes acortar por debajo de un solapamiento requerido.
+- **Eliminar escena.** El panel inferior elimina la escena seleccionada tras confirmar y conserva
+  su historia y diagrama. Al eliminar la última, **Nueva escena** sigue disponible.
+- **Eliminar historia.** El botón junto al selector superior de historias y el menú/tecla Suprimir del explorador
   piden confirmación e incluyen los perfiles de exportación que deben eliminarse. Conservan el
   diagrama y terminan la reproducción; Deshacer restaura el texto exacto como una sola edición.
 - **Nueva historia.** Junto al selector de historias, siempre que se muestre un diagrama o se

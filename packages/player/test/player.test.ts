@@ -413,6 +413,102 @@ describe("player HTML", () => {
     expect(fragment).toContain("<script>void 0</script>");
   });
 
+  it("omits optional presentation and descriptive payload while keeping frames and timing", () => {
+    const original = purchaseDocument();
+    const doc = {
+      ...original,
+      description: "Private presentation description",
+      details: Object.fromEntries(
+        Object.entries(original.details).map(([key, view]) => [
+          key,
+          {
+            ...view,
+            elements: Object.fromEntries(
+              Object.entries(view.elements).map(([id, element]) => [
+                id,
+                {
+                  ...element,
+                  description: "Optional element description",
+                  url: "https://example.test/private-detail",
+                },
+              ]),
+            ),
+          },
+        ]),
+      ),
+    };
+    const before = JSON.stringify(doc);
+    const page = playerPage(doc, "void 0", {
+      heading: false,
+      description: false,
+      summary: false,
+      details: false,
+      controls: false,
+    });
+    expect(page).not.toContain("<h1>");
+    expect(page).not.toContain("Private presentation description");
+    expect(page).not.toContain("Optional element description");
+    expect(page).not.toContain("https://example.test/private-detail");
+    expect(page).toContain('controls="false" summary="false" details="false"');
+    const embedded = JSON.parse(
+      /<script type="application\/json">(.*?)<\/script>/.exec(page)![1]!,
+    ) as StoryPlayerDocument;
+    expect(embedded.details).toEqual({});
+    expect(embedded.stories.map((entry) => entry.timeline)).toEqual(
+      doc.stories.map((entry) => entry.timeline),
+    );
+    expect(embedded.views).toEqual(doc.views);
+    expect(embedded.names).toEqual(doc.names);
+    expect(JSON.stringify(doc)).toBe(before);
+    expect(playerPage(doc, "void 0")).toContain("<h1>");
+    expect(playerPage(doc, "void 0")).toContain("Optional element description");
+  });
+
+  it("removes omitted drawing links and scene descriptions recursively without changing the input", () => {
+    const original = purchaseDocument();
+    const key = Object.keys(original.views)[0]!;
+    const view = original.views[key]!;
+    const doc: StoryPlayerDocument = {
+      ...original,
+      views: {
+        ...original.views,
+        [key]: {
+          ...view,
+          scene: {
+            ...view.scene,
+            description: "Optional scene description",
+            link: "https://example.test/whole-picture",
+            items: [
+              {
+                kind: "group",
+                id: "wrapper",
+                role: "element",
+                href: "https://example.test/wrapped-element",
+                items: view.scene.items,
+              },
+            ],
+          },
+        },
+      },
+    };
+    const before = JSON.stringify(doc);
+    const page = playerPage(doc, "void 0", { details: false, summary: false, description: false });
+    expect(page).not.toContain("Optional scene description");
+    expect(page).not.toContain("https://example.test/whole-picture");
+    expect(page).not.toContain("https://example.test/wrapped-element");
+    const embedded = JSON.parse(
+      /<script type="application\/json">(.*?)<\/script>/.exec(page)![1]!,
+    ) as StoryPlayerDocument;
+    expect(embedded.views[key]!.scene.items[0]).toEqual({
+      kind: "group",
+      id: "wrapper",
+      role: "element",
+      items: view.scene.items,
+    });
+    expect(embedded.stories).toEqual(original.stories);
+    expect(JSON.stringify(doc)).toBe(before);
+  });
+
   it("bundles the runtime into one script", () => {
     const script = playerScript();
     expect(script).toContain("meltemi-player");

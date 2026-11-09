@@ -635,7 +635,14 @@ export const es: typeof en = {
         `${code(word)} no es una instrucción de historia; una historia contiene \`title\`, \`description\` y bloques \`scene\`.`,
       sceneShape: 'Una escena es `scene <id> ["Title"] { … }`.',
       duplicateScene: (id) => `La historia ya tiene una escena ${code(id)}.`,
-      sceneContents: "Una escena contiene `view`, `transition` y acciones.",
+      sceneContents: "Una escena contiene `view`, `transition`, `overlap` y acciones.",
+      overlapHeader: "`overlap <time>` va antes de las acciones de la escena, una sola vez.",
+      overlapFirst:
+        "La primera escena no puede solaparse con otra anterior; usa `overlap 0ms` u omítelo.",
+      overlapPrevious: (maximum) =>
+        `El solapamiento no puede superar los ${maximum}ms que dura la escena anterior.`,
+      overlapOwn: (maximum) =>
+        `El solapamiento no puede superar los ${maximum}ms que dura esta escena.`,
       viewFirst: "`view <diagram>` va primero en una escena y nombra un diagrama.",
       transitionFirst:
         "`transition cut|fade|morph [over <time>]` va antes de las acciones de la escena, una sola vez.",

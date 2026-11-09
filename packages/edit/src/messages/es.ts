@@ -566,6 +566,13 @@ export const es: typeof en = {
 
     stories: {
       fixSource: "Corrige la sintaxis antes de eliminar una historia.",
+      reorderSyntax: "Corrige la sintaxis antes de reordenar las acciones de la historia.",
+      reorderPath:
+        "Reordena una acción del nivel principal de la escena con exactamente dos índices enteros en la ruta.",
+      reorderIndex: (last) =>
+        `El índice final de la acción debe ser un número entero entre 0 y ${last}.`,
+      reorderBoundary:
+        "Los límites de las acciones son ambiguos; corrige el código de la escena antes de reordenar.",
       missing: (id, stories) =>
         `No hay ninguna historia ${code(id)}${stories.length > 0 ? `; historias: ${stories.map(code).join(", ")}` : ""}.`,
       noScene: (story, id) => `La historia ${code(story)} no tiene ninguna escena ${code(id)}.`,
@@ -577,7 +584,12 @@ export const es: typeof en = {
         `La escena ${code(scene)} no tiene ninguna acción en [${path.join(", ")}].`,
       timeRange: (max) => `Los tiempos de una historia van de 0 a ${max} milisegundos.`,
       sceneMinimum: (scene, minimum) =>
-        `La escena ${code(scene)} necesita al menos ${num(minimum / 1000)} s para su contenido. Ajusta las duraciones de sus acciones o transición para acortarla.`,
+        `La escena ${code(scene)} necesita al menos ${num(minimum / 1000)} s para su contenido y solapamientos. Ajusta sus acciones, transiciones o solapamientos para acortarla.`,
+      titleString: "El título de una historia o escena debe ser texto.",
+      editSyntax: "Corrige la sintaxis del archivo antes de editar una historia o escena.",
+      overlapMaximum: (scene, maximum) =>
+        `La escena ${code(scene)} puede solaparse como máximo ${num(maximum / 1000)} s. Alarga primero esta escena o la anterior.`,
+      transitionKind: "Elige cut, fade o morph para la transición de la escena.",
       exportDependents: (story, n) =>
         `Eliminar la historia ${code(story)} también elimina ${count(n, "perfil de exportación", "perfiles de exportación")}.`,
       exportProfile: (id) => `Perfil de exportación ${code(id)}`,

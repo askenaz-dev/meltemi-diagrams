@@ -757,6 +757,16 @@ export const en = {
     stories: {
       /** `edit.unsafe-target`: recovered syntax cannot define a safe deletion boundary. */
       fixSource: "Fix the source syntax before removing a story.",
+      /** `edit.unsafe-target`: recovered syntax cannot define a safe move boundary. */
+      reorderSyntax: "Fix the source syntax before reordering story actions.",
+      /** `edit.invalid-value`: only direct children of a scene are movable. */
+      reorderPath: "Reorder a top-level scene action with exactly two whole-number path indexes.",
+      /** `edit.invalid-value`: a final position among the actions of one scene. */
+      reorderIndex: (last: number) =>
+        `The final action index must be a whole number from 0 to ${last}.`,
+      /** `edit.unsafe-target`: moving could cross an unrecognized statement or comment boundary. */
+      reorderBoundary:
+        "The action boundaries are ambiguous; fix the scene source before reordering.",
       /** `edit.unsafe-target`: with the stories of the file. */
       missing: (id: string, stories: readonly string[]) =>
         `There is no story \`${id}\`${stories.length > 0 ? `; stories: ${stories.map((s) => `\`${s}\``).join(", ")}` : ""}.`,
@@ -771,7 +781,12 @@ export const en = {
       /** `edit.invalid-value`. */
       timeRange: (max: number) => `Story times run from 0 to ${max} milliseconds.`,
       sceneMinimum: (scene: string, minimum: number) =>
-        `Scene \`${scene}\` needs at least ${minimum / 1000} s for its content. Edit its action or transition durations to shorten it.`,
+        `Scene \`${scene}\` needs at least ${minimum / 1000} s for its content and overlaps. Edit its actions, transitions or overlaps to shorten it.`,
+      titleString: "A story or scene title must be text.",
+      editSyntax: "Fix the source syntax before editing a story or scene.",
+      overlapMaximum: (scene: string, maximum: number) =>
+        `Scene \`${scene}\` can overlap by at most ${maximum / 1000} s. Lengthen it or its preceding scene first.`,
+      transitionKind: "Choose cut, fade or morph for the scene transition.",
       exportDependents: (story: string, count: number) =>
         `Removing story \`${story}\` also removes ${count} export ${count === 1 ? "profile" : "profiles"}.`,
       exportProfile: (id: string) => `Export profile \`${id}\``,

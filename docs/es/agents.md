@@ -231,8 +231,10 @@ con sus propias herramientas y los mira como imágenes.
 
 Para una historia, `inspect_story` recibe su archivo `path` y su id `story` (además de `project`
 en modo cuenta). Informa la duración total compilada, escenas ordenadas, vistas activas,
-transiciones y tiempos de acciones anidadas en milisegundos. Previsualiza el `startMs` y el
-`stillAtMs` de cada escena y compara la revisión de la imagen con la inspección: cada llamada
+transiciones y tiempos de acciones anidadas en milisegundos, incluidos los intervalos solapados.
+Una vista previa en `startMs` o `stillAtMs` usa el reloj global e incluye todas las escenas activas;
+la exportación por escenas aísla el cierre de cada una. Previsualiza el intervalo compartido y
+compara la revisión de la imagen con la inspección: cada llamada
 lee la instantánea actual, por lo que otra edición puede exigir inspeccionar de nuevo. En modo
 carpeta, la revisión identifica el contenido en disco, no una revisión de escritura en nube.
 La [guía de historias](../../skills/meltemi-diagrams/reference/stories.md) del skill cubre la

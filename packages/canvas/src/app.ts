@@ -174,6 +174,8 @@ import { undoRedoKey, viewCommand, writesDocument } from "./view-only.js";
 
 /** What the canvas keeps between sessions of the same webview. */
 export interface PersistedState {
+  /** The story workspace's resized height, local to this editor host. */
+  readonly storyPanelHeight?: number;
   readonly viewports?: Record<string, Viewport>;
   readonly showGrid?: boolean;
   readonly snap?: boolean;
@@ -935,6 +937,7 @@ export class CanvasApp {
     title: messages().toolbar.storyTitle,
   });
   private readonly storyPanel: StoryPanel;
+  private storyDeleteButton: HTMLButtonElement | undefined;
   /** The revision of the last render or story message, which actions are made against. */
   private revision: number | undefined;
   /** The size of the story frame shown in story mode. */
@@ -1249,6 +1252,12 @@ export class CanvasApp {
       draw: (svg, width, height) => this.drawStoryFrame(svg, width, height),
       act: (action) => this.act(action),
       revision: () => this.revision ?? 0,
+      document: () => this.currentDocument,
+      panelHeight: () => this.local.storyPanelHeight,
+      setPanelHeight: (height) => this.persist({ storyPanelHeight: height }),
+      editingChanged: (enabled) => {
+        if (this.storyDeleteButton) this.storyDeleteButton.disabled = !enabled;
+      },
       confirm: (reason, run) => this.dialog.confirm(reason, [], run),
       selection: () => this.storySelection,
       announce: (text, error) => this.announce(text, error),
@@ -1287,9 +1296,11 @@ export class CanvasApp {
         this.addIconsDialog.added(message.token, message.added, message.refused);
         break;
       case "render":
+        this.storyPanel.sourceChanged(message.revision, message.document ?? this.currentDocument);
         this.applyRender(message);
         break;
       case "stale":
+        this.storyPanel.sourceChanged(message.revision, message.document ?? this.currentDocument);
         if (message.document && message.document !== this.currentDocument) {
           this.render = undefined;
           this.currentDocument = message.document;
@@ -1328,6 +1339,7 @@ export class CanvasApp {
         }
         break;
       case "empty":
+        this.storyPanel.sourceChanged(message.revision, message.document ?? this.currentDocument);
         this.render = undefined;
         this.currentDocument = message.document;
         this.revision = message.revision;
@@ -1353,6 +1365,7 @@ export class CanvasApp {
         this.applyStory(message);
         break;
       case "rejected":
+        this.storyPanel.rejectReorder();
         this.pending = false;
         // Icons that were not written are not chosen.
         this.afterIcons = undefined;
@@ -1388,21 +1401,20 @@ export class CanvasApp {
           if (message.code === "edit.has-dependents" && message.dependents && message.retry) {
             const retry = message.retry;
             const revision = this.revision;
-            const render = this.render;
             const document = this.currentDocument;
             const story = this.storyPanel.story;
             this.dialog.confirm(message.reason, message.dependents, () => {
               if (
                 retry.kind === "removeStory" &&
                 (revision !== this.revision ||
-                  render !== this.render ||
                   document !== this.currentDocument ||
                   story !== this.storyPanel.story)
               ) {
                 this.announce(messages().story.timingChanged, true);
                 return;
               }
-              this.act(retry);
+              if (retry.kind === "removeStory") this.storyPanel.confirmStoryRemoval(retry.story);
+              else this.act(retry);
             });
           } else if (message.code === "edit.loses-placement" && message.retry) {
             // Automatic layout would remove positions written by hand: asked first. A Layout
@@ -2459,7 +2471,7 @@ export class CanvasApp {
       this.modeBadge.textContent = words.mode.story;
       this.modeBadge.title = words.mode.storyTitle;
       if (entering) this.storySelection = [];
-      this.storyPanel.show(message.playback);
+      this.storyPanel.show(message.playback, message.reordered);
       if (entering) this.setViewport(this.fitted());
       return;
     }
@@ -5308,8 +5320,17 @@ export class CanvasApp {
       words.toolbar.newStoryTitle,
     );
     newStory.classList.add("new-story");
+    const deleteStory = this.button(
+      words.story.deleteStory,
+      "M3 4h10M6 4V2.5h4V4M4.5 4l.7 9h5.6l.7-9",
+      () => this.storyPanel.deleteStory(),
+    );
+    deleteStory.classList.add("story-delete");
+    deleteStory.setAttribute("data-write", "");
+    this.storyDeleteButton = deleteStory;
     this.storySelect.hidden = true;
     this.storySelect.addEventListener("change", () => {
+      this.storyPanel.beginNavigation();
       const value = this.storySelect.value;
       this.post({ type: "pickStory", story: value === "" ? null : value });
       this.storyPanel.element.focus();
@@ -5319,6 +5340,7 @@ export class CanvasApp {
       newDiagram,
       this.storySelect,
       newStory,
+      deleteStory,
       this.scenarioSelect,
       beforePalette,
       ...palette,

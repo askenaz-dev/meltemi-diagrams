@@ -43,12 +43,47 @@ one without writing its block by hand.
 | ------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------- |
 | `story <id> for <diagram> { ... }`          | top level             | a story about a diagram of the file or an imported one (`checkout`, `views.containers`) |
 | `title "..."`, `description "..."`          | story                 | shown by the player and the canvas                                                      |
-| `scene <id> ["Title"] { ... }`              | story                 | a step; scenes run one after the other                                                  |
+| `scene <id> ["Title"] { ... }`              | story                 | a step; sequential unless an overlap is declared                                        |
 | `view <diagram>`                            | first in scene        | the diagram this scene shows; the next scenes keep it                                   |
+| `overlap <time>`                            | scene, before actions | starts before the preceding scene ends                                                  |
 | `transition cut\|fade\|morph [over <time>]` | scene, before actions | how the scene's view replaces the previous one                                          |
 | `parallel { ... }`                          | scene, parallel       | actions that start together; the block lasts as long as its longest action              |
 
 Times are written `800ms` or `1.5s`, from `0ms` to `600s`.
+
+## Overlapping scenes
+
+Scenes are sequential by default. Add `overlap 2s` before a scene's actions to start it two
+seconds before the preceding scene ends. Both execute during that shared interval. It cannot
+exceed either scene's duration; the first scene accepts only zero. Omission or `overlap 0ms`
+restores sequential placement. Three ten-second scenes with eight-second incoming overlaps
+start at 0, 2 and 4 seconds, ending the story at 14 seconds.
+
+```text
+story shared for checkout {
+  scene development "Development" {
+    camera client, api over 1s
+    highlight api over 4s
+  }
+  scene production "Production" {
+    overlap 2s
+    transition fade over 500ms
+    camera db over 1s
+    highlight db over 4s
+  }
+}
+```
+
+Here the second scene starts at 3 s and the story ends at 8 s. Its transition blends while its
+actions run, so its duration is the longer of its transition and action sequence. Sequential
+scenes keep their existing transition-first behavior. Distinct targets animate independently;
+when scenes claim the same channel, the later scene's started claim takes precedence. Camera
+and visibility interpolation use the state at that claim's start. Conflicting actions within
+one scene, including a parallel block, still produce `story.conflict`.
+
+Scene stills show the requested scene's own closing state, excluding later scenes that overlap
+its end. Normal frames, videos and the player use the global concurrent schedule. Removing or
+inserting a scene clears the next scene's incoming overlap when its predecessor changes.
 
 ## Actions
 
@@ -102,7 +137,7 @@ story explain for whiteboard {
   appear when it is whole.
 - **Visibility.** A target whose first visibility action is `draw` starts hidden, as with
   `reveal`, and stays drawn after its share. `draw` uses the visibility and trace channels of its
-  targets, so a `reveal` or a `trace` of the same target at the same time is `story.conflict`.
+  targets, so a `reveal` or a `trace` of the same target at the same time within one scene is `story.conflict`.
 - **Effects.** While a target is being drawn its own `animate` effects are suspended, as under a
   trace.
 - **Targets.** Pens, free lines and named relations; anything else is `story.invalid-target`,
@@ -135,7 +170,8 @@ A scene whose view differs from the previous scene's view needs a transition
 | `fade`     | 800 ms       | cross-fades the two pictures                                                                          |
 | `morph`    | 800 ms       | moves each element both views draw (same id) from its old box to its new one and cross-fades the rest |
 
-The transition starts the scene; its actions follow. A camera set in one view does not carry over
+In sequential scenes, the transition starts the scene and its actions follow. With positive
+overlap, the transition and actions start together. A camera set in one view does not carry over
 to another.
 
 ## Rules
@@ -146,7 +182,7 @@ to another.
 | `ref.unknown-element`      | a target is not an id of the scene's view; close ids are suggested                                               |
 | `story.invalid-target`     | `trace` names something that is not a relation, or `draw` something that is not a pen, a free line or a relation |
 | `story.missing-transition` | the view changes without a `transition`                                                                          |
-| `story.conflict`           | two actions on the same channel of the same target overlap in time (`reveal db` and `hide db` in one `parallel`) |
+| `story.conflict`           | two actions within one scene overlap on the same target channel (`reveal db` and `hide db` in one `parallel`)    |
 | `story.empty-scene`        | warning: a scene with no actions and no transition takes no time                                                 |
 | `prop.invalid-value`       | a malformed or out-of-range time, or a statement in the wrong place                                              |
 
@@ -220,7 +256,7 @@ in the story picker does the same. Opening a story explicitly starts its playbac
 source edit temporarily makes a present story invalid, its last valid frame stays visible until
 it can be drawn again; removing that story ends playback.
 
-**Delete story** in the timeline, or the story's explorer menu and Delete key, asks before removing
+**Delete story** beside the upper story selector, or the story's explorer menu and Delete key, asks before removing
 that story. The confirmation names any export profiles that must go with it. Its diagrams, other
 stories and unrelated comments remain. Undo restores the exact text as one edit, without starting
 playback. A read-only project offers playback and exports while editing controls remain hidden.
@@ -234,3 +270,23 @@ No actions are rescaled. Setting the minimum leaves an existing final `hold 0ms`
 comments. Select an action or a fade/morph transition bar to edit **Selected action duration (s)**;
 parallel totals are derived, and cut transitions remain instantaneous. Dragging a bar's end still
 works. Enter or leaving a field commits once; Escape or cancelling a drag writes nothing.
+
+Drag a top-level action's body to insert it before or after another action in the same scene.
+Its duration stays fixed, and sequential starts are recalculated. The destination preview names
+the new start. **Move earlier** / **Move later** and Alt+Left/Right provide the same one-position
+edit without dragging. A labelled **In parallel** header moves its entire block; children remain
+simultaneous and their duration controls still work. View statements and transitions remain
+anchored at the start. Reordering does not invent action offsets or parallel blocks. The right
+edge still edits duration. Escape, an outside drop, a source update or navigation cancels a move;
+a completed drop is one source edit with exact Undo, preserving comments and unrelated content.
+
+**Selected scene** explicitly chooses the editing target; the selected row stays identifiable
+while active playback rows are marked separately. **Story name** and **Scene name** edit their
+display titles without changing ids. Resize the panel from its upper separator with pointer or
+keyboard. **Delete scene** belongs to the lower panel and retains its story; story removal is
+available above and in the explorer. An empty story offers **New scene**.
+
+Use **Scene timing** to choose Sequential/Overlap and an overlap time in seconds, then choose
+the transition and its duration. The fields show derived timing and refuse amounts outside the
+adjacent-scene limits. **Export HTML** opens the chooser for that story; presentation options
+control heading, summary, details and playback controls, and the exported player supports fullscreen.

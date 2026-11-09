@@ -43,12 +43,48 @@ selector **Historia** ofrece cada flujo ([player.md](../player.md#varias-histori
 | ------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------- |
 | `story <id> for <diagram> { ... }`          | nivel superior                | una historia sobre un diagrama del archivo o uno importado (`checkout`, `views.containers`) |
 | `title "..."`, `description "..."`          | historia                      | los muestran el reproductor y el lienzo                                                     |
-| `scene <id> ["Title"] { ... }`              | historia                      | un paso; las escenas se ejecutan una después de otra                                        |
+| `scene <id> ["Title"] { ... }`              | historia                      | un paso; secuencial salvo que declares un solapamiento                                      |
 | `view <diagram>`                            | lo primero de la escena       | el diagrama que muestra esta escena; las escenas siguientes lo conservan                    |
+| `overlap <time>`                            | escena, antes de las acciones | empieza antes de que termine la anterior                                                    |
 | `transition cut\|fade\|morph [over <time>]` | escena, antes de las acciones | cómo la vista de la escena reemplaza a la anterior                                          |
 | `parallel { ... }`                          | escena, parallel              | acciones que empiezan a la vez; el bloque dura tanto como su acción más larga               |
 
 Los tiempos se escriben `800ms` o `1.5s`, de `0ms` a `600s`.
+
+## Escenas solapadas
+
+Las escenas son secuenciales por defecto. Agrega `overlap 2s` antes de las acciones de una escena
+para iniciarla dos segundos antes de que termine la anterior. Ambas se ejecutan durante ese
+intervalo compartido. No puede superar la duración de ninguna; la primera escena solo admite
+cero. Omitirlo o escribir `overlap 0ms` restaura la colocación secuencial. Tres escenas de diez
+segundos con solapamientos entrantes de ocho empiezan a los 0, 2 y 4 segundos y terminan a los 14.
+
+```text
+story shared for checkout {
+  scene development "Development" {
+    camera client, api over 1s
+    highlight api over 4s
+  }
+  scene production "Production" {
+    overlap 2s
+    transition fade over 500ms
+    camera db over 1s
+    highlight db over 4s
+  }
+}
+```
+
+La segunda escena empieza a los 3 s y la historia termina a los 8 s. Su transición se mezcla
+mientras se ejecutan sus acciones: la duración es el mayor de ambos tiempos. Las escenas
+secuenciales conservan la transición antes de las acciones. Los destinos distintos se animan
+de forma independiente; si dos escenas controlan el mismo canal, tiene prioridad la acción ya
+iniciada de la escena posterior. Cámara y visibilidad interpolan desde el estado existente al
+inicio de esa acción. Los conflictos dentro de una escena, incluido un bloque paralelo, siguen
+produciendo `story.conflict`.
+
+Las imágenes por escena muestran el cierre de la escena solicitada, excluyendo las posteriores
+que solapan su final. Los fotogramas normales, videos y reproductor usan el calendario global.
+Eliminar o insertar una escena borra el solapamiento entrante de la siguiente al cambiar su predecesora.
 
 ## Acciones
 
@@ -104,7 +140,7 @@ story explain for whiteboard {
   y opacidad, y sus puntas y su etiqueta aparecen cuando está completo.
 - **Visibilidad.** Un destino cuya primera acción de visibilidad es `draw` empieza oculto, como con
   `reveal`, y sigue dibujado después de su parte. `draw` usa los canales de visibilidad y de
-  recorrido de sus destinos, así que un `reveal` o un `trace` del mismo destino al mismo tiempo es
+  recorrido de sus destinos, así que un `reveal` o un `trace` del mismo destino al mismo tiempo en una escena es
   `story.conflict`.
 - **Efectos.** Mientras un destino se dibuja, sus propios efectos `animate` quedan suspendidos, como
   durante un recorrido.
@@ -139,20 +175,21 @@ Una escena cuya vista difiere de la vista de la escena anterior necesita una tra
 | `fade`     | 800 ms                | hace un fundido cruzado entre los dos dibujos                                                                                  |
 | `morph`    | 800 ms                | mueve cada elemento que dibujan las dos vistas (mismo id) de su caja antigua a la nueva y hace un fundido cruzado con el resto |
 
-La transición abre la escena; sus acciones van después. Una cámara fijada en una vista no se
-traslada a otra.
+En las escenas secuenciales, la transición abre la escena y sus acciones van después. Con
+solapamiento positivo, transición y acciones empiezan juntas. Una cámara fijada en una vista no
+se traslada a otra.
 
 ## Reglas
 
-| Código                     | Cuándo                                                                                                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `story.unknown-diagram`    | el diagrama después de `for` o `view` no está en el archivo ni se importa; la pista lista los diagramas                         |
-| `ref.unknown-element`      | un destino no es un id de la vista de la escena; se sugieren ids parecidos                                                      |
-| `story.invalid-target`     | `trace` nombra algo que no es una relación, o `draw` algo que no es un lápiz, una línea libre ni una relación                   |
-| `story.missing-transition` | la vista cambia sin una `transition`                                                                                            |
-| `story.conflict`           | dos acciones sobre el mismo canal del mismo destino se superponen en el tiempo (`reveal db` y `hide db` en un mismo `parallel`) |
-| `story.empty-scene`        | advertencia: una escena sin acciones ni transición no dura nada                                                                 |
-| `prop.invalid-value`       | un tiempo mal formado o fuera de rango, o una instrucción en el lugar equivocado                                                |
+| Código                     | Cuándo                                                                                                                                  |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `story.unknown-diagram`    | el diagrama después de `for` o `view` no está en el archivo ni se importa; la pista lista los diagramas                                 |
+| `ref.unknown-element`      | un destino no es un id de la vista de la escena; se sugieren ids parecidos                                                              |
+| `story.invalid-target`     | `trace` nombra algo que no es una relación, o `draw` algo que no es un lápiz, una línea libre ni una relación                           |
+| `story.missing-transition` | la vista cambia sin una `transition`                                                                                                    |
+| `story.conflict`           | dos acciones dentro de una escena se superponen sobre el mismo canal del mismo destino (`reveal db` y `hide db` en un mismo `parallel`) |
+| `story.empty-scene`        | advertencia: una escena sin acciones ni transición no dura nada                                                                         |
+| `prop.invalid-value`       | un tiempo mal formado o fuera de rango, o una instrucción en el lugar equivocado                                                        |
 
 Los canales son la visibilidad (`reveal`, `hide`), el resaltado y el recorrido, por destino
 (`draw` toma la visibilidad y el recorrido), y el foco y la cámara, por vista. Una historia de un
@@ -230,7 +267,7 @@ Seleccionar otro diagrama o archivo en el explorador sale del modo historia de i
 inicia su reproducción otra vez. Si una edición vuelve inválida una historia que sigue presente,
 su último fotograma válido permanece hasta poder dibujarla otra vez; eliminarla termina la reproducción.
 
-**Eliminar historia** en la línea de tiempo, o en el menú del explorador y con la tecla Suprimir,
+**Eliminar historia** junto al selector superior, o en el menú del explorador y con la tecla Suprimir,
 pide confirmación antes de eliminar esa historia. La confirmación nombra los perfiles de exportación
 que deben eliminarse con ella. Conserva sus diagramas, las otras historias y los comentarios ajenos.
 Deshacer restaura el texto exacto como una sola edición, sin iniciar la reproducción. Un proyecto de
@@ -246,3 +283,25 @@ existente, conservando sus comentarios. Selecciona la barra de una acción o tra
 para editar **Duración de la acción seleccionada (s)**; los totales paralelos se calculan y las
 transiciones cut siguen siendo instantáneas. También puedes arrastrar el final de una barra.
 Entrar o salir del campo confirma una sola vez; Escape o cancelar el arrastre no escribe cambios.
+
+Arrastra el cuerpo de una acción de primer nivel para insertarla antes o después de otra de la
+misma escena. Su duración se conserva y los inicios secuenciales se recalculan. La vista previa
+del destino indica el nuevo inicio. **Mover antes** / **Mover después** y Alt+Izquierda/Derecha
+permiten la misma edición de una posición sin arrastrar. La cabecera **En paralelo** mueve todo su
+bloque; los hijos siguen simultáneos y sus controles de duración funcionan igual. Las sentencias
+de vista y las transiciones permanecen al inicio. Reordenar no inventa inicios de acciones ni
+bloques paralelos. El extremo derecho sigue editando la duración. Escape, soltar fuera,
+una actualización del texto o navegar cancela el movimiento; soltar correctamente produce una
+edición con Deshacer exacto, conservando comentarios y contenido ajeno.
+
+**Escena seleccionada** elige explícitamente qué se edita; su fila conserva la selección y las
+filas activas en reproducción se marcan por separado. **Nombre de la historia** y **Nombre de la
+escena** cambian títulos visibles sin modificar identificadores. Ajusta la altura desde el
+separador superior con ratón o teclado. **Eliminar escena** pertenece al panel inferior y conserva
+su historia; la historia se elimina arriba o en el explorador. Una historia vacía ofrece **Nueva escena**.
+
+En **Inicio de la escena**, elige Secuencial/Solapar y el tiempo compartido en segundos; después
+configura la transición y su duración. Los campos muestran los tiempos calculados y rechazan
+valores fuera de los límites de ambas escenas. **Exportar HTML** abre el selector para esa historia;
+sus opciones controlan encabezado, resumen, detalles y reproducción. El reproductor exportado
+permite pantalla completa.

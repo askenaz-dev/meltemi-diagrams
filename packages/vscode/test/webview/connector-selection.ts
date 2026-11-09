@@ -293,6 +293,27 @@ export function connectorSelectionTests(output: string) {
         ),
       async run(h: Harness) {
         await prepare(h);
+        // Closing the inspector animates its width. Finish that transition and the following
+        // ResizeObserver frames before recording screen-space points for these narrow pieces.
+        await h.page.locator(".inspector").evaluate(async (panel) => {
+          await Promise.all(
+            panel.getAnimations().map((animation) => animation.finished.catch(() => null)),
+          );
+          await new Promise<void>((done) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => done())),
+          );
+        });
+        await h.settled();
+        // At 100% the manually routed left-hand leg can lie beyond the viewport. Fit after the
+        // panel settles so both protected fragments are genuine reachable pointer targets.
+        await h.page.getByRole("button", { name: "Fit the diagram", exact: true }).click();
+        await h.settled();
+        await h.page.evaluate(
+          () =>
+            new Promise<void>((done) =>
+              requestAnimationFrame(() => requestAnimationFrame(() => done())),
+            ),
+        );
         const source = h.text;
         const pieces = await h.page
           .locator('.content [data-role="relation"][data-id="development"]')
@@ -314,7 +335,16 @@ export function connectorSelectionTests(output: string) {
               }),
           );
         assert.equal(pieces.length, 2, "the route has a genuine protected-title gap");
+        const stage = await h.page.locator(".stage").boundingBox();
+        assert.ok(stage);
         for (const piece of pieces) {
+          assert.ok(
+            piece.press.x > stage.x &&
+              piece.press.x < stage.x + stage.width &&
+              piece.press.y > stage.y &&
+              piece.press.y < stage.y + stage.height,
+            "the protected-route fragment is inside the visible stage before clicking",
+          );
           await h.page.mouse.click(piece.press.x, piece.press.y);
           await h.settled();
           assert.deepEqual(h.session.selected, ["development"]);
