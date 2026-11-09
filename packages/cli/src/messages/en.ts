@@ -405,7 +405,7 @@ Serves the Model Context Protocol on this machine, over Streamable HTTP, so that
 that runs here (Codex, Claude Code, Cursor) can create and read cloud projects, write files,
 preview the drawings, share and publish, with the tools of the hosted endpoint. The checks, the
 pictures and the catalogs are made on this machine; the files go through the service's API with
-your sign-in (run login first). With --folder, two tools (validate and preview) over the files of
+your sign-in (run login first). With --folder, three tools (validate, inspect_story and preview) over the files of
 a folder, with no account and no network.
 
 The first line printed is the server's address; connect the agent to it, for example

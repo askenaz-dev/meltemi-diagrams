@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { CATALOGUE } from "../../../mcp/src/catalogue/index.js";
+import { storyAuthoringJourney } from "../../../acceptance/src/mcp/stories.js";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { browserPath } from "../../../vscode/scripts/browser.mjs";
 
@@ -91,7 +92,7 @@ try {
       },
     }),
   );
-  assert.equal((await client.listTools()).tools.length, 27);
+  assert.equal((await client.listTools()).tools.length, 28);
   assert.equal((await ok("whoami"))["sub"], session.user.sub);
   const nonce = randomUUID();
   const created = await ok<{ id: string; url: string }>("create_project", {
@@ -218,6 +219,22 @@ try {
   const rendered = Buffer.from(image.data!, "base64");
   assert.equal(rendered.readUInt32BE(16), 640);
   writeFileSync(join(output, "preview.png"), rendered);
+
+  await storyAuthoringJourney(
+    {
+      call,
+      ok: (name, args) => ok(name, args),
+      refused: async (name, args, code) => {
+        const result = await call(name, args);
+        assert.ok(result.isError, `${name} must refuse`);
+        const { code: actual, message, ...fields } = result.structuredContent ?? {};
+        assert.equal(actual, code);
+        return { code: String(actual), message: String(message), fields };
+      },
+    },
+    project,
+  );
+  report["storyAuthoring"] = "passed";
 
   // A real human keystroke reaches the same room and becomes the agent's next source read.
   await page.locator(".code-input").click();
@@ -398,13 +415,13 @@ try {
   assert.deepEqual(external, [], "Browser makes no external request");
   assert.deepEqual(errors, [], "No page error");
   assert.deepEqual(await context.cookies(), []);
-  assert.equal(touched.size, 27, "All fourteen core and thirteen unavailable tools were exercised");
+  assert.equal(touched.size, 28, "All fifteen core and thirteen unavailable tools were exercised");
   report["success"] = true;
   report["tools"] = [...touched].sort();
   report["browser"] = browser.version();
   report["project"] = project;
   console.log(
-    "Local Compose acceptance: 27 tools, shared editor/agent source and canvas, SVG/PNG, boundaries and plugin bundles passed.",
+    "Local Compose acceptance: 28 tools, shared editor/agent source and canvas, story authoring, SVG/PNG, boundaries and plugin bundles passed.",
   );
 } catch (error) {
   report["success"] = false;

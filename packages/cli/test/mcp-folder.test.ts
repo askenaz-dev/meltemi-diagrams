@@ -1,6 +1,6 @@
 // `mdg mcp --folder` (`mcp-local-server`, "A folder with no account" and "Paths of the folder"): the
 // command run on a free port and driven by the SDK's client over Streamable HTTP, as an agent drives
-// it: two tools, pictures of the files as they are on disk, paths kept inside the folder, the same
+// it: three tools, pictures and timelines of the files as they are on disk, paths kept inside the folder, the same
 // diagnostics as `validate`, and no request to any service.
 
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
@@ -67,6 +67,7 @@ describe("mdg mcp --folder", () => {
       version: "1.11.0",
     });
     expect((await client.listTools()).tools.map((tool) => tool.name)).toEqual([
+      "inspect_story",
       "validate",
       "preview",
     ]);
@@ -76,7 +77,7 @@ describe("mdg mcp --folder", () => {
     const result = await mcp.call("preview", { path: "diagrams/payment.meltemi" });
     const report = ok(result);
     expect(report).toMatchObject({ format: "png", truncated: false, cached: false });
-    expect(report).not.toHaveProperty("revision");
+    expect(Number.isSafeInteger(report["revision"])).toBe(true);
     expect(Number(report["elements"])).toBeGreaterThan(0);
     const image = result.content.find((item) => item.type === "image");
     expect(image?.mimeType).toBe("image/png");
@@ -99,6 +100,9 @@ describe("mdg mcp --folder", () => {
 
   it("keeps paths inside the folder", async () => {
     expect(refusal(await mcp.call("preview", { path: "../secret.meltemi" }))).toBe("path.invalid");
+    expect(
+      refusal(await mcp.call("inspect_story", { path: "../secret.meltemi", story: "tour" })),
+    ).toBe("path.invalid");
     expect(refusal(await mcp.call("validate", { path: "../secret.meltemi" }))).toBe("path.invalid");
     let linked = true;
     try {
@@ -110,6 +114,43 @@ describe("mdg mcp --folder", () => {
     if (linked) {
       expect(refusal(await mcp.call("preview", { path: "out.meltemi" }))).toBe("path.invalid");
     }
+  });
+
+  it("inspects compiled story times from each current disk snapshot, without an account", async () => {
+    const path = "drafts/story.meltemi";
+    const file = join(folder, path);
+    const source =
+      'language "0.2"\ndiagram x: flow { a -> b: "Request" as request }\nstory tour for x {\n  scene first { trace request }\n  scene last { hold 500ms }\n}\n';
+    writeFileSync(file, source);
+    const first = ok(await mcp.call("inspect_story", { path, story: "tour" }));
+    expect(first).toMatchObject({
+      path,
+      id: "tour",
+      durationMs: 1700,
+      scenes: [
+        { id: "first", startMs: 0, durationMs: 1200, endMs: 1200 },
+        { id: "last", startMs: 1200, durationMs: 500, endMs: 1700 },
+      ],
+    });
+    const firstFrame = ok(
+      await mcp.call("preview", { path, story: "tour", at: "0ms", format: "svg" }),
+    );
+    expect(firstFrame["revision"]).toBe(first["revision"]);
+    writeFileSync(file, source.replace("hold 500ms", "hold 1s"));
+    const changedFrame = ok(
+      await mcp.call("preview", { path, story: "tour", at: "0ms", format: "svg" }),
+    );
+    expect(changedFrame["revision"]).not.toBe(first["revision"]);
+    const second = ok(await mcp.call("inspect_story", { path, story: "tour" }));
+    expect(second["durationMs"]).toBe(2200);
+    expect(second["revision"]).toBe(changedFrame["revision"]);
+    expect(second["revision"]).not.toBe(first["revision"]);
+    expect(ok(await mcp.call("inspect_story", { path, story: "tour" }))["revision"]).toBe(
+      second["revision"],
+    );
+    expect(refusal(await mcp.call("inspect_story", { path, story: "absent" }))).toBe(
+      "request.invalid",
+    );
   });
 
   it("refuses a width out of bounds and a file it does not hold", async () => {

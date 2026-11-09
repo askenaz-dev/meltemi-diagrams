@@ -410,10 +410,11 @@ export class Explorer {
     if (node.kind === "folder") return;
     this.host.openFile(node.path);
     if (node.kind === "diagram" && node.id) {
-      if (this.shown.story) studio.receive({ type: "pickStory", story: null });
       studio.receive({ type: "pickDiagram", diagram: node.id });
     } else if (node.kind === "story" && node.id) {
       studio.receive({ type: "pickStory", story: node.id });
+    } else {
+      studio.receive({ type: "pickStory", story: null });
     }
   }
 
@@ -425,7 +426,8 @@ export class Explorer {
       return true;
     }
     if (e.key === "Delete" && plain) {
-      void this.remove(this.chosenFiles(node));
+      if (node.kind === "story") void this.removeStory(node);
+      else void this.remove(this.chosenFiles(node));
       return true;
     }
     if ((e.key === "d" || e.key === "D") && (e.ctrlKey || e.metaKey) && !e.altKey) {
@@ -464,7 +466,19 @@ export class Explorer {
     let entries: (MenuEntry | "-")[];
     if (!node) entries = creating;
     else if (node.kind === "diagram" || node.kind === "story") {
-      entries = [{ label: words.open, run: () => this.activate(node) }];
+      entries = [
+        { label: words.open, run: () => this.activate(node) },
+        ...(node.kind === "story"
+          ? [
+              {
+                label: messages().explorer.actions.deleteStoryLabel,
+                run: () => {
+                  void this.removeStory(node);
+                },
+              },
+            ]
+          : []),
+      ];
     } else {
       const chosen = this.chosenFiles(node);
       const many = chosen.length > 1;
@@ -799,6 +813,42 @@ export class Explorer {
     const name = `${baseName(node.path)}.zip`;
     download(name, (await writeZip(entries)) as Uint8Array<ArrayBuffer>, "application/zip");
     this.host.status(words.downloaded(name));
+  }
+
+  private async removeStory(node: TreeNode): Promise<void> {
+    if (!this.editable() || !node.id) return;
+    const studio = this.host.studio;
+    const words = messages().explorer.actions;
+    const path = node.path;
+    const revision = studio.revision(path);
+    const text = studio.text(path);
+    const compilation = studio.projects
+      .forFile(studio.absolute(path))
+      .file(studio.absolute(path))?.compilation;
+    const profiles =
+      compilation?.document.exports.filter((p) => p.target.story?.id === node.id) ?? [];
+    const sure = await this.host.confirm(
+      words.deleteStoryTitle,
+      words.deleteStory(
+        node.id,
+        profiles.map((p) => p.id),
+      ),
+      words.deleteConfirm,
+    );
+    if (!sure || !this.editable()) return;
+    if (studio.revision(path) !== revision || studio.text(path) !== text) {
+      this.host.status(words.storyChanged);
+      return;
+    }
+    this.host.openFile(path);
+    studio.receive({
+      type: "action",
+      revision,
+      action: { kind: "removeStory", story: node.id, cascade: profiles.length > 0 },
+    });
+    this.host.keep();
+    this.refresh();
+    this.tree.focus();
   }
 
   private async remove(nodes: readonly TreeNode[]): Promise<void> {

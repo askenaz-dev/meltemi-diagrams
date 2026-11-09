@@ -458,8 +458,8 @@ Sirve el Model Context Protocol en esta máquina, por HTTP streamable, para que 
 programación que corre aquí (Codex, Claude Code, Cursor) pueda crear y leer proyectos de la nube,
 escribir archivos, previsualizar los dibujos, compartir y publicar, con las herramientas del
 endpoint alojado. Las comprobaciones, las imágenes y los catálogos se hacen en esta máquina; los
-archivos pasan por la API del servicio con tu sesión (ejecuta login antes). Con --folder, dos
-herramientas (validate y preview) sobre los archivos de una carpeta, sin cuenta y sin red.
+archivos pasan por la API del servicio con tu sesión (ejecuta login antes). Con --folder, tres
+herramientas (validate, inspect_story y preview) sobre los archivos de una carpeta, sin cuenta y sin red.
 
 La primera línea que imprime es la dirección del servidor; conecta el agente a ella, por ejemplo
   codex mcp add meltemi --url http://127.0.0.1:7373/mcp

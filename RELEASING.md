@@ -181,10 +181,10 @@ serialization prevents older completed CI from overtaking newer deployed runs.
 
 Before production, the same source goes to staging: `meltemi-diagrams-staging` and
 `meltemi-diagrams-publish-staging` (https://staging.diagrams.meltemi.dev, staging.meltemi.page),
-their own database, bucket and OAuth namespace, then `pnpm acceptance:mcp` against them. A failed
-suite stops production. Without the owner's test tokens only the unauthenticated checks run, and
-while the staging host does not answer yet the suite is skipped with a notice. After production
-deploys, the suite runs against it too.
+their own database, bucket and OAuth namespace, then `pnpm acceptance:mcp` against them. All 35
+steps and fixture cleanup must pass before production. Missing hosts, credentials or prerequisites
+fail the gate rather than reducing its coverage. After production deploys, the same complete suite
+and cleanup run against it too; their results are retained in the deployment's acceptance artifacts.
 
 Recovery accepts `ci_run_id` from main with the same checks; its source must still be current main.
 Rollback is a revert on main that passes CI, or an explicit Cloudflare rollback with the owner.

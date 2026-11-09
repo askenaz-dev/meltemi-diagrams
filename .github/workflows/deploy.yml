@@ -169,7 +169,7 @@ jobs:
           if [ "$CURRENT" != true ]; then
             echo "Skipped $SOURCE_SHA on staging because main has advanced; no deployment mutation ran." >> "$GITHUB_STEP_SUMMARY"
           elif [ "$SUITE" = success ] && [ "$CLEANUP" = success ]; then
-            echo "Deployed $SOURCE_SHA to staging; all 34 MCP acceptance steps passed and the isolated OAuth fixtures were cleaned." >> "$GITHUB_STEP_SUMMARY"
+            echo "Deployed $SOURCE_SHA to staging; all 35 MCP acceptance steps passed and the isolated OAuth fixtures were cleaned." >> "$GITHUB_STEP_SUMMARY"
           elif [ "$SUITE" = failure ] || [ "$CLEANUP" = failure ]; then
             echo "Deployed $SOURCE_SHA to staging; complete MCP acceptance or fixture cleanup failed (artifact mcp-acceptance-staging records the result), so production is not deployed." >> "$GITHUB_STEP_SUMMARY"
           else
@@ -286,7 +286,7 @@ jobs:
           if [ "$CURRENT" != true ]; then
             echo "Skipped $SOURCE_SHA because main has advanced; no deployment mutation ran." >> "$GITHUB_STEP_SUMMARY"
           elif [ "$SUITE" = success ] && [ "$CLEANUP" = success ]; then
-            echo "Deployed CI-verified source $SOURCE_SHA; all 34 MCP acceptance steps passed and the isolated OAuth fixtures were cleaned." >> "$GITHUB_STEP_SUMMARY"
+            echo "Deployed CI-verified source $SOURCE_SHA; all 35 MCP acceptance steps passed and the isolated OAuth fixtures were cleaned." >> "$GITHUB_STEP_SUMMARY"
           elif [ "$SUITE" = failure ] || [ "$CLEANUP" = failure ]; then
             echo "Deployed CI-verified source $SOURCE_SHA, but complete MCP acceptance or fixture cleanup failed (artifact mcp-acceptance-production records the result). Production stays as deployed: revert on main through CI, or roll the Worker back on Cloudflare with the owner (RELEASING.md)." >> "$GITHUB_STEP_SUMMARY"
           else

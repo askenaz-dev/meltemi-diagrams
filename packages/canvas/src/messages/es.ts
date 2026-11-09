@@ -304,10 +304,22 @@ export const es: typeof en = {
   },
 
   diagrams: {
+    c4: "Arquitectura C4",
+    whiteboard: "Pizarra",
+    kanban: "Tablero Kanban",
     flow: "Diagrama de flujo",
     free: "Composición libre",
     sequence: "Diagrama de secuencia",
     gantt: "Diagrama de Gantt",
+  },
+  diagramDescriptions: {
+    flow: "Conecta componentes y pasos.",
+    sequence: "Muestra interacciones en orden.",
+    c4: "Crea un modelo de arquitectura y su vista de contexto.",
+    gantt: "Planifica tareas y dependencias en el tiempo.",
+    whiteboard: "Dibuja con trazos y notas adhesivas.",
+    kanban: "Organiza notas adhesivas en columnas.",
+    free: "Compón libremente un lienzo vacío.",
   },
 
   gantt: {
@@ -331,6 +343,10 @@ export const es: typeof en = {
     fixFirst: "Corrige los problemas del texto antes de editar en el lienzo.",
     effectsPaused: "Los efectos están en pausa; pulsa Reproducir los efectos para verlos.",
     nothingSelected: "No hay nada seleccionado.",
+    selectionContain:
+      "Selección por encierro: arrastra de izquierda a derecha para encerrar objetos completos.",
+    selectionCross:
+      "Selección cruzada: arrastra de derecha a izquierda para seleccionar los objetos atravesados.",
     selected: (count) =>
       `${count} ${plural("es", count, { one: "seleccionado", other: "seleccionados" })}.`,
     selectedElement: (kind, id, label) => {
@@ -378,7 +394,7 @@ export const es: typeof en = {
     reordered: (ids, to) => `Se movió ${ids.length === 1 ? ids[0] : "la selección"} ${PLACES[to]}.`,
     converted: "Se convirtió en una composición libre.",
     createdDiagram: (type) =>
-      `Se creó ${{ flow: "un diagrama de flujo", free: "una composición libre", sequence: "un diagrama de secuencia", gantt: "un diagrama de Gantt" }[type]}.`,
+      `Se creó ${{ flow: "un diagrama de flujo", free: "una composición libre", sequence: "un diagrama de secuencia", gantt: "un diagrama de Gantt", c4: "una arquitectura C4", whiteboard: "una pizarra", kanban: "un tablero Kanban" }[type]}.`,
     previewReadOnly:
       "Una vista previa de escenario es de solo lectura; elige “Todos los eventos” para editar.",
     connectFromFirst: "Primero selecciona el elemento desde el que conectar.",
@@ -884,6 +900,17 @@ export const es: typeof en = {
     pause: "Pausar la historia",
     addToScene: "Agregar a la escena",
     newScene: "Nueva escena después de esta",
+    deleteStory: "Eliminar historia",
+    deleteStoryConfirm: (id) =>
+      `¿Eliminar la historia ${id}? Se conservan sus diagramas y las demás historias.`,
+    sceneDuration: "Duración de la escena (s)",
+    actionDuration: "Duración de la acción seleccionada (s)",
+    minimum: (time) => `Contenido mínimo: ${time}. El tiempo adicional es una pausa al final.`,
+    belowMinimum: (time) =>
+      `El contenido necesita al menos ${time}. Acorta primero una acción o transición.`,
+    invalidTime:
+      "Ingresa una duración finita y no negativa; cada acción o pausa final admite hasta 600 s.",
+    timingChanged: "La historia cambió. Revísala e inténtalo de nuevo.",
     removeAction: "Quitar la acción seleccionada",
     exportPlayer: "Exportar la historia como reproductor HTML",
     exportHtml: "Exportar HTML",

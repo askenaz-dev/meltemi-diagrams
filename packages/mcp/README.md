@@ -1,7 +1,7 @@
 # @meltemi/diagrams-mcp
 
-The Model Context Protocol tools of Meltemi Diagrams, defined once: the catalogue of twenty-seven
-tools (projects, files, versions, previews, sharing, live sessions and publishing), the wrapper
+The Model Context Protocol tools of Meltemi Diagrams, defined once: the catalogue of twenty-eight
+tools (projects, files, versions, previews, story timelines, sharing, live sessions and publishing), the wrapper
 that answers every call with stable error codes, the stateless Streamable HTTP handler, and the
 engine that checks a project and draws its previews. The hosted endpoint
 (`https://diagrams.meltemi.dev/mcp`) and the command line's local server (`mdg mcp`) are both

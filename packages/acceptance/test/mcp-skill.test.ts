@@ -34,7 +34,7 @@ function namedTools(text: string): Set<string> {
 describe("the skill's MCP reference", () => {
   it("names every tool of the endpoint's catalogue, and only those", async () => {
     const tools = await catalogue();
-    expect(tools.length).toBe(27);
+    expect(tools.length).toBe(28);
     const section = reference.split("## The tools")[1]?.split("\n## ")[0] ?? "";
     const named = namedTools(section);
     const missing = tools.filter((tool) => !named.has(tool));
@@ -84,6 +84,29 @@ describe("the skill's MCP reference", () => {
     const token = skill.split("\n").findIndex((line) => line.includes("`mdg_…`"));
     expect(token).toBeGreaterThanOrEqual(0);
     expect(token).toBeLessThan(40);
+  });
+
+  it("teaches compiled story inspection, revision comparisons and preserving scoped source edits", () => {
+    const stories = readFileSync(join(SKILL, "reference/stories.md"), "utf8");
+    for (const phrase of [
+      "`inspect_story`",
+      "`stillAtMs`",
+      "`parallel`",
+      "`transition`",
+      "`revision.mismatch`",
+      "whole project",
+      "other stories",
+      "idempotency key",
+      "exports `for <story-id>`",
+    ])
+      expect(stories, phrase).toContain(phrase);
+    for (const phrase of [
+      "`projects:read`",
+      "not that either call is bound to an old revision",
+      "more than 10000",
+      "In folder mode omit `project`",
+    ])
+      expect(reference, phrase).toContain(phrase);
   });
 
   it.each(["docs/agents.md", "docs/es/agents.md"])(

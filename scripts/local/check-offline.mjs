@@ -27,7 +27,7 @@ try {
     assert.ok(!result.isError, `${name}: ${JSON.stringify(result.structuredContent)}`);
     return result;
   };
-  assert.equal((await client.listTools()).tools.length, 27);
+  assert.equal((await client.listTools()).tools.length, 28);
   const project = (await call("create_project", { name: "Offline proof", template: "flow" }))
     .structuredContent.id;
   const read = (await call("read_files", { project })).structuredContent;

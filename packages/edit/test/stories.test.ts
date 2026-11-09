@@ -49,6 +49,147 @@ const SHORT = [
   "",
 ].join("\n");
 
+describe("story removal", () => {
+  const source =
+    "diagram d: flow { node a }\n// Keep this explanation.\nstory tour for d { scene one { hold 1s } }\n// Keep the other story.\nstory other for d { scene one { hold 2s } }\n";
+  it("removes one top-level story and restores every byte through its inverse", () => {
+    const next = apply(source, { kind: "removeStory", story: "tour", cascade: false });
+    expect(next).not.toContain("story tour");
+    expect(next).toContain("diagram d");
+    expect(next).toContain("// Keep this explanation.");
+    expect(next).toContain("// Keep the other story.\nstory other");
+  });
+  it("enumerates export dependents and removes them only with consent", () => {
+    const text =
+      source + "export film for tour { format html }\nexport otherFilm for other { format html }\n";
+    const refused = planEdit(compile(text), { kind: "removeStory", story: "tour", cascade: false });
+    expect(refused).toMatchObject({
+      ok: false,
+      rejection: { code: "edit.has-dependents", dependents: [{ kind: "export", name: "film" }] },
+    });
+    const next = apply(text, { kind: "removeStory", story: "tour", cascade: true });
+    expect(next).not.toContain("export film");
+    expect(next).toContain("export otherFilm");
+    expect(compile(next).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+  it("refuses an absent story", () => {
+    expect(refusal(source, { kind: "removeStory", story: "missing", cascade: true })).toBe(
+      "edit.unsafe-target",
+    );
+  });
+  it.each(["\n", "\r\n"])(
+    "keeps every byte when an unclosed story captures later source (%j)",
+    (eol) => {
+      const text = [
+        'language "0.2"',
+        "diagram base: flow { node a }",
+        "story broken for base {",
+        "  scene first { hold 1s }",
+        "// This diagram is outside the intended story.",
+        "diagram second: flow { node b }",
+        "",
+      ].join(eol);
+      const compilation = compile(text);
+      expect(compilation.parse.diagnostics.some((d) => d.severity === "error")).toBe(true);
+      for (const cascade of [false, true]) {
+        const result = planEdit(compilation, { kind: "removeStory", story: "broken", cascade });
+        const after = result.ok ? applyTextEdits(text, result.plan.edits) : text;
+        expect(after).toBe(text);
+        expect(result).toMatchObject({
+          ok: false,
+          rejection: {
+            code: "edit.unsafe-target",
+            reason: "Fix the source syntax before removing a story.",
+          },
+        });
+      }
+    },
+  );
+  it("still removes a semantically invalid story when its syntax has safe boundaries", () => {
+    const text = source.replace("story tour for d", "story tour for missing");
+    const compilation = compile(text);
+    expect(compilation.parse.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(compilation.diagnostics.some((d) => d.code === "story.unknown-diagram")).toBe(true);
+    const next = apply(text, { kind: "removeStory", story: "tour", cascade: false });
+    expect(next).toBe(text.replace("story tour for missing { scene one { hold 1s } }\n", ""));
+  });
+});
+
+describe("scene total duration", () => {
+  const source =
+    "diagram d: flow { node a }\nstory tour for d {\n  scene one {\n    camera a over 2s\n    // Pause for the audience.\n    hold 1s // Keep this note.\n  }\n  scene two { hold 1s }\n}\n";
+  it("changes only the final pause and later scene starts", () => {
+    const next = apply(source, {
+      kind: "setSceneDuration",
+      story: "tour",
+      scene: "one",
+      durationMs: 4000,
+    });
+    expect(next).toBe(source.replace("hold 1s //", "hold 2000ms //"));
+    const scenes = compile(next).document.stories[0]!.scenes;
+    expect(scenes.map((s) => [s.durationMs, s.startMs])).toEqual([
+      [4000, 0],
+      [1000, 4000],
+    ]);
+    const zero = apply(source, {
+      kind: "setSceneDuration",
+      story: "tour",
+      scene: "one",
+      durationMs: 2000,
+    });
+    expect(zero).toContain("hold 0ms // Keep this note.");
+  });
+  it("refuses a total below the content minimum and unsupported values", () => {
+    for (const durationMs of [1000, -1, NaN, Infinity, 602001]) {
+      const result = planEdit(compile(source), {
+        kind: "setSceneDuration",
+        story: "tour",
+        scene: "one",
+        durationMs,
+      });
+      expect(result).toMatchObject({ ok: false, rejection: { code: "edit.invalid-value" } });
+    }
+    const short = planEdit(compile(source), {
+      kind: "setSceneDuration",
+      story: "tour",
+      scene: "one",
+      durationMs: 1000,
+    });
+    expect(!short.ok && short.rejection.reason).toContain("2 s");
+  });
+  it("adds a pause after parallel content and accounts for the transition", () => {
+    const text =
+      "diagram d: flow { node a }\nstory tour for d {\n  scene one {\n    transition fade over 500ms\n    parallel { camera a over 1500ms; highlight a over 1s }\n  }\n}\n";
+    const next = apply(text, {
+      kind: "setSceneDuration",
+      story: "tour",
+      scene: "one",
+      durationMs: 3000,
+    });
+    expect(next).toContain(
+      "parallel { camera a over 1500ms; highlight a over 1s }\n    hold 1000ms",
+    );
+    expect(compile(next).document.stories[0]!.durationMs).toBe(3000);
+    const same = apply(text, {
+      kind: "setSceneDuration",
+      story: "tour",
+      scene: "one",
+      durationMs: 2000,
+    });
+    expect(same).toBe(text);
+  });
+  it("refuses a missing scene", () => {
+    expect(
+      refusal(source, {
+        kind: "setSceneDuration",
+        story: "tour",
+        scene: "missing",
+        durationMs: 2000,
+      }),
+    ).toBe("edit.unsafe-target");
+  });
+});
+
 describe("setStoryTiming", () => {
   it("replaces the written time of an action", () => {
     const next = apply(purchase, {

@@ -44,7 +44,7 @@ export async function createServer(session: McpSession): Promise<McpServer> {
     { name: SERVER_NAME, title: SERVER_TITLE, version: await productVersion(session.op) },
     instructions(session.op.config.origin) +
       (session.op.deps.local
-        ? " This is a local single-user workspace with no authentication. Fourteen core project, file, version, account, open and preview tools are available; the thirteen sharing, guest live-session and publishing tools return local.feature-unavailable. Use the same project as the browser and preserve revisions and idempotency keys."
+        ? " This is a local single-user workspace with no authentication. Fifteen core project, file, version, account, open, preview and story inspection tools are available; the thirteen sharing, guest live-session and publishing tools return local.feature-unavailable. Use the same project as the browser and preserve revisions and idempotency keys."
         : ""),
     CATALOGUE,
     handlersFor(session),

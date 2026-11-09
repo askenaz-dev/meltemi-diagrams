@@ -90,6 +90,18 @@ const DEPENDENTS: Readonly<Record<string, string>> = {
 };
 
 export const es: typeof en = {
+  starterContent: {
+    c4: "Arquitectura C4",
+    whiteboard: "Pizarra",
+    kanban: "Tablero Kanban",
+    user: "Usuario",
+    product: "Sistema",
+    uses: "Usa",
+    idea: "Nueva idea",
+    todo: "Por hacer",
+    doing: "En curso",
+    done: "Hecho",
+  },
   labels: {
     node: "Nodo",
     decision: "Decisión",
@@ -340,6 +352,7 @@ export const es: typeof en = {
     },
 
     diagrams: {
+      fixSource: "Corrige la sintaxis antes de añadir un diagrama.",
       notCreatable: (type, types) =>
         `${code(type)} no es un tipo de diagrama que se pueda crear aquí; se esperaba uno de ${types.join(", ")}.`,
       invalidId: (id) =>
@@ -552,6 +565,7 @@ export const es: typeof en = {
     },
 
     stories: {
+      fixSource: "Corrige la sintaxis antes de eliminar una historia.",
       missing: (id, stories) =>
         `No hay ninguna historia ${code(id)}${stories.length > 0 ? `; historias: ${stories.map(code).join(", ")}` : ""}.`,
       noScene: (story, id) => `La historia ${code(story)} no tiene ninguna escena ${code(id)}.`,
@@ -562,6 +576,11 @@ export const es: typeof en = {
       noAction: (scene, path) =>
         `La escena ${code(scene)} no tiene ninguna acción en [${path.join(", ")}].`,
       timeRange: (max) => `Los tiempos de una historia van de 0 a ${max} milisegundos.`,
+      sceneMinimum: (scene, minimum) =>
+        `La escena ${code(scene)} necesita al menos ${num(minimum / 1000)} s para su contenido. Ajusta las duraciones de sus acciones o transición para acortarla.`,
+      exportDependents: (story, n) =>
+        `Eliminar la historia ${code(story)} también elimina ${count(n, "perfil de exportación", "perfiles de exportación")}.`,
+      exportProfile: (id) => `Perfil de exportación ${code(id)}`,
       noTransition: (scene) => `La escena ${code(scene)} no tiene transición.`,
       cut: "Un corte no dura nada; cámbialo a `fade` o `morph` para darle una duración.",
       parallel:

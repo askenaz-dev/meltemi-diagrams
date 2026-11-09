@@ -926,6 +926,10 @@ body {
   stroke-width: 1;
 }
 
+.overlay .band.crossing {
+  stroke-dasharray: 5 3;
+}
+
 .overlay .ghost {
   fill: color-mix(in srgb, var(--mdg-select) 15%, transparent);
   stroke: var(--mdg-select);
@@ -2000,6 +2004,15 @@ body {
   cursor: pointer;
 }
 
+.menu-description {
+  display: block;
+  max-width: 260px;
+  white-space: normal;
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.8;
+}
+
 .menu [role="menuitem"]:hover,
 .menu [role="menuitem"]:focus,
 .menu [role="menuitemradio"]:hover,
@@ -2704,6 +2717,41 @@ body {
   position: relative;
   overflow-y: auto;
   padding-bottom: 6px;
+}
+
+.story-timing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 4px 8px;
+  border-top: 1px solid var(--mdg-border);
+}
+.story-timing label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.story-timing [hidden] {
+  display: none;
+}
+.story-timing input {
+  width: 76px;
+  padding: 3px 6px;
+  border: 1px solid var(--mdg-border);
+  border-radius: 4px;
+  background: var(--mdg-bg);
+  color: inherit;
+  font: inherit;
+}
+.story-timing input[aria-invalid="true"] {
+  border-color: var(--mdg-danger, #dc2626);
+}
+.story-timing .scene-minimum {
+  color: var(--mdg-muted);
+}
+.story-timing .timing-error {
+  color: var(--mdg-danger, #dc2626);
 }
 
 .timeline .ruler {

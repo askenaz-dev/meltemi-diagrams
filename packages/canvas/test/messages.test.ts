@@ -234,12 +234,18 @@ describe("the canvas catalog", () => {
 
   it("names the kinds of diagram it creates, the menus of the split buttons and the Canvas choices", () => {
     expect(en.diagrams).toEqual({
+      c4: "C4 architecture",
+      whiteboard: "Whiteboard",
+      kanban: "Kanban board",
       flow: "Flow diagram",
       free: "Free composition",
       sequence: "Sequence diagram",
       gantt: "Gantt chart",
     });
     expect(es.diagrams).toEqual({
+      c4: "Arquitectura C4",
+      whiteboard: "Pizarra",
+      kanban: "Tablero Kanban",
       flow: "Diagrama de flujo",
       free: "Composición libre",
       sequence: "Diagrama de secuencia",

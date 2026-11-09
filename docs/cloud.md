@@ -1676,9 +1676,9 @@ granted; an `mdg_` API token, as its account, with every scope (`projects:read`,
 the role the project gives the account, as its route does: a wide scope never adds a role. A call is counted (300 a minute per account, `rate.limited` with `retryAfter`) and
 logged as `mcp: <tool> <ms> ms <code>`, never with its arguments.
 
-The twenty-seven tools: `whoami`; `list_projects`, `create_project`, `get_project`,
+The twenty-eight tools: `whoami`; `list_projects`, `create_project`, `get_project`,
 `rename_project`; `read_files`, `write_files`, `validate`, `upload_image`; `list_versions`,
-`create_version`, `restore_version`; `open_url`; `preview`; `get_sharing`, `set_link_access`,
+`create_version`, `restore_version`; `open_url`; `preview`, `inspect_story`; `get_sharing`, `set_link_access`,
 `invite`, `list_invitations`, `revoke_invitation`, `set_member_role`, `remove_member`; `get_live`,
 `start_live`, `end_live`; `list_publications`, `publish`, `unpublish`. Each calls the operation its
 route calls and answers `structuredContent` and the same JSON as text; a refusal
@@ -1693,8 +1693,17 @@ its line at the server's UTC date. `invite` answers the invitation's link and
 it, and reads the public address back once (`HEAD`): an address that does not answer `200` is
 `502 publish.unverified` with its `url`, and the publication exists.
 
+`inspect_story` takes `project`, `path` and `story`, with the same `projects:read` scope and
+project visibility as `preview`. It reports the current snapshot's revision, story duration,
+ordered scenes and active views, transitions and nested action start/end/duration in milliseconds,
+and each scene's `stillAtMs` for a final-state preview. Times come from the player's compiled
+timeline, including defaults and parallel actions. It changes no source and reads no image bytes.
+Each later preview reads its own current snapshot: compare revisions before claiming to have
+reviewed the inspected timeline. Missing stories are `request.invalid`; compilation errors are
+`diagram.invalid` with diagnostics; more than 10000 scenes/actions are refused.
+
 When a call to the renderer object fails (its CPU limit exceeded, the object overloaded or reset),
-`preview`, `validate`, `write_files` and `publish` answer `503 renderer.unavailable`, whose message
+`preview`, `inspect_story`, `validate`, `write_files` and `publish` answer `503 renderer.unavailable`, whose message
 names `mdg mcp`; `write_files` and `publish` then have changed nothing, and the idempotency key keeps
 no answer, so a retry works once the object answers.
 
@@ -1710,6 +1719,7 @@ never call `/mcp` or the renderer object:
 | ------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------- |
 | `preview`                             | the picture and its report, with the renderer's engine    | `GET …/files`, and `GET …/blobs/<hash>` for its images and fonts    |
 | `validate`                            | the diagnostics                                           | `GET …/files`                                                       |
+| `inspect_story`                       | the compiled timeline, without drawing                    | `GET …/files`                                                       |
 | `write_files`                         | the check of every `.meltemi` file written                | `GET …/files`, then `PUT …/files` with `Idempotency-Key`            |
 | `publish`                             | the catalog, with the command line's script and generator | `GET …/publish`, `GET …/files`, `PUT …/publish`, a `HEAD` read-back |
 | `whoami`                              |                                                           | `GET /api/session` (its `email`), `GET /api/account/usage`          |

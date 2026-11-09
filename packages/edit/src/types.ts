@@ -367,6 +367,19 @@ export type EditOperation =
       readonly durationMs: number;
     }
   | {
+      /** Sets the scene total by its final top-level hold, without rescaling other actions. */
+      readonly kind: "setSceneDuration";
+      readonly story: string;
+      readonly scene: string;
+      readonly durationMs: number;
+    }
+  | {
+      /** Removes one story and, after consent, the export profiles that target it. */
+      readonly kind: "removeStory";
+      readonly story: string;
+      readonly cascade: boolean;
+    }
+  | {
       /**
        * Appends an action to a scene: `reveal`, `hide`, `highlight`, `focus`, `camera` or `trace`
        * with ids of the scene's view (`all` for `focus` and `camera`), or `hold` with a time.
@@ -959,6 +972,13 @@ export type EditOperation =
       readonly title?: string;
     }
   | {
+      /** Adds a prepared diagram, and its model when required, in one insertion. */
+      readonly kind: "createDiagramFromStarter";
+      readonly starter: import("./starter-catalog.js").DiagramStarterId;
+      readonly id?: string;
+      readonly title?: string;
+    }
+  | {
       /**
        * Copies a flow diagram as drawn into a new free diagram after it, linking every object to
        * its source. Hosts pass the drawn boxes and the measures of the source's theme.
@@ -1052,6 +1072,7 @@ export type DependentKind =
   | "space"
   | "gap"
   | "story"
+  | "export"
   /** A note attached to the element: removing the element leaves the note without its clause. */
   | "attachment";
 

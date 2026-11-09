@@ -156,7 +156,7 @@ describe("the steps of a run", () => {
     expect(outcome.results.map((r) => r.outcome)).toEqual(["passed", "skipped"]);
   });
 
-  it("accepts complete hosted evidence only with exactly 34 passed steps and no leaks", async () => {
+  it("accepts complete hosted evidence only with exactly 35 passed steps and no leaks", async () => {
     const { log } = quietLog();
     const steps = Array.from({ length: HOSTED_STEP_COUNT }, (_, index) =>
       step(`step-${index}`, async () => undefined),

@@ -272,7 +272,7 @@ export function summarise(results: readonly StepResult[]): Record<Outcome, numbe
 }
 
 /** Hosted delivery's fixed contract; a shorter run cannot silently count as complete. */
-export const HOSTED_STEP_COUNT = 34;
+export const HOSTED_STEP_COUNT = 35;
 
 /** Completeness is stronger than a diagnostic run's success, which permits honest skips. */
 export function completeHostedRun(outcome: RunOutcome): boolean {

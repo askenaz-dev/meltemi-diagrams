@@ -28,6 +28,7 @@ import { sortDiagnostics, type Diagnostic } from "@meltemi/diagrams-language";
 import type { LayoutEngine } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
 import { createMemoryHost, type ProjectHost, type Workspace } from "@meltemi/diagrams-project";
+import { inspectionOf, type InspectStoryRequest, type InspectStoryOutcome } from "./inspection.js";
 import {
   MAX_REPORT_DIAGNOSTICS,
   failure,
@@ -305,6 +306,28 @@ export class PreviewEngine {
       },
       this.elk,
     );
+  }
+
+  /** Inspects compiled story timing without drawing, rasterizing or changing project state. */
+  inspectStory(request: InspectStoryRequest): InspectStoryOutcome {
+    const contents = Object.fromEntries(
+      Object.entries(request.files).map(([path, text]) => [`${ROOT}${path}`, text]),
+    );
+    const sessions = this.sessionsOver(createMemoryHost(contents), this.library);
+    const file = sessions.forFile(`${ROOT}${request.file}`).file(`${ROOT}${request.file}`);
+    if (!file) return failure("request.invalid", `${request.file} is not a .meltemi file.`);
+    const diagnostics = file.diagnostics.map((d) => reportDiagnostic(file.path, d));
+    const listed = diagnostics.slice(0, MAX_REPORT_DIAGNOSTICS);
+    if (diagnostics.some((d) => d.severity === "error")) {
+      return failure(
+        "diagram.invalid",
+        `${request.file} has compilation errors; no timeline was inspected.`,
+        listed,
+      );
+    }
+    const story = file.compilation.document.stories.find((entry) => entry.id === request.story);
+    if (!story) return failure("request.invalid", `${request.file} has no story ${request.story}.`);
+    return inspectionOf(story, request, listed, diagnostics.length > MAX_REPORT_DIAGNOSTICS);
   }
 
   /**

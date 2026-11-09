@@ -56,23 +56,30 @@ The guides used SHALL be returned for drawing. Alt SHALL disable snapping and gu
 - **THEN** the dragged box's top edge aligns with it and the guide is returned
 
 ### Requirement: Selection
+
 The canvas SHALL support:
 
 - click, plus Shift- or Ctrl-click to add and remove; the topmost painted shape under the pointer is the one clicked, and a shape drawn as a path (diamond, ellipse, polygon…) is hit only inside its outline;
+- selecting a relation by every visible piece of its drawn body and within six screen pixels beyond its painted stroke, at every zoom, independently of its dash/dot gaps, animation phase or reduced-motion setting; a connector's empty bounding-box interior and structural gaps protecting container titles SHALL NOT count as its stroke;
 - Alt+click to select the shape below the one under the pointer, cycling through the stack in paint order, and "Select the shape below" in the context menu;
-- a selection rectangle that selects the boxes fully inside it and the relations whose drawn line is fully inside it;
+- a selection rectangle dragged left-to-right, or without horizontal displacement, that selects the boxes fully inside it and the relations whose complete routed line is fully inside it;
+- a selection rectangle dragged right-to-left that selects nongroup drawn objects intersecting the rectangle and relations whose visible drawn line intersects it; crossing tests SHALL use the actual shape or stroke geometry rather than only its bounding box, and enclosing groups SHALL require full containment in both directions;
 - select all (Ctrl+A) and clear (Escape);
 - Tab and Shift+Tab through elements in source order;
 - Ctrl with the arrows to the nearest element in that direction, preferring the nested (smaller) shape when two are concentric.
 
-The selection SHALL be kept across renders, and ids that disappear SHALL be dropped.
+The selection SHALL be kept across renders, and ids that disappear SHALL be dropped. Hidden layers and wholly clipped-out drawing SHALL NOT participate in pointer or rectangle selection. Shift/Ctrl additive rectangle selection SHALL retain the starting selection and add the eligible ids once. A containment rectangle SHALL have a solid outline and a crossing rectangle a dashed outline, with a localized status/accessible announcement naming the mode and feedback distinguishable without colour alone. The mode SHALL be derived from the gesture's horizontal direction before rectangle normalization.
+
+Gantt task, milestone and section rectangle selection SHALL retain its existing chart-specific touched-row behavior; the directional connector rules SHALL apply to dependency relations without changing those task gestures. When a rectangle selects both tasks and dependencies, the last touched task SHALL remain the primary selection for keyboard traversal through rows.
+
+The relation's body hit surface SHALL be independent of decorative animation primitives, SHALL follow the rendered curve, all of its visible pieces and viewport transforms, and SHALL remain below the relation's label and editing handles in input priority. Motion particles, traces, pulses and other overlays SHALL remain noninteractive. Selection SHALL write no source edit and SHALL preserve the existing mouse/stylus gesture arbitration, touch panning, label editing, route handles and view-only inspection. Canvas-only hit surfaces SHALL NOT appear in exported SVGs.
 
 #### Scenario: Keyboard traversal
 - **WHEN** `client`, `api` and `db` are declared in that order, `api` is selected and Tab is pressed
 - **THEN** `db` is selected and scrolled into view
 
 #### Scenario: A rectangle over an arrow
-- **WHEN** a selection rectangle is dragged around the whole connector of `save` and no box
+- **WHEN** a selection rectangle is dragged left-to-right around the whole connector of `save` and no box
 - **THEN** `save` is selected
 
 #### Scenario: Select below
@@ -82,6 +89,62 @@ The selection SHALL be kept across renders, and ids that disappear SHALL be drop
 #### Scenario: Empty corner of a diamond
 - **WHEN** the top-left corner of the bounding rectangle of a `shape diamond` box is clicked
 - **THEN** nothing is selected
+
+#### Scenario: Moving-dash body at the reported zoom
+- **WHEN** a relation with a moving-dash effect is shown at 49% zoom in a panned and scrolled canvas and its body is clicked away from its label and endpoints
+- **THEN** that relation is selected, including a click in a visual gap between dashes within the stroke's six-screen-pixel reach
+- **AND** the canvas posts no source edit
+
+#### Scenario: Every visible piece across titled groups
+- **WHEN** a relation crosses nested titled account and control-plane groups and each visible body piece is clicked in turn
+- **THEN** every such press selects the same relation, whether the piece carries an animation class or not
+- **AND** a press in the protected gap over a container title does not select an invisible continuation of that relation
+
+#### Scenario: The pointer is away from a curved stroke
+- **WHEN** a pointer lies inside a curved relation's bounding box but more than six screen pixels beyond its painted stroke
+- **THEN** the relation is not selected and the press reaches the actual shape or background at that point
+
+#### Scenario: Particles do not capture a press
+- **WHEN** a flow particle or a pulse overlay passes over a label, handle or different object and the user presses it
+- **THEN** the actual underlying input target is used and the decorative overlay is not selected
+
+#### Scenario: Label and endpoint interactions
+- **WHEN** a relation's label is dragged, or its selected endpoint handle is dragged, while its body has a moving-dash effect
+- **THEN** the existing label-move or endpoint-reconnect gesture is used rather than a body-selection target intercepting the press
+
+#### Scenario: A crossing rectangle touches only a connector's middle
+- **WHEN** a right-to-left rectangle crosses the middle segment of an orthogonal connector while both endpoints and its label lie outside the rectangle
+- **THEN** that connector is selected
+- **AND** the same area dragged left-to-right does not select the partially enclosed connector
+
+#### Scenario: Crossing a curve versus its bounds
+- **WHEN** a right-to-left rectangle intersects the drawn curve of one relation but only the empty bounding-box interior of another
+- **THEN** only the intersected relation is selected
+
+#### Scenario: Crossing inside a container
+- **WHEN** a right-to-left rectangle crosses an arrow and a nongroup box inside nested groups, without enclosing either group
+- **THEN** the crossed arrow and box are selected and neither enclosing group is selected
+
+#### Scenario: Additive and reverse-axis rectangles
+- **WHEN** `api` is already selected and Shift or Ctrl is held while a right-to-left rectangle is dragged upward across `save`
+- **THEN** the selection holds `api` and `save` once each
+- **AND** the band identifies crossing selection in its outline and localized announcement
+
+#### Scenario: Hidden or clipped drawing
+- **WHEN** a rectangle encloses or crosses the coordinates of a relation on a hidden layer, or only a wholly clipped-out piece of a relation
+- **THEN** that hidden drawing contributes no selected id
+
+#### Scenario: Gantt tasks stay primary when their dependency is selected
+- **WHEN** a rectangle touches three task bars and contains a dependency between two of them, and Tab is pressed after the selection
+- **THEN** the bars and dependency are selected together before Tab, and Tab selects the task following the last touched row
+
+#### Scenario: Read-only inspection and reduced motion
+- **WHEN** the canvas is read-only and reduced motion is requested, and a visible relation body is clicked or crossed by a selection rectangle
+- **THEN** selection follows the same geometry and the interface sends no editing action
+
+#### Scenario: Interaction targets stay out of exports
+- **WHEN** the canvas displays enlarged connector hit surfaces and the same diagram is exported as static or animated SVG
+- **THEN** the exports contain no canvas hit primitives or their interaction classes and retain their authored appearance and motion
 
 ### Requirement: Moving, nudging and resizing
 A move SHALL be one batch of `setPosition` for every selected element, every placed descendant of a selected group, and every selected group that has a `place`, by the delta of `resolveMove`. While a selection is dragged, the canvas SHALL show the innermost group whose box contains the centre of the dragged selection's box (the dragged elements and their descendants excluded, hidden layers skipped) as the drop target, highlighted like a connection target; on release, every dragged element whose parent differs from the target SHALL first be moved into it with `moveElement` (`parent` `null` when the centre lands outside every group) and its `setPosition` SHALL be written in the target's interior coordinates, all in the same batch; holding Alt SHALL keep the current parents. The same batch SHALL keep the drawing where it was: when every child of a group without `place` is dragged, they keep their parent and the group moves with them; a group left with no children and without `place` or `size` gets its drawn place and size written; a placed free group without `size` that gains or loses a child gets its drawn size written, so its interior does not move. An element whose parent is on a hidden layer keeps it while the centre stays inside that parent's box; hidden groups are never new targets. Arrow keys SHALL nudge by 1 px, or by one grid step with Shift, and SHALL never change the parent. A resize SHALL keep the opposite edges, snap width and height to the grid with a minimum of 24 px, and write `setSize` and `setPosition` in one batch; Alt+Shift with the arrows SHALL resize from the keyboard by one grid step. Groups without `place` and `size` SHALL have no resize handles.
@@ -510,10 +573,18 @@ The handle SHALL fade in with the selection. While dragging, the live rotation S
 - **THEN** no rotation handle is drawn
 
 ### Requirement: Empty file and new diagrams
-When the document has no diagram and no story is playing, the canvas SHALL show the reason and one button per kind it can create — flow diagram, free composition, sequence diagram, Gantt chart — and SHALL clear the diagram selector, the inspector, the minimap and the layout and stale badges of the last render. A button SHALL write `diagram <id>: <type> { }` through `createDiagram` and show the new diagram. A **New diagram** button beside the diagram selector SHALL offer the same kinds for any file. Read-only canvases SHALL show neither the buttons nor the New diagram button.
+When the document has no diagram and no story is playing, the canvas SHALL show the reason and
+the same ordered starter catalogue as the explorer: Flow, Sequence, C4 architecture, Gantt,
+Whiteboard, Kanban and Free composition, with translated descriptions. It SHALL clear the
+diagram selector, inspector, minimap and layout and stale badges of the last render. Choosing
+a starter SHALL write its valid source as one undoable edit and show its new diagram. A **New
+diagram** button beside the diagram selector SHALL offer the same choices for any file. The
+catalogue SHALL be identical in browser and VS Code canvases and independent of the active
+diagram and initial project template. Read-only canvases SHALL show neither the creation
+choices nor the New diagram button.
 
 #### Scenario: Start from an empty file
-- **WHEN** the text is emptied and the Flow diagram button is pressed
+- **WHEN** the text is emptied and Flow is chosen
 - **THEN** the text becomes `language "0.2"`, a blank line and `diagram diagram1: flow {` … `}`, the canvas shows the empty diagram with its palette, and the selector names `diagram1`
 
 #### Scenario: Nothing stale is left
@@ -525,12 +596,36 @@ When the document has no diagram and no story is playing, the canvas SHALL show 
 - **THEN** `diagram diagram1: free {` … `}` is appended after `overview` and shown
 
 #### Scenario: A Gantt chart from an empty file
-- **WHEN** the text is emptied and the Gantt chart button is pressed in Spanish ("Diagrama de Gantt")
+- **WHEN** the text is emptied and Gantt is chosen in Spanish
 - **THEN** the text becomes `language "0.2"`, a blank line and `diagram diagram1: gantt {` … `}`, and the canvas shows an empty timeline of four weeks with the Task, Milestone, Marker and Section tools
 
 #### Scenario: Read-only
 - **WHEN** the canvas is read-only and the file has no diagram
-- **THEN** the reason is shown without buttons
+- **THEN** the reason is shown without creation choices
+
+#### Scenario: Matching catalogues in both hosts
+- **WHEN** the explorer dialog, canvas New diagram menu and empty-file state are opened in English and Spanish
+- **THEN** they offer the same seven identities in the same order, with translated labels and descriptions, and the browser and VS Code canvas agree
+
+#### Scenario: C4 is ready to edit
+- **WHEN** C4 architecture is chosen in an empty file
+- **THEN** a model and initial context view are created together with no diagnostics, and the new view is selected
+
+#### Scenario: Add a board to an existing file
+- **WHEN** Whiteboard or Kanban is chosen in a file already holding a sequence diagram, a theme and a story
+- **THEN** a valid free board is appended, the existing source stays byte-identical outside the insertion and undo restores the prior text exactly
+
+#### Scenario: Repeated C4 additions
+- **WHEN** C4 architecture is added twice to a file already using default top-level names
+- **THEN** each addition has fresh model and view ids, selects its own view and compiles without diagnostics
+
+#### Scenario: An invalid creation request
+- **WHEN** an incoming creation message names an unknown starter or has an invalid payload
+- **THEN** the protocol ignores the malformed message without creating an edit or changing the displayed document
+
+#### Scenario: A stale creation request
+- **WHEN** a valid creation action uses a stale document revision
+- **THEN** it is refused with the stale-revision diagnostic, no source changes, and the current document remains displayed
 
 ### Requirement: Canvas size in the inspector
 The diagram inspector SHALL show a **Canvas** field with fit to content, document, slide and custom, and, for custom, a width and a height from 100 to 10000. Choosing SHALL write `preset document`, `preset slide` or `canvas (w, h)` and remove the other statement in the same plan, or remove both for fit to content. Custom SHALL start from the drawn size of the content.

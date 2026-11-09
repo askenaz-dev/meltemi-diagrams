@@ -4,6 +4,7 @@ import { messages } from "./messages/index.js";
 
 export interface MenuItem {
   readonly label: string;
+  readonly description?: string;
   readonly key?: string;
   readonly disabled?: boolean;
   /** A picture before the label, such as a kind of arrow. */
@@ -76,13 +77,23 @@ export class Menu {
           tabindex: -1,
           "aria-disabled": item.disabled ? "true" : undefined,
           "aria-checked": item.checked === undefined ? undefined : String(item.checked),
+          "aria-label": item.label,
+          "aria-description": item.description,
+          title: item.description,
           ...item.data,
         },
         h(
           "span",
           { class: item.picture ? "label pictured" : "label" },
           ...(item.picture ? [item.picture] : []),
-          item.label,
+          h(
+            "span",
+            {},
+            item.label,
+            ...(item.description
+              ? [h("small", { class: "menu-description" }, item.description)]
+              : []),
+          ),
         ),
         h("span", { class: "key" }, item.key ?? ""),
       );

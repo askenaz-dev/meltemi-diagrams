@@ -8,6 +8,19 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 
 ### Canvas
 
+- **New diagram** offers the same seven starters in every project and both editor hosts: flow,
+  sequence, C4 architecture, Gantt, whiteboard, Kanban and free composition. C4 creates a model
+  and context view together; whiteboard and Kanban prepare editable boards without replacing
+  existing files or project settings.
+- Selecting another file or diagram leaves story playback directly, including notes and invalid
+  sources. Stories can be deleted with undo and confirmation of dependent exports. Numeric scene,
+  action and transition durations preserve action timing when adjusting a scene's final pause;
+  stale replies and confirmations cannot restore or delete another revision's content. Removal
+  refuses malformed syntax whose recovered story range could include unrelated source.
+- Connector bodies can be selected along animated, dashed and curved strokes with a constant
+  screen-space reach. Selection bands use containment from left to right and crossing from right
+  to left, respect hidden layers and title gaps, and preserve Gantt task keyboard traversal.
+
 - The context menu lists the effects the selection takes, **Flow particles**, **Moving dash**,
   **Pulse** and **Trace**, as items that turn each on and off with one click, writing what the
   inspector's toggles write; the inspector keeps their settings
@@ -22,6 +35,14 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
   the missing positions first; Automatic removes the positions and waypoints `layout auto` ignores
   (edit operation `clearPlacement`), after a confirmation in English and Spanish when there are
   any, also from the inspector's Layout field.
+
+### Agent authoring and MCP
+
+- `inspect_story` reports the compiled timeline, scene views, transitions, nested action intervals
+  and boundary-preview instants in hosted, local-account and folder MCP. Folder inspection and
+  previews expose the same content-derived snapshot revision.
+- The agent skill documents safe story creation, timing edits, conflict recovery and preview
+  inspection. A new end-to-end story journey extends the hosted acceptance gate to 35 steps.
 
 ### Local workspace
 

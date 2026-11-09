@@ -1,0 +1,8 @@
+// The shared diagram remains.
+diagram d: flow { a -> b }
+// A separate note remains.
+story tour for d {
+  scene first { reveal a over 2s; hold 1s }
+}
+export player for tour { format html }
+story other for d { scene still { hold 1s } }

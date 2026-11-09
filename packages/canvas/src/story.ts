@@ -14,6 +14,10 @@ export interface StoryHost {
   draw(svg: string, width: number, height: number): void;
   /** Sends a story action for the current revision. */
   act(action: CanvasAction): void;
+  /** Current revision, including source updates that cannot produce a new playback. */
+  revision(): number;
+  /** Confirms deleting a story before submitting a source edit. */
+  confirm(reason: string, run: () => void): void;
   /** The ids selected on the frame. */
   selection(): readonly string[];
   announce(text: string, error?: boolean): void;
@@ -130,6 +134,24 @@ export class StoryPanel {
   private readonly sceneName = h("span", { class: "scene-name" });
   private readonly actionSelect = h("select", { "aria-label": messages().story.actionToAdd });
   private readonly removeButton: HTMLButtonElement;
+  private readonly timing = h("div", { class: "story-timing", "data-write": "" });
+  private readonly sceneDuration = h("input", {
+    type: "text",
+    inputmode: "decimal",
+    class: "scene-duration",
+  }) as HTMLInputElement;
+  private readonly actionDuration = h("input", {
+    type: "text",
+    inputmode: "decimal",
+    class: "action-duration",
+  }) as HTMLInputElement;
+  private readonly actionTiming = h("label", { class: "action-timing", hidden: true });
+  private readonly minimum = h("span", { class: "scene-minimum" });
+  private readonly timingError = h("span", { class: "timing-error", role: "status" });
+  private readonly drafts = new WeakMap<
+    HTMLInputElement,
+    { playback: StoryPlaybackInfo; revision: number; value: string; target: string }
+  >();
   private readonly tracks = h("div", { class: "tracks" });
   private readonly ruler = h("div", {
     class: "ruler",
@@ -151,10 +173,11 @@ export class StoryPanel {
       words.addToScene,
     );
     const scene = this.button(words.newScene, ICONS.group, () => this.newScene());
+    const removeStory = this.button(words.deleteStory, ICONS.close, () => this.deleteStory());
     this.removeButton = this.button(words.removeAction, ICONS.close, () => this.removeSelected());
     this.removeButton.disabled = true;
     // What writes the story: the canvas hides it while it is read-only.
-    for (const control of [this.actionSelect, add, scene, this.removeButton]) {
+    for (const control of [this.actionSelect, add, scene, this.removeButton, removeStory]) {
       control.setAttribute("data-write", "");
     }
     const exportButton = this.button(
@@ -182,11 +205,23 @@ export class StoryPanel {
       add,
       scene,
       this.removeButton,
+      removeStory,
       exportButton,
       scenesButton,
     );
     this.tracks.append(this.ruler, this.rows, this.playhead);
-    this.element.append(header, this.tracks);
+    this.sceneDuration.setAttribute("aria-label", words.sceneDuration);
+    this.actionDuration.setAttribute("aria-label", words.actionDuration);
+    this.actionTiming.append(words.actionDuration, this.actionDuration);
+    this.timing.append(
+      h("label", {}, words.sceneDuration, this.sceneDuration),
+      this.minimum,
+      this.actionTiming,
+      this.timingError,
+    );
+    this.element.append(header, this.timing, this.tracks);
+    this.listenTiming(this.sceneDuration, true);
+    this.listenTiming(this.actionDuration, false);
     this.listen();
   }
 
@@ -236,6 +271,12 @@ export class StoryPanel {
     this.playback = undefined;
     this.element.hidden = true;
     clear(this.rows);
+    this.selectedBar = undefined;
+    this.timingError.textContent = "";
+    for (const input of [this.sceneDuration, this.actionDuration]) {
+      input.removeAttribute("aria-invalid");
+      this.drafts.delete(input);
+    }
   }
 
   /** Redraws the current frame, after a change of selection. */
@@ -327,6 +368,7 @@ export class StoryPanel {
     this.ruler.setAttribute("aria-valuemax", String(duration));
     this.ruler.setAttribute("aria-valuenow", String(Math.round(this.time)));
     this.ruler.setAttribute("aria-valuetext", formatTime(this.time));
+    this.syncTiming();
   }
 
   private buildRows(): void {
@@ -356,7 +398,20 @@ export class StoryPanel {
         { class: "scene-label", title: scene.title ?? scene.id },
         scene.title ? `${scene.id} — ${scene.title}` : scene.id,
       );
-      label.addEventListener("click", () => this.setTime(scene.startMs));
+      label.tabIndex = 0;
+      label.setAttribute("role", "button");
+      const select = () => {
+        this.selectBar(undefined);
+        this.setTime(scene.startMs);
+      };
+      label.addEventListener("click", select);
+      label.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          select();
+        }
+      });
       this.rows.append(h("div", { class: "scene-row" }, label, area));
     });
   }
@@ -371,6 +426,7 @@ export class StoryPanel {
         "data-path": key,
         title: words.bar(bar.label, formatTime(bar.startMs), formatTime(bar.durationMs)),
         role: "button",
+        tabindex: "0",
         "aria-label": `${bar.label}, ${formatTime(bar.durationMs)}`,
       },
       h("span", { class: "bar-text" }, bar.label),
@@ -383,6 +439,14 @@ export class StoryPanel {
       e.stopPropagation();
       this.selectBar(key);
       this.setTime(bar.startMs);
+    });
+    element.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        this.selectBar(key);
+        this.setTime(bar.startMs);
+      }
     });
     if (bar.timed && !this.readOnly) {
       const grip = h("div", { class: "grip", title: words.grip });
@@ -398,10 +462,14 @@ export class StoryPanel {
       bar.classList.toggle("selected", bar.dataset.path === key);
     }
     this.removeButton.disabled = key === undefined || !key.includes(".");
+    this.syncTiming();
   }
 
   /** Drags the end of a bar; the new time is written when the pointer is released. */
   private retime(e: PointerEvent, bar: Bar, element: HTMLElement, duration: number): void {
+    const playback = this.playback;
+    const revision = this.host.revision();
+    if (!playback || this.readOnly) return;
     e.stopPropagation();
     e.preventDefault();
     const grip = e.currentTarget as HTMLElement;
@@ -415,22 +483,172 @@ export class StoryPanel {
       element.style.width = `${(next / duration) * 100}%`;
       element.title = `${bar.label} · ${formatTime(next)}`;
     };
-    const up = () => {
+    const finish = (commit: boolean) => {
       grip.removeEventListener("pointermove", move);
       grip.removeEventListener("pointerup", up);
-      grip.removeEventListener("pointercancel", up);
-      if (next !== bar.durationMs && this.playback) {
+      grip.removeEventListener("pointercancel", cancel);
+      if (
+        commit &&
+        next !== bar.durationMs &&
+        this.playback === playback &&
+        this.host.revision() === revision &&
+        !this.readOnly
+      ) {
         this.host.act({
           kind: "setStoryTiming",
-          story: this.playback.id,
+          story: playback.id,
           path: bar.path,
           durationMs: next,
         });
+      } else if (!commit) {
+        element.style.width = `${(bar.durationMs / duration) * 100}%`;
       }
     };
+    const up = () => finish(true);
+    const cancel = () => finish(false);
     grip.addEventListener("pointermove", move);
     grip.addEventListener("pointerup", up);
-    grip.addEventListener("pointercancel", up);
+    grip.addEventListener("pointercancel", cancel);
+  }
+
+  private selectedTimingBar(): Bar | undefined {
+    const p = this.playback;
+    if (!p || this.selectedBar === undefined) return undefined;
+    return p.timeline.scenes
+      .flatMap(sceneBars)
+      .find((bar) => bar.timed && bar.path.join(".") === this.selectedBar);
+  }
+
+  /** Numerical timing is precise; scene totals only adjust the last pause. */
+  private syncTiming(): void {
+    const current = this.currentScene();
+    if (!current) return;
+    const scene = current.scene;
+    const last = scene.actions.at(-1);
+    const minimum = scene.durationMs - (last?.kind === "hold" ? last.durationMs : 0);
+    this.minimum.textContent = messages().story.minimum(formatTime(minimum));
+    this.syncTimeInput(this.sceneDuration, scene.durationMs, scene.id);
+    const bar = this.selectedTimingBar();
+    this.actionTiming.hidden = !bar;
+    if (bar) this.syncTimeInput(this.actionDuration, bar.durationMs, bar.path.join("."));
+    this.sceneDuration.disabled = this.readOnly;
+    this.actionDuration.disabled = this.readOnly;
+  }
+
+  private syncTimeInput(input: HTMLInputElement, ms: number, target: string): void {
+    const draft = this.drafts.get(input);
+    const focused = document.activeElement === input;
+    // Keep an unfinished or rejected value available for correction. A clean focused field can
+    // follow its acknowledged source edit, so the next Enter does not use an old revision.
+    if (
+      draft &&
+      ((focused && input.value !== draft.value) ||
+        (input.hasAttribute("aria-invalid") && draft.target === target))
+    )
+      return;
+    input.value = String(ms / 1000);
+    input.removeAttribute("aria-invalid");
+    if (focused && this.playback)
+      this.drafts.set(input, {
+        playback: this.playback,
+        revision: this.host.revision(),
+        value: input.value,
+        target,
+      });
+  }
+
+  private listenTiming(input: HTMLInputElement, scene: boolean): void {
+    input.addEventListener("focus", () => {
+      this.pause();
+      const p = this.playback;
+      const target = scene ? this.currentScene()?.scene.id : this.selectedBar;
+      const draft = this.drafts.get(input);
+      if (
+        p &&
+        target !== undefined &&
+        !(input.hasAttribute("aria-invalid") && draft?.target === target)
+      ) {
+        this.drafts.set(input, {
+          playback: p,
+          revision: this.host.revision(),
+          value: input.value,
+          target,
+        });
+      }
+    });
+    input.addEventListener("input", () => {
+      input.removeAttribute("aria-invalid");
+      this.timingError.textContent = "";
+    });
+    const commit = () => {
+      const draft = this.drafts.get(input);
+      if (this.readOnly || !draft || input.value === draft.value) return;
+      const words = messages().story;
+      const number = Number(input.value.replace(",", "."));
+      const ms = Math.round(number * 1000);
+      let error = "";
+      if (draft.playback !== this.playback || draft.revision !== this.host.revision())
+        error = words.timingChanged;
+      else if (input.value.trim() === "" || !Number.isFinite(number) || number < 0)
+        error = words.invalidTime;
+      else if (scene) {
+        const selected = draft.playback.timeline.scenes.find((s) => s.id === draft.target)!;
+        const last = selected.actions.at(-1);
+        const minimum = selected.durationMs - (last?.kind === "hold" ? last.durationMs : 0);
+        if (ms < minimum) error = words.belowMinimum(formatTime(minimum));
+        else if (ms - minimum > 600_000) error = words.invalidTime;
+      } else if (ms > 600_000) error = words.invalidTime;
+      if (error) {
+        input.setAttribute("aria-invalid", "true");
+        this.timingError.textContent = error;
+        return;
+      }
+      this.drafts.set(input, { ...draft, value: input.value });
+      this.timingError.textContent = "";
+      this.host.act(
+        scene
+          ? {
+              kind: "setSceneDuration",
+              story: draft.playback.id,
+              scene: draft.target,
+              durationMs: ms,
+            }
+          : {
+              kind: "setStoryTiming",
+              story: draft.playback.id,
+              path: draft.target.split(".").map(Number),
+              durationMs: ms,
+            },
+      );
+    };
+    input.addEventListener("blur", commit);
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commit();
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        const draft = this.drafts.get(input);
+        if (draft) input.value = draft.value;
+        input.removeAttribute("aria-invalid");
+        this.timingError.textContent = "";
+      }
+    });
+  }
+
+  private deleteStory(): void {
+    const p = this.playback;
+    const revision = this.host.revision();
+    if (this.readOnly || !p) return;
+    this.host.confirm(messages().story.deleteStoryConfirm(p.id), () => {
+      if (this.readOnly || this.playback !== p || revision !== this.host.revision()) {
+        this.host.announce(messages().story.timingChanged, true);
+        return;
+      }
+      this.host.act({ kind: "removeStory", story: p.id, cascade: false });
+    });
   }
 
   private addToScene(): void {
@@ -486,7 +704,7 @@ export class StoryPanel {
       this.ruler.addEventListener("pointerup", up);
     });
     this.element.addEventListener("keydown", (e) => {
-      if (e.target instanceof HTMLSelectElement) return;
+      if (e.target instanceof HTMLSelectElement || e.target instanceof HTMLInputElement) return;
       if (e.key === " " || e.key === "k") {
         e.preventDefault();
         this.toggle();

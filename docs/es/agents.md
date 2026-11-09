@@ -219,9 +219,18 @@ En Cursor, `.cursor/mcp.json` lleva `{ "mcpServers": { "meltemi": { "url": "http
 Sin sesión iniciada el servidor arranca igual, y sus herramientas responden `auth.required` hasta que
 ejecutas `mdg login` en otra terminal; la llamada siguiente ya la usa.
 
-Con `--folder`, sirve dos herramientas, `validate` y `preview`, sobre los archivos `.meltemi` de una
+Con `--folder`, sirve tres herramientas, `validate`, `inspect_story` y `preview`, sobre los archivos `.meltemi` de una
 carpeta del disco, sin cuenta y sin red: un agente que trabaja en un repositorio escribe los archivos
 con sus propias herramientas y los mira como imágenes.
+
+Para una historia, `inspect_story` recibe su archivo `path` y su id `story` (además de `project`
+en modo cuenta). Informa la duración total compilada, escenas ordenadas, vistas activas,
+transiciones y tiempos de acciones anidadas en milisegundos. Previsualiza el `startMs` y el
+`stillAtMs` de cada escena y compara la revisión de la imagen con la inspección: cada llamada
+lee la instantánea actual, por lo que otra edición puede exigir inspeccionar de nuevo. En modo
+carpeta, la revisión identifica el contenido en disco, no una revisión de escritura en nube.
+La [guía de historias](../../skills/meltemi-diagrams/reference/stories.md) del skill cubre la
+creación, los ajustes de tiempo, el orden y el borrado conservando comentarios y otras historias.
 
 ```bash
 npx -y @meltemi/diagrams-cli@latest mcp --folder .

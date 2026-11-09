@@ -38,6 +38,7 @@ export function memoryRenderers(): MemoryRenderers {
   return {
     core,
     render: (projectId, request) => core(projectId).render(request),
+    inspectStory: (projectId, request) => core(projectId).inspectStory(request),
     validate: (projectId, request) => core(projectId).validate(request),
     catalog: (projectId, request) => core(projectId).catalog(request),
     stats: async (projectId) => core(projectId).stats(),

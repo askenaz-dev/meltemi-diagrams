@@ -1,0 +1,7 @@
+{
+  "operation": {
+    "kind": "removeStory",
+    "story": "broken",
+    "cascade": true
+  }
+}

@@ -1,4 +1,6 @@
 import type { StoryTimeline, StoryViewData } from "@meltemi/diagrams-motion";
+import { DIAGRAM_STARTERS, type DiagramStarterId } from "@meltemi/diagrams-edit/starters";
+export { DIAGRAM_STARTERS } from "@meltemi/diagrams-edit/starters";
 import type { AlignEdge } from "./arrange.js";
 import type { Box, Point } from "./geometry.js";
 import type { Side } from "./routes.js";
@@ -374,6 +376,8 @@ export interface EventInfo {
 /** A diagram as the canvas draws it. */
 export interface CanvasRender {
   readonly revision: number;
+  /** The host document identity, independent of its local revision and diagram ids. */
+  readonly document?: string;
   readonly diagrams: readonly { readonly id: string; readonly title: string | null }[];
   readonly diagram: string;
   /** The profile of the diagram, which sets the palette. */
@@ -849,12 +853,14 @@ export type HostMessage =
   | {
       readonly type: "stale";
       readonly revision: number;
+      readonly document?: string;
       readonly count: number;
       readonly first: { readonly code: string; readonly message: string; readonly line: number };
     }
   | {
       readonly type: "empty";
       readonly revision: number;
+      readonly document?: string;
       readonly message: string;
       /**
        * The kinds of diagram the canvas offers to create with the `createDiagram` action, one
@@ -991,12 +997,14 @@ export type HostMessage =
   | {
       readonly type: "story";
       readonly revision: number;
+      /** Matches the ordinary render's document when the host has a file identity. */
+      readonly document?: string;
       readonly stories: readonly { readonly id: string; readonly title: string | null }[];
       readonly playback: StoryPlaybackInfo | null;
     };
 
 /** The kinds of diagram the canvas creates: C4 views need a model, written in text. */
-export type CreatableDiagram = "flow" | "free" | "sequence" | "gantt";
+export type CreatableDiagram = DiagramStarterId;
 
 /**
  * Moves elements by a delta in diagram coordinates, or into a list group at a position. A child
@@ -1381,6 +1389,13 @@ export type CanvasAction =
       readonly durationMs?: number;
     }
   | { readonly kind: "removeStoryAction"; readonly story: string; readonly path: readonly number[] }
+  | { readonly kind: "removeStory"; readonly story: string; readonly cascade: boolean }
+  | {
+      readonly kind: "setSceneDuration";
+      readonly story: string;
+      readonly scene: string;
+      readonly durationMs: number;
+    }
   /** Stories: a new scene after `after`, or at the end. */
   | { readonly kind: "insertScene"; readonly story: string; readonly after?: string }
   /**
@@ -1594,7 +1609,7 @@ const isPenStyle = (v: unknown): v is PenStyle =>
   (v.arrowhead === undefined || (typeof v.arrowhead === "string" && v.arrowhead.length <= 64)) &&
   (v.arrowtail === undefined || (typeof v.arrowtail === "string" && v.arrowtail.length <= 64));
 const OPERATORS = ["alt", "opt", "loop", "par", "break", "critical", "region"] as const;
-const CREATABLE: readonly CreatableDiagram[] = ["flow", "free", "sequence", "gantt"];
+const CREATABLE: readonly CreatableDiagram[] = DIAGRAM_STARTERS;
 const EDGES = ["left", "center", "right", "top", "middle", "bottom"] as const;
 const STORY_ACTION_KINDS = [
   "reveal",
@@ -1847,6 +1862,10 @@ function isAction(a: unknown): a is CanvasAction {
       );
     case "removeStoryAction":
       return isString(a.story) && isPath(a.path);
+    case "removeStory":
+      return isString(a.story) && typeof a.cascade === "boolean";
+    case "setSceneDuration":
+      return isString(a.story) && isString(a.scene) && isNumber(a.durationMs) && a.durationMs >= 0;
     case "insertScene":
       return isString(a.story) && (a.after === undefined || isString(a.after));
     case "createStory":

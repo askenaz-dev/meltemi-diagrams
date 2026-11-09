@@ -12,10 +12,13 @@ import type {
   RenderRequest,
   ValidateOutcome,
   ValidateRequest,
+  InspectStoryRequest,
+  InspectStoryOutcome,
 } from "@meltemi/diagrams-mcp/preview";
 
 /** What a renderer object answers, as far as the Worker calls it. */
 export interface RendererStubLike {
+  inspectStory(request: InspectStoryRequest): Promise<InspectStoryOutcome>;
   render(request: RenderRequest): Promise<RenderOutcome>;
   validate(request: ValidateRequest): Promise<ValidateOutcome>;
   catalog(request: CatalogRequest): Promise<CatalogOutcome>;
@@ -30,6 +33,7 @@ export interface RendererNamespaceLike {
 
 /** Previews of a project, drawn by its renderer object. */
 export interface RenderersApi {
+  inspectStory(projectId: string, request: InspectStoryRequest): Promise<InspectStoryOutcome>;
   render(projectId: string, request: RenderRequest): Promise<RenderOutcome>;
   /** Checks files of the project (`validate`, and `write_files` before it pushes). */
   validate(projectId: string, request: ValidateRequest): Promise<ValidateOutcome>;
@@ -41,6 +45,7 @@ export interface RenderersApi {
 export function durableRenderers(namespace: RendererNamespaceLike): RenderersApi {
   const stub = (projectId: string) => namespace.get(namespace.idFromName(projectId));
   return {
+    inspectStory: (projectId, request) => stub(projectId).inspectStory(request),
     render: (projectId, request) => stub(projectId).render(request),
     validate: (projectId, request) => stub(projectId).validate(request),
     catalog: (projectId, request) => stub(projectId).catalog(request),

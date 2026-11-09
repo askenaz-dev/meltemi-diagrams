@@ -69,7 +69,7 @@ Local MCP SHALL reuse the shared tools and authoritative room/project source use
 - **THEN** the existing replay contract applies without duplicate edits
 
 ### Requirement: Shared MCP transport and local feature policy
-Local MCP SHALL keep stateless Streamable HTTP, shared schemas, protocol negotiation, no issued MCP session ID and existing method/body/render/rate limits. Fourteen core tools SHALL operate locally. The thirteen sharing/live-guest/publishing tools SHALL return `local.feature-unavailable` before effects; equivalent HTTP/UI actions SHALL be unavailable.
+Local MCP SHALL keep stateless Streamable HTTP, shared schemas, protocol negotiation, no issued MCP session ID and existing method/body/render/rate limits. Fifteen core tools SHALL operate locally, including read-only compiled story inspection. The thirteen sharing/live-guest/publishing tools SHALL return `local.feature-unavailable` before effects; equivalent HTTP/UI actions SHALL be unavailable.
 
 #### Scenario: Discover capabilities
 - **WHEN** the plugin initializes and lists tools

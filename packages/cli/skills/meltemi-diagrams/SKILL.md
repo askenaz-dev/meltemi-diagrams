@@ -33,7 +33,9 @@ as `write_files` and `preview` act on the person's projects), follow
    a `model` with `c4` views for a C4 architecture (context, containers, components) shared by
    several pictures ([reference/c4.md](reference/c4.md)), `gantt` for a plan or a roadmap of tasks
    scheduled over dates ([reference/gantt.md](reference/gantt.md)).
-   To walk an audience through a diagram, add a `story` after it
+   To walk an audience through a diagram, add a `story` after it. Read the agent authoring
+   workflow for creating, timing, reordering and deleting scenes while preserving other stories;
+   MCP's `inspect_story` reports compiled timing before previewing each scene
    ([reference/stories.md](reference/stories.md)).
    A Mermaid or PlantUML source is imported, never retyped: `pnpm mdg import source.mmd` writes
    `source.meltemi` and reports what it approximated or dropped

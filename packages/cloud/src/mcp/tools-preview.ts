@@ -74,4 +74,26 @@ const preview = implement(TOOLS.preview, async (session, args) => {
   };
 });
 
-export const PREVIEW_TOOLS: readonly AnyImplementation[] = [preview];
+const inspectStory = implement(TOOLS.inspect_story, async (session, { project, path, story }) => {
+  const { op } = session;
+  await requireProjectAccess(op, project, "read");
+  const latest = await op.deps.rooms.read(project);
+  if (!Object.hasOwn(latest.files, path) || !path.endsWith(".meltemi")) {
+    throw fail("request.invalid", `The project has no .meltemi file ${path}.`);
+  }
+  const result = await renderersOf(op).inspectStory(project, {
+    revision: latest.revision,
+    files: latest.files,
+    file: path,
+    story,
+  });
+  if (!result.ok)
+    throw fail(
+      result.code,
+      result.message,
+      result.diagnostics ? { diagnostics: result.diagnostics } : undefined,
+    );
+  return { structured: result.inspection };
+});
+
+export const PREVIEW_TOOLS: readonly AnyImplementation[] = [preview, inspectStory];

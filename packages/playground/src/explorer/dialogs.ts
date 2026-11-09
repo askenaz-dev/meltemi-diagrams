@@ -3,6 +3,7 @@
 // says why a name is refused, keeping the dialog open.
 
 import { messages } from "../messages/index.js";
+import { DIAGRAM_STARTERS, type DiagramStarterId } from "@meltemi/diagrams-edit/starters";
 import { field, h, icon, openDialog } from "../ui.js";
 import { EXPLORER_ICONS } from "./icons.js";
 import type { NameProblem } from "./tree-model.js";
@@ -62,36 +63,43 @@ function nameDialog(
   input.focus();
 }
 
-/** New diagram: its name, and its kind as a choice of three. */
+/** New diagram: its name and a starter from the shared catalogue. */
 export function newDiagramDialog(
   folder: string,
-  accept: (name: string, kind: "flow" | "free" | "sequence" | "gantt") => string | undefined,
+  accept: (name: string, kind: DiagramStarterId) => string | undefined,
   returnTo: () => HTMLElement | undefined,
 ): void {
   const words = messages().explorer.actions;
   const group = `new-diagram-kind-${Math.random().toString(36).slice(2)}`;
-  const kinds = (["flow", "free", "sequence", "gantt"] as const).map((kind, index) => {
+  const kinds = DIAGRAM_STARTERS.map((kind, index) => {
     const input = h("input", {
       type: "radio",
       name: group,
       value: kind,
       checked: index === 0,
+      "aria-label": words.kinds[kind],
+      "aria-describedby": `${group}-${kind}`,
     }) as HTMLInputElement;
     return {
       kind,
       input,
       label: h(
         "label",
-        { class: "segment" },
+        { class: "starter-choice" },
         input,
-        icon(EXPLORER_ICONS[kind]),
-        h("span", {}, words.kinds[kind]),
+        icon(EXPLORER_ICONS[kind === "whiteboard" || kind === "kanban" ? "free" : kind]),
+        h(
+          "span",
+          {},
+          h("strong", {}, words.kinds[kind]),
+          h("small", { id: `${group}-${kind}` }, words.descriptions[kind]),
+        ),
       ),
     };
   });
   const chooser = h(
     "fieldset",
-    { class: "segments" },
+    { class: "diagram-starters" },
     h("legend", { class: "field-label" }, words.kind),
     ...kinds.map((k) => k.label),
   );

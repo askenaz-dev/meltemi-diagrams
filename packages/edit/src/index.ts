@@ -17,4 +17,5 @@ export { deleteStatements } from "./delete.js";
 export { activationPair } from "./sequence.js";
 export { placementCleared, placementToClear, type ClearedPlacement } from "./placement.js";
 export { CREATABLE_DIAGRAMS, newDiagramId, newStoryId } from "./diagrams.js";
+export { DIAGRAM_STARTERS, isDiagramStarter, type DiagramStarterId } from "./starter-catalog.js";
 export { formatNumber, quoteString } from "./text.js";

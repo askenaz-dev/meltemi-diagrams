@@ -78,6 +78,25 @@ export function folderHandlers(
   toolVersion: string,
 ): HandlersOf<typeof FOLDER_TOOLS> {
   return {
+    inspect_story: async ({ path, story }) => {
+      checkPath(root, path);
+      const folder = readFolder(root, toolVersion);
+      if (!Object.hasOwn(folder.files, path) || !path.endsWith(".meltemi"))
+        throw new Refusal("request.invalid", `The folder has no .meltemi file ${path}.`);
+      const result = await engine.inspectStory({
+        revision: folder.revision,
+        files: folder.files,
+        file: path,
+        story,
+      });
+      if (!result.ok)
+        throw new Refusal(
+          result.code,
+          result.message,
+          result.diagnostics ? { diagnostics: result.diagnostics } : {},
+        );
+      return { structured: result.inspection };
+    },
     validate: async ({ path }) => {
       if (path !== undefined) checkPath(root, path);
       const folder = readFolder(root, toolVersion);
@@ -110,9 +129,7 @@ export function folderHandlers(
         ...(args.width !== undefined ? { width: args.width } : {}),
         ...(args.theme !== undefined ? { theme: args.theme } : {}),
       });
-      const answer = previewAnswer(outcome);
-      const { revision: _revision, ...report } = answer.structured;
-      return { ...answer, structured: report };
+      return previewAnswer(outcome);
     },
   };
 }

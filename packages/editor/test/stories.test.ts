@@ -209,7 +209,7 @@ describe("stories across the files of a project", () => {
     const canvas = new CanvasSession();
     expect(canvas.update(sessions.analyze(tourPath, undefined, 1))[0]).toMatchObject({
       type: "empty",
-      creatable: ["flow", "free", "sequence", "gantt"],
+      creatable: ["flow", "sequence", "c4", "gantt", "whiteboard", "kanban", "free"],
     });
     const played = canvas.receive({ type: "pickStory", story: "tour" }).messages;
     expect(played[0]).toMatchObject({ type: "empty", creatable: [] });
@@ -217,7 +217,7 @@ describe("stories across the files of a project", () => {
     const left = canvas.receive({ type: "pickStory", story: null }).messages;
     expect(left[0]).toMatchObject({
       type: "empty",
-      creatable: ["flow", "free", "sequence", "gantt"],
+      creatable: ["flow", "sequence", "c4", "gantt", "whiteboard", "kanban", "free"],
     });
   });
 
@@ -252,6 +252,46 @@ describe("stories across the files of a project", () => {
 });
 
 describe("story mode of the canvas session", () => {
+  it("explicitly clears playback for a document without stories", () => {
+    const canvas = new CanvasSession();
+    const messages = canvas.update(
+      analyzeDocument({ text: "diagram d: flow { node a }", revision: 1 }),
+    );
+    expect(messages).toContainEqual({ type: "story", revision: 1, stories: [], playback: null });
+  });
+
+  it("clears the last story when it disappears and exits on a diagram pick", () => {
+    const text = "diagram d: flow { node a }\nstory tour for d { scene first { hold 1s } }";
+    const canvas = new CanvasSession();
+    canvas.update(analyzeDocument({ text, revision: 1 }));
+    canvas.receive({ type: "pickStory", story: "tour" });
+    const picked = canvas.receive({ type: "pickDiagram", diagram: "d" }).messages;
+    expect(picked.find((m) => m.type === "story")).toMatchObject({ playback: null });
+    canvas.receive({ type: "pickStory", story: "tour" });
+    const removed = canvas.update(
+      analyzeDocument({ text: text.slice(0, text.indexOf("\nstory")), revision: 2 }),
+    );
+    expect(removed).toContainEqual({ type: "story", revision: 2, stories: [], playback: null });
+  });
+
+  it("keeps an invalid present story's last frame, then clears it when that story is removed", () => {
+    const canvas = new CanvasSession({ path: "diagrams/one.meltemi" });
+    canvas.update(analyzeDocument({ text: purchase, revision: 1 }));
+    const played = canvas.receive({ type: "pickStory", story: "purchase" }).messages;
+    expect(played.find((m) => m.type === "story")).toMatchObject({
+      document: "diagrams/one.meltemi",
+      playback: { id: "purchase" },
+    });
+    const invalid = canvas.update(
+      analyzeDocument({ text: purchase.replace("for checkout", "for absent"), revision: 2 }),
+    );
+    expect(invalid.some((m) => m.type === "story")).toBe(false);
+    const removed = canvas.update(
+      analyzeDocument({ text: purchase.slice(0, purchase.indexOf("story purchase")), revision: 3 }),
+    );
+    expect(removed.find((m) => m.type === "story")).toMatchObject({ playback: null, stories: [] });
+  });
+
   function session(text: string) {
     const canvas = new CanvasSession();
     let current = text;
@@ -339,10 +379,56 @@ describe("story mode of the canvas session", () => {
     expect(refused.messages[0]).toMatchObject({ type: "rejected", code: "edit.invalid-value" });
   });
 
+  it("edits scene totals and removes stories through revision-checked plans", () => {
+    const canvas = session(purchase);
+    canvas.send({ type: "pickStory", story: "purchase" });
+    const timing = {
+      kind: "setSceneDuration",
+      story: "purchase",
+      scene: "overview",
+      durationMs: 2400,
+    };
+    const stale = canvas.send({ type: "action", revision: 0, action: timing });
+    expect(stale.plan).toBeUndefined();
+    expect(stale.messages[0]).toMatchObject({ type: "rejected" });
+    expect(canvas.text()).toBe(purchase);
+    canvas.send({ type: "action", revision: canvas.revision(), action: timing });
+    expect(canvas.text()).toContain("    hold 1600ms\n");
+    expect(canvas.story()!.playback!.timeline.scenes[1]!.startMs).toBe(2400);
+    const timed = canvas.text();
+    const short = canvas.send({
+      type: "action",
+      revision: canvas.revision(),
+      action: { ...timing, durationMs: 100 },
+    });
+    expect(short.messages[0]).toMatchObject({ type: "rejected", code: "edit.invalid-value" });
+    expect(canvas.text()).toBe(timed);
+    const dependent = canvas.send({
+      type: "action",
+      revision: canvas.revision(),
+      action: { kind: "removeStory", story: "purchase", cascade: false },
+    });
+    expect(dependent.messages[0]).toMatchObject({
+      type: "rejected",
+      code: "edit.has-dependents",
+      retry: { kind: "removeStory", cascade: true },
+    });
+    expect(canvas.text()).toBe(timed);
+    const removed = canvas.send({
+      type: "action",
+      revision: canvas.revision(),
+      action: { kind: "removeStory", story: "purchase", cascade: true },
+    });
+    expect(removed.plan).toBeDefined();
+    expect(canvas.text()).not.toContain("story purchase");
+    expect(canvas.story()).toMatchObject({ playback: null, stories: [] });
+    expect(applyTextEdits(canvas.text(), removed.plan!.inverse)).toBe(timed);
+  });
+
   it("creates a story for the diagram shown and plays it on its empty scene", () => {
     const text = 'language "0.2"\n\ndiagram checkout: flow {\n  a -> b as ab\n}\n';
     const canvas = session(text);
-    expect(canvas.story()).toBeUndefined();
+    expect(canvas.story()).toMatchObject({ stories: [], playback: null });
     const result = canvas.send({
       type: "action",
       revision: canvas.revision(),

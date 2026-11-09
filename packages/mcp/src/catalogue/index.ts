@@ -8,6 +8,7 @@ import { LIVE_TOOLS, PUBLISH_TOOLS } from "./live.js";
 import { PREVIEW_TOOLS } from "./preview.js";
 import { PROJECT_TOOLS } from "./projects.js";
 import { SHARING_TOOLS } from "./sharing.js";
+import { STORY_TOOLS } from "./stories.js";
 
 export { FOLDER_TOOLS, folderInstructions, type FolderToolName } from "./folder.js";
 export { reportSchema } from "./preview.js";
@@ -23,6 +24,7 @@ export const SERVER_TITLE = "Meltemi Diagrams";
 export const TOOLS = {
   ...PROJECT_TOOLS,
   ...PREVIEW_TOOLS,
+  ...STORY_TOOLS,
   ...SHARING_TOOLS,
   ...LIVE_TOOLS,
   ...PUBLISH_TOOLS,

@@ -265,10 +265,22 @@ export const en = {
 
   /** The kinds of diagram the canvas creates, in a file without diagrams and from New diagram. */
   diagrams: {
+    c4: "C4 architecture",
+    whiteboard: "Whiteboard",
+    kanban: "Kanban board",
     flow: "Flow diagram",
     free: "Free composition",
     sequence: "Sequence diagram",
     gantt: "Gantt chart",
+  } satisfies Record<CreatableDiagram, string>,
+  diagramDescriptions: {
+    flow: "Connect components and steps.",
+    sequence: "Show interactions in order.",
+    c4: "Create an architecture model and its context view.",
+    gantt: "Plan tasks and dependencies over time.",
+    whiteboard: "Sketch with strokes and sticky notes.",
+    kanban: "Organize sticky notes in columns.",
+    free: "Compose a blank canvas freely.",
   } satisfies Record<CreatableDiagram, string>,
 
   /** Gantt charts: what the tooltip of a bar says, and the titles of its handles. */
@@ -300,6 +312,8 @@ export const en = {
     /** An effect was turned on while the diagram's effects are paused. */
     effectsPaused: "Effects paused; press Play effects to see them.",
     nothingSelected: "Nothing selected.",
+    selectionContain: "Enclosing selection: drag left to right to enclose whole objects.",
+    selectionCross: "Crossing selection: drag right to left to select crossed objects.",
     selected: (count: number) => `${count} selected.`,
     /** An empty shape has no label to say. */
     selectedElement: (kind: string, id: string, label: string) =>
@@ -334,7 +348,7 @@ export const en = {
     converted: "Converted to a free composition.",
     /** A new diagram of the file, which the canvas shows once it is written. */
     createdDiagram: (type: CreatableDiagram) =>
-      `Created a ${{ flow: "flow diagram", free: "free composition", sequence: "sequence diagram", gantt: "Gantt chart" }[type]}.`,
+      `Created a ${{ flow: "flow diagram", free: "free composition", sequence: "sequence diagram", gantt: "Gantt chart", c4: "C4 architecture", whiteboard: "whiteboard", kanban: "Kanban board" }[type]}.`,
     previewReadOnly: "A scenario preview is read-only; pick “All events” to edit.",
     connectFromFirst: "Select the element to connect from first.",
     selectEventToMove: "Select a message, note, fragment or event to move.",
@@ -1004,6 +1018,17 @@ export const en = {
     pause: "Pause the story",
     addToScene: "Add to scene",
     newScene: "New scene after this one",
+    deleteStory: "Delete story",
+    deleteStoryConfirm: (id: string) =>
+      `Delete story ${id}? Its diagrams and other stories will be kept.`,
+    sceneDuration: "Scene duration (s)",
+    actionDuration: "Selected action duration (s)",
+    minimum: (time: string) => `Content minimum: ${time}. Extra time is an ending pause.`,
+    belowMinimum: (time: string) =>
+      `The content needs at least ${time}. Shorten an action or transition first.`,
+    invalidTime:
+      "Enter a finite non-negative duration; an action or ending pause can last at most 600 s.",
+    timingChanged: "The story changed. Review it and try again.",
     removeAction: "Remove the selected action",
     exportPlayer: "Export the story as an HTML player",
     exportHtml: "Export HTML",

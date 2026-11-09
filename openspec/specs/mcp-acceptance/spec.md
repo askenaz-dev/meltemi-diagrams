@@ -74,7 +74,7 @@ a token.
 - **THEN** the suite's tokens are read as `${{ secrets.… }}` only and nowhere echoed
 
 ### Requirement: Complete hosted acceptance
-Hosted delivery SHALL require all 34 automated MCP acceptance steps to pass with zero failures
+Hosted delivery SHALL require all 35 automated MCP acceptance steps to pass with zero failures
 and zero skips. Anonymous diagnostics and local-server runs SHALL label unavailable checks
 as skipped and SHALL NOT claim complete hosted acceptance.
 
@@ -84,7 +84,7 @@ as skipped and SHALL NOT claim complete hosted acceptance.
 
 #### Scenario: Complete run
 - **WHEN** both dedicated accounts and valid OAuth fixtures are available and all criteria hold
-- **THEN** the command reports 34 passed, zero failed and zero skipped
+- **THEN** the command reports 35 passed, zero failed and zero skipped
 
 ### Requirement: Bounded OAuth acceptance fixtures
 OAuth acceptance setup SHALL reuse the production OAuth provider and store, bound to the
@@ -108,3 +108,14 @@ every fixture record even after failure. Normal product authorization SHALL rema
 #### Scenario: Credential diagnostics
 - **WHEN** a fixture credential appears in an assertion or provider error
 - **THEN** the output and artifacts redact it and the secret scanner fails any leaking step
+
+### Requirement: Agentic story lifecycle acceptance
+The automated suite SHALL exercise creating a story, inspecting and changing scene timing/order, preserving concurrent human comments and unrelated stories, previewing compiled boundary instants and deleting only the authored story. It SHALL verify stale-write rejection and dependent-export refusal, use run-owned generic fixtures and clean them after success or failure.
+
+#### Scenario: Story authoring from end to end
+- **WHEN** the lifecycle step runs against an editable MCP project
+- **THEN** it proves compiled timing, conflict-safe preservation, valid previews and scoped cleanup without source loss
+
+#### Scenario: A failed partial journey
+- **WHEN** any lifecycle assertion fails
+- **THEN** the step fails, retains redacted evidence and still attempts cleanup of its own fixtures

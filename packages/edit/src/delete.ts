@@ -51,10 +51,10 @@ export function deleteStatements(
       outermost.push(statement);
   }
 
-  const byBlock = new Map<Block, Set<CstNode>>();
+  const byBlock = new Map<Block | SourceFile, Set<CstNode>>();
   for (const statement of outermost) {
     const parent = parents.get(statement);
-    if (!parent || parent.kind !== "Block") {
+    if (!parent || (parent.kind !== "Block" && parent.kind !== "SourceFile")) {
       reject("edit.unsafe-target", reasons().targets.notInBlock);
     }
     const set = byBlock.get(parent) ?? new Set<CstNode>();
@@ -67,7 +67,11 @@ export function deleteStatements(
   return mergeSpans(spans).map((span) => ({ start: span.start, end: span.end, newText: "" }));
 }
 
-function blockDeletions(text: string, block: Block, deleted: ReadonlySet<CstNode>): Span[] {
+function blockDeletions(
+  text: string,
+  block: Block | SourceFile,
+  deleted: ReadonlySet<CstNode>,
+): Span[] {
   const spans: Span[] = [];
   for (const run of splitRuns(block)) {
     const statements = run.items.filter(isStatement);
@@ -84,10 +88,10 @@ function blockDeletions(text: string, block: Block, deleted: ReadonlySet<CstNode
   return spans;
 }
 
-function splitRuns(block: Block): Run[] {
+function splitRuns(block: Block | SourceFile): Run[] {
   const runs: Run[] = [];
   let current: CstElement[] = [];
-  for (const child of block.children.slice(1, -1)) {
+  for (const child of block.kind === "Block" ? block.children.slice(1, -1) : block.children) {
     if (isToken(child) && child.kind === "Newline") {
       if (current.length > 0) runs.push({ items: current, terminator: child });
       current = [];

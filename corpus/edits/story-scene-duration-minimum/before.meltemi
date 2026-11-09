@@ -1,0 +1,4 @@
+diagram d: flow { a -> b }
+story tour for d {
+  scene first { reveal a over 2s; hold 1s }
+}

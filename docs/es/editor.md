@@ -178,15 +178,20 @@ cualquier diagrama de flujo.
 - **Seleccionar**: haz clic en una caja o en un conector; Mayús o Ctrl agrega o quita uno. El clic
   selecciona la forma pintada encima; un rombo, una elipse u otra forma dibujada como trazado solo
   se alcanza dentro de su contorno. Alt+clic selecciona la forma de debajo, recorriendo la pila que
-  está bajo el puntero ([formas tapadas](#formas-y-contenedores)). Arrastrar sobre el espacio vacío
-  dibuja un rectángulo que selecciona las cajas y los conectores que quedan completamente dentro.
-  Ctrl+A selecciona todo y Esc quita la selección.
+  está bajo el puntero ([formas tapadas](#formas-y-contenedores)). Puedes seleccionar un conector
+  por su cuerpo, incluidos los huecos de una línea discontinua o animada, hasta seis píxeles de
+  pantalla desde su borde pintado con cualquier zoom. Arrastra sobre el espacio vacío de izquierda
+  a derecha para encerrar objetos completos con un rectángulo continuo. De derecha a izquierda,
+  el rectángulo discontinuo selecciona las formas y los trazos de conectores que atraviesa;
+  los grupos contenedores todavía deben quedar completamente dentro. Mayús o Ctrl conserva la
+  selección previa. Ctrl+A selecciona todo y Esc quita la selección o cancela el rectángulo.
 
 ## Diagramas nuevos y el tamaño del lienzo
 
 **Un archivo vacío.** Cuando el archivo no tiene ningún diagrama, el lienzo lo dice y ofrece un
-botón por cada tipo que crea: **Diagrama de flujo**, **Composición libre**, **Diagrama de
-secuencia** y **Diagrama de Gantt**. No queda nada del último dibujo: se vacían el selector de diagramas, el inspector, el
+botón por cada punto de partida: **Diagrama de flujo**, **Diagrama de secuencia**, **Arquitectura C4**,
+**Diagrama de Gantt**, **Pizarra**, **Tablero Kanban** y **Composición libre**.
+No queda nada del último dibujo: se vacían el selector de diagramas, el inspector, el
 minimapa y las insignias de disposición y "Desactualizado". Un botón escribe el diagrama y lo
 muestra con su paleta, así que un archivo vaciado queda así:
 
@@ -197,15 +202,22 @@ diagram diagram1: flow {
 }
 ```
 
-**Nuevo diagrama.** El botón **+** a la derecha del selector de diagramas ofrece los mismos cuatro
-tipos en cualquier archivo. El diagrama se escribe después de la última instrucción del archivo,
+**Nuevo diagrama.** El botón **+** a la derecha del selector de diagramas ofrece las mismas siete
+opciones en cualquier archivo. El diagrama se escribe después de la última instrucción del archivo,
 tras una línea en blanco, con el primer id de `diagram1`, `diagram2`… que no usa ningún diagrama,
 modelo, tema ni historia del archivo; un archivo sin `language` recibe antes `language "0.2"`. El
 cambio es un solo paso de deshacer, y el selector nombra el diagrama nuevo mientras el lienzo lo
-muestra. Las vistas C4 se escriben en el texto, porque una vista necesita un modelo
-([c4.md](language/c4.md)). Un lienzo de solo lectura muestra el motivo de un archivo vacío sin los
-botones y no tiene **Nuevo diagrama**, y ninguno de los dos se ofrece mientras se reproduce una
-historia.
+muestra. Si creas uno mientras hay una historia activa, sales de la reproducción y se abre el
+diagrama nuevo. Un lienzo de solo lectura muestra el motivo de un archivo vacío sin los botones
+y no tiene **Nuevo diagrama**.
+
+**Nuevo diagrama…** en el explorador crea un archivo en la carpeta seleccionada con el mismo
+catálogo. Todos los proyectos ofrecen las siete opciones, cualquiera sea su plantilla inicial.
+Los archivos existentes y `project.json` se conservan. C4 crea un modelo y su vista de contexto
+juntos en ese archivo ([c4.md](language/c4.md)). Pizarra prepara un tablero con estilo de boceto,
+un encabezado y una nota adhesiva; Kanban prepara las columnas Por hacer, En curso y Hecho, con
+una tarjeta. Ambos son composiciones libres editables. Los textos iniciales se crean en el idioma
+de la interfaz; cambiar el idioma después no modifica tu contenido.
 
 **El tamaño del lienzo.** Sin nada seleccionado, el campo **Lienzo** del inspector fija el tamaño
 del dibujo de un diagrama de flujo, una composición libre, un diagrama de secuencia, un diagrama
@@ -1326,8 +1338,9 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
 
 - **Selector de historias.** Cuando el archivo tiene historias, la barra de herramientas las ofrece
   junto al selector de diagramas. Elegir una entra en el modo historia: el lienzo reproduce la
-  historia en solo lectura, con la paleta, **Nuevo diagrama**, el inspector y el minimapa
-  ocultos; el zoom y el desplazamiento siguen funcionando. **Editar el diagrama** sale de él.
+  historia en solo lectura, con la paleta, el inspector y el minimapa ocultos; el zoom y el
+  desplazamiento siguen funcionando. **Editar el diagrama**, seleccionar otro archivo o diagrama,
+  o crear uno con **Nuevo diagrama** sale del modo historia.
 - **Línea de tiempo.** Debajo del lienzo, una fila por escena muestra su transición y sus acciones
   como barras sobre el reloj de la historia; las acciones de un bloque `parallel` se apilan. ▷
   reproduce y pausa (Espacio o K en la línea de tiempo), la regla permite moverse por el tiempo, Izquierda
@@ -1342,6 +1355,15 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   la actual, y ✕ (o Supr) quita la barra seleccionada. Cada cambio es una edición del texto, que
   se deshace como cualquier otra. **Exportar HTML** escribe el reproductor HTML de la historia junto
   al archivo.
+- **Tiempo preciso.** Selecciona el nombre de una escena para indicar su total en **Duración de
+  la escena (s)**, o una barra de acción o transición para indicar **Duración de la acción
+  seleccionada (s)**. El total solo ajusta la pausa final, conservando el contenido y los grupos
+  paralelos. El campo explica el mínimo del contenido; acortarlo más requiere editar primero sus
+  acciones o transición. Entrar o salir del campo confirma una sola vez; Escape cancela. Consulta
+  [los tiempos de historias](language/stories.md#en-el-editor).
+- **Eliminar historia.** El botón de la línea de tiempo y el menú/tecla Suprimir del explorador
+  piden confirmación e incluyen los perfiles de exportación que deben eliminarse. Conservan el
+  diagrama y terminan la reproducción; Deshacer restaura el texto exacto como una sola edición.
 - **Nueva historia.** Junto al selector de historias, siempre que se muestre un diagrama o se
   reproduzca una historia, **Nueva historia** escribe `story story1 for <diagram> { scene scene1 { } }`
   después del último bloque del archivo, para el diagrama que se muestra (en el modo historia, el de

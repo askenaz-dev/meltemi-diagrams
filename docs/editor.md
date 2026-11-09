@@ -150,9 +150,12 @@ diagram.
 - **Selecting**: click a box or a connector; Shift or Ctrl adds or removes one. The click selects
   the shape painted on top; a diamond, an ellipse or another shape drawn as a path is hit only
   inside its outline. Alt+click selects the shape below, cycling through the stack under the pointer
-  ([covered shapes](#shapes-and-containers)). Dragging on empty space draws a rectangle that
-  selects the boxes and the connectors fully inside it. Ctrl+A selects everything and Escape
-  clears.
+  ([covered shapes](#shapes-and-containers)). A connector can be selected along its body, including
+  the gaps of a dashed or animated line, within six screen pixels of its painted edge at any zoom.
+  Drag on empty space from left to right to enclose whole objects with a solid rectangle. Drag
+  from right to left to select shapes and connector strokes that the dashed rectangle crosses;
+  enclosing groups still need to be fully inside it. Shift or Ctrl keeps the previous selection.
+  Ctrl+A selects everything and Escape clears or cancels the rectangle.
 - **Pointer**: the **Pointer** toggle (K) points at the diagram without editing it, for explaining
   it to others. While it is on, a press and drag draws a trail that fades 800 ms after each of its
   points, in the theme's accent (3 px, tapering to 1 px), and the cursor is a dot in that colour;
@@ -170,7 +173,8 @@ diagram.
 ## New diagrams and the canvas size
 
 **An empty file.** When the file has no diagram, the canvas says so and offers a button for each
-kind it creates: **Flow diagram**, **Free composition**, **Sequence diagram** and **Gantt chart**. Nothing of the
+starter: **Flow diagram**, **Sequence diagram**, **C4 architecture**, **Gantt chart**, **Whiteboard**,
+**Kanban board** and **Free composition**. Nothing of the
 last drawing stays: the diagram picker, the inspector, the minimap and the layout and "Out of
 date" badges are cleared. A button writes the diagram and shows it with its palette, so an emptied
 file becomes:
@@ -182,13 +186,21 @@ diagram diagram1: flow {
 }
 ```
 
-**New diagram.** The **+** button right of the diagram picker offers the same four kinds in any
+**New diagram.** The **+** button right of the diagram picker offers the same seven choices in any
 file. The diagram is written after the last statement of the file, past a blank line, with the
 first id of `diagram1`, `diagram2`… that no diagram, model, theme or story of the file uses; a
 file without `language` gets `language "0.2"` first. It is one undo step, and the picker names
-the new diagram while the canvas shows it. C4 views are written in the text, since a view needs a
-model ([c4.md](language/c4.md)). A read-only canvas shows the reason for an empty file without
-the buttons and has no **New diagram**, and neither is offered while a story plays.
+the new diagram while the canvas shows it. Creating one while a story is active leaves playback
+and opens the new diagram. A read-only canvas shows the reason for an empty file without
+the buttons and has no **New diagram**.
+
+The explorer's **New diagram…** creates one file in the selected folder with the same catalogue.
+Every project offers all seven choices, whichever initial template created it. Existing files
+and `project.json` stay unchanged. C4 creates a model and its context view together in that file
+([c4.md](language/c4.md)). Whiteboard starts a sketched board with a heading and sticky note;
+Kanban starts a board with To do, Doing and Done columns and one card. Both are editable free
+compositions. Starter labels follow the interface language when created; changing language later
+does not rewrite your content.
 
 **The canvas size.** With nothing selected, the inspector's **Canvas** field sets the size of the
 drawing of a flow diagram, a free composition, a sequence diagram, a gantt chart or a C4 view
@@ -1215,9 +1227,9 @@ declared in that model, in this file or in the model's own file.
 ## Stories
 
 - **Story picker.** When the file has stories, the toolbar offers them beside the diagram picker.
-  Picking one enters story mode: the canvas plays the story read-only, with the palette, **New
-  diagram**, the inspector and the minimap put away; zoom and pan still work. **Edit the
-  diagram** leaves it.
+  Picking one enters story mode: the canvas plays the story read-only, with the palette, inspector
+  and minimap put away; zoom and pan still work. **Edit the diagram**, selecting another file or
+  diagram, or creating a diagram with **New diagram** leaves story mode.
 - **Timeline.** Below the canvas, one row per scene shows its transition and actions as bars on
   the story's clock; a `parallel` block's actions are stacked. ▷ plays and pauses (Space or K in
   the timeline), the ruler scrubs, Left and Right step 100 ms (a second with Shift), Home and End go
@@ -1230,6 +1242,14 @@ declared in that model, in this file or in the model's own file.
   `hold 1000ms`). The ☐ button adds a scene after the current one, and ✕ (or Delete) removes the
   selected bar. Each change is one edit of the text, undone like any other. **Export HTML** writes
   the story's HTML player beside the file.
+- **Precise timing.** Select a scene's name to set its total in **Scene duration (s)**, or select
+  an action or transition bar to set **Selected action duration (s)**. A total adjusts only the
+  ending pause, keeping the timed content and parallel groups intact. The field explains the
+  content minimum; shortening below it requires editing the actions or transition first. Enter or
+  leaving the field commits once; Escape cancels. See [story timing](language/stories.md#in-the-editor).
+- **Delete story.** The timeline button and the explorer's story menu/Delete key ask for
+  confirmation, including any export profiles that must be removed. The diagram remains, playback
+  ends and Undo restores the exact source as one edit.
 - **New story.** Beside the story picker, whenever a diagram is shown or a story plays, **New
   story** writes `story story1 for <diagram> { scene scene1 { } }` after the file's last block, for
   the diagram shown (in story mode, the playing story's), with the next free id (`story2`,

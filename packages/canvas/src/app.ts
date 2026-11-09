@@ -1,5 +1,6 @@
 import {
   DEFAULT_GRID,
+  DIAGRAM_STARTERS,
   MINIMAP_SIZE,
   ZOOM_PRESETS,
   commandFor,
@@ -151,6 +152,7 @@ import {
   type PresenceShape,
 } from "./presence.js";
 import { PeerStrokes } from "./strokes.js";
+import { addConnectorHits, syncConnectorHits } from "./connector-hits.js";
 import { TRAIL_FADE_MS, Trail, thin } from "./trail.js";
 
 /** The pointer goes to the host at most this often while it moves (it shares it as presence). */
@@ -597,10 +599,13 @@ const LIST_ADD_HANDLE = 4;
 const SETTLE_WAIT_MS = 2000;
 
 /** The kinds of diagram the New diagram button adds, in the order of its menu. */
-const CREATABLE: readonly CreatableDiagram[] = ["flow", "free", "sequence", "gantt"];
+const CREATABLE: readonly CreatableDiagram[] = DIAGRAM_STARTERS;
 
 /** The picture of each kind of diagram the canvas creates. */
 const DIAGRAM_ICONS: Record<CreatableDiagram, string> = {
+  c4: "M2.5 2.5h11v11h-11z|M5 6h6v5H5z|M5 4.3h3",
+  whiteboard: "M2 3h12v9H2z|M5 15l3-3 3 3|M5 8l2-2 2 3 2-2",
+  kanban: "M2 3h3v10H2z|M6.5 3h3v10h-3z|M11 3h3v10h-3z",
   flow: "M2.5 2.5h5v3h-5z|M8.5 10.5h5v3h-5z|M5 5.5V12h3.5|M7 10.5L8.5 12 7 13.5",
   free: "M2.5 2.5h6v4h-6z|M9.5 8.5h4v5h-4z|M2.5 9.5h4v3h-4z",
   sequence: ICONS.participants,
@@ -752,8 +757,12 @@ interface IconDrag {
 /** The canvas of one document: draws renders from the host and turns input into actions. */
 export class CanvasApp {
   private render: CanvasRender | undefined;
+  /** Kept even when a source/note has no ordinary render. */
+  private currentDocument: string | undefined;
   private elements = new Map<string, ElementInfo>();
   private relations = new Map<string, RelationInfo>();
+  /** Visible connector pieces in diagram coordinates, without decorative motion overlays. */
+  private connectorStrokes = new Map<string, readonly (readonly Point[])[]>();
   private events = new Map<string, EventInfo>();
   /** Where each element is painted in the drawing, back to front: the order of its SVG groups. */
   private paint = new Map<string, number>();
@@ -1239,6 +1248,8 @@ export class CanvasApp {
     this.storyPanel = new StoryPanel({
       draw: (svg, width, height) => this.drawStoryFrame(svg, width, height),
       act: (action) => this.act(action),
+      revision: () => this.revision ?? 0,
+      confirm: (reason, run) => this.dialog.confirm(reason, [], run),
       selection: () => this.storySelection,
       announce: (text, error) => this.announce(text, error),
       exportPlayer: (story) => this.post({ type: "exportPlayer", story }),
@@ -1279,6 +1290,13 @@ export class CanvasApp {
         this.applyRender(message);
         break;
       case "stale":
+        if (message.document && message.document !== this.currentDocument) {
+          this.render = undefined;
+          this.currentDocument = message.document;
+          this.emptyText = messages().stage.fixIt(message.first.message, message.first.line);
+          this.emptyCreatable = [];
+        }
+        this.revision = message.revision;
         this.stale = true;
         this.pending = false;
         if (this.movePending) this.resetPreview();
@@ -1311,6 +1329,7 @@ export class CanvasApp {
         break;
       case "empty":
         this.render = undefined;
+        this.currentDocument = message.document;
         this.revision = message.revision;
         this.emptyText = message.message;
         this.emptyCreatable = message.creatable ?? [];
@@ -1368,7 +1387,23 @@ export class CanvasApp {
             message.code === "edit.has-dependents" || message.code === "edit.loses-placement";
           if (message.code === "edit.has-dependents" && message.dependents && message.retry) {
             const retry = message.retry;
-            this.dialog.confirm(message.reason, message.dependents, () => this.act(retry));
+            const revision = this.revision;
+            const render = this.render;
+            const document = this.currentDocument;
+            const story = this.storyPanel.story;
+            this.dialog.confirm(message.reason, message.dependents, () => {
+              if (
+                retry.kind === "removeStory" &&
+                (revision !== this.revision ||
+                  render !== this.render ||
+                  document !== this.currentDocument ||
+                  story !== this.storyPanel.story)
+              ) {
+                this.announce(messages().story.timingChanged, true);
+                return;
+              }
+              this.act(retry);
+            });
           } else if (message.code === "edit.loses-placement" && message.retry) {
             // Automatic layout would remove positions written by hand: asked first. A Layout
             // field that asked goes back to the written mode until the person confirms.
@@ -2205,6 +2240,7 @@ export class CanvasApp {
   // ------------------------------------------------------------------ render
 
   private applyRender(render: CanvasRender): void {
+    this.currentDocument = render.document;
     // A drawing that plays (or not) against the choice kept for its diagram is not shown: the
     // canvas asks for the other one, which the session answers with at once.
     if (
@@ -2392,6 +2428,8 @@ export class CanvasApp {
 
   /** The story picker, and story mode on or off with the playback the host sent. */
   private applyStory(message: HostMessage & { type: "story" }): void {
+    if (this.revision !== undefined && message.revision < this.revision) return;
+    if (message.document && message.document !== this.currentDocument) return;
     this.revision = message.revision;
     // The ordinary story-list refresh accompanying an old render confirms no source edit.
     // Entering story mode discards the edit overlay; its source result can still arrive later.
@@ -2467,6 +2505,7 @@ export class CanvasApp {
         words.diagrams[type],
       );
       button.addEventListener("click", () => this.createDiagram(type));
+      button.title = words.diagramDescriptions[type];
       actions.append(button);
     }
     // The buttons lie on the stage: its presses and keys are not theirs.
@@ -2485,7 +2524,7 @@ export class CanvasApp {
     this.storyPanel.element.focus({ preventScroll: true });
   }
 
-  /** Adds an empty diagram of a kind to the file, which the canvas shows once it is written. */
+  /** Adds a starter to the file, which the canvas shows once it is written. */
   private createDiagram(type: CreatableDiagram): void {
     if (!this.act({ kind: "createDiagram", type })) return;
     this.announce(messages().announcements.createdDiagram(type));
@@ -2739,6 +2778,7 @@ export class CanvasApp {
     this.putScene(render);
     const root = this.content.querySelector("svg");
     this.paint = new Map();
+    this.connectorStrokes = new Map();
     if (root) {
       // The paint order (layers back to front, groups before what they hold, then source order):
       // what is under a point is found frontmost first, as a press reaches it.
@@ -2761,23 +2801,6 @@ export class CanvasApp {
         // An element drawn as its icon (an icon shape, an icon object) is pressed anywhere on its
         // square, between the strokes of an outline icon too: an area of the canvas's own, under
         // the icon, which exports never have.
-        if (g && element.line) {
-          // A free line is pressed within a few units of its stroke, not only on its pixels.
-          g.prepend(
-            s("polyline", {
-              class: "mdg-hit",
-              points: outlineOf(this.lineShape(element))
-                .map((p) => `${p.x + render.offset.x},${p.y + render.offset.y}`)
-                .join(" "),
-              fill: "none",
-              stroke: "transparent",
-              "stroke-width": 10,
-              "stroke-linecap": "round",
-              "stroke-linejoin": "round",
-              "pointer-events": "stroke",
-            }),
-          );
-        }
         if (g && render.profile === "gantt" && element.kind === "marker") {
           // A marker's line is a hair: it is pressed within a few units of it.
           const { x, y, width, height } = element.box;
@@ -2808,28 +2831,13 @@ export class CanvasApp {
           );
         }
       }
-      // The arrows of a chart are dependencies, pressed to select and remove them.
-      if (render.profile === "gantt") {
-        for (const relation of render.relations) {
-          const g = root.querySelector(
-            `g[data-id="${cssEscape(relation.key)}"][data-role="relation"]`,
-          );
-          g?.prepend(
-            s("polyline", {
-              class: "mdg-hit",
-              points: relation.drawn
-                .map((p) => `${p.x + render.offset.x},${p.y + render.offset.y}`)
-                .join(" "),
-              fill: "none",
-              stroke: "transparent",
-              "stroke-width": 10,
-              "stroke-linecap": "round",
-              "stroke-linejoin": "round",
-              "pointer-events": "stroke",
-            }),
-          );
-        }
-      }
+      // Stable targets are separate from animated strokes, whose decoration ignores input.
+      this.connectorStrokes = addConnectorHits(
+        root,
+        this.viewport.zoom,
+        render.offset,
+        new Set(render.elements.filter((element) => element.line).map((element) => element.id)),
+      );
       // The pens' hit areas were sized for the zoom shown.
       this.strokeHitZoom = this.viewport.zoom;
       // A render that comes while the editor is open draws the text it types over: hidden again.
@@ -2882,6 +2890,7 @@ export class CanvasApp {
     const zoom = this.viewport.zoom;
     if (zoom === this.strokeHitZoom) return;
     this.strokeHitZoom = zoom;
+    syncConnectorHits(this.content, zoom);
     for (const hit of this.content.querySelectorAll<SVGElement>(".mdg-hit[data-pen-width]")) {
       const reach = strokeReach(Number(hit.getAttribute("data-pen-width")), zoom);
       if (hit.tagName.toLowerCase() === "circle") hit.setAttribute("r", String(reach / 2));
@@ -4065,7 +4074,7 @@ export class CanvasApp {
           width: Math.abs(drag.current.x - drag.start.x),
           height: Math.abs(drag.current.y - drag.start.y),
         },
-        "band",
+        drag.current.x < drag.start.x ? "band crossing" : "band",
       );
     }
     if (drag?.kind === "bend" || drag?.kind === "segment") {
@@ -5390,7 +5399,6 @@ export class CanvasApp {
     this.layoutBadge.addEventListener("click", () => this.openLayoutMenu());
     // Story mode is read-only: these go while a story plays.
     for (const element of [
-      newDiagram,
       this.scenarioSelect,
       ...palette,
       more,
@@ -6000,7 +6008,7 @@ export class CanvasApp {
 
   /** The menu of New diagram: the kinds of diagram it adds to the file. */
   private openNewDiagram(button: HTMLButtonElement): void {
-    if (this.readOnly || this.storyPanel.active) return;
+    if (this.readOnly) return;
     // A second press closes the menu.
     if (this.menu.isOpen && button.getAttribute("aria-expanded") === "true") {
       this.menu.close();
@@ -6013,6 +6021,7 @@ export class CanvasApp {
     this.menu.open(
       CREATABLE.map((type) => ({
         label: words[type],
+        description: messages().diagramDescriptions[type],
         picture: diagramIcon(type),
         data: { "data-create": type },
         run: () => this.createDiagram(type),
@@ -7640,6 +7649,7 @@ export class CanvasApp {
       additive,
       base: additive ? this.selection : [],
     };
+    this.announce(messages().announcements.selectionContain);
   }
 
   private pointerMove(e: PointerEvent): void {
@@ -7705,9 +7715,18 @@ export class CanvasApp {
         });
         return;
       }
-      case "band":
+      case "band": {
+        const wasCrossing = drag.current.x < drag.start.x;
         drag.current = point;
+        const crossing = drag.current.x < drag.start.x;
+        if (crossing !== wasCrossing)
+          this.announce(
+            crossing
+              ? messages().announcements.selectionCross
+              : messages().announcements.selectionContain,
+          );
         break;
+      }
       case "move": {
         const raw = { x: at.x - drag.start.x, y: at.y - drag.start.y };
         if (!drag.moving && Math.hypot(raw.x, raw.y) * this.viewport.zoom < DRAG_THRESHOLD) return;
@@ -7999,18 +8018,32 @@ export class CanvasApp {
           this.select(drag.additive ? [...drag.base] : []);
           return;
         }
-        const inside =
-          this.render?.profile === "gantt"
-            ? this.ganttBand(a, b)
-            : selectInRect(
-                this.extents(),
-                { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y },
-                new Map(
-                  [...this.relations.values()]
-                    .filter((x) => !this.isHidden(x.layer))
-                    .map((x) => [x.key, outlineOf(x)]),
-                ),
-              );
+        const strokes = new Map(this.connectorStrokes);
+        const visible = [...this.elements.values()].filter(
+          (element) => !this.isHidden(element.layer),
+        );
+        for (const element of visible)
+          if (element.pen) strokes.set(element.id, [strokeSamples(element.pen.points)]);
+        const inside = selectInRect(
+          this.render?.profile === "gantt" ? new Map() : this.extents(),
+          { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y },
+          new Map(
+            [...this.relations.values()]
+              .filter((relation) => !this.isHidden(relation.layer))
+              .map((relation) => [relation.key, outlineOf(relation)]),
+          ),
+          {
+            mode: drag.current.x < drag.start.x ? "cross" : "contain",
+            groups: new Set(
+              visible.filter((element) => element.kind === "group").map((element) => element.id),
+            ),
+            shapes: new Map(visible.map((element) => [element.id, element])),
+            strokes,
+          },
+        );
+        // A chart band still ends with its last touched row as the primary selection, so Tab
+        // continues through tasks even when a dependency also falls inside the band.
+        if (this.render?.profile === "gantt") inside.push(...this.ganttBand(a, b));
         this.drag = undefined;
         this.select([...new Set([...drag.base, ...inside])]);
         return;

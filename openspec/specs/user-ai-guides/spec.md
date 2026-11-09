@@ -18,7 +18,7 @@ Docker workspace, with a useful outcome and setup path for each.
 
 - **WHEN** a reader follows the AI and agents guide to document repository code
 - **THEN** the guide identifies skill plus CLI as sufficient without a Meltemi account and explains
-  that optional folder MCP only validates and previews files edited by the agent's own tools
+  that optional folder MCP validates, inspects compiled story timelines and previews files edited by the agent's own tools
 
 #### Scenario: A reader needs shared browser editing
 

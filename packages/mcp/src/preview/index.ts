@@ -6,4 +6,5 @@ export * from "./core.js";
 export * from "./engine.js";
 export * from "./fonts.js";
 export * from "./protocol.js";
+export * from "./inspection.js";
 export * from "./raster.js";

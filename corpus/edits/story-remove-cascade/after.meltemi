@@ -1,0 +1,4 @@
+// The shared diagram remains.
+diagram d: flow { a -> b }
+// A separate note remains.
+story other for d { scene still { hold 1s } }
