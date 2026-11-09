@@ -3611,7 +3611,7 @@ const tests: Test[] = [
     },
   },
   {
-    name: "code: the rail counts the file's errors, Show in text unfolds the pane, a file and a canvas selection leave it folded",
+    name: "code: the rail counts the file's errors, Go to code unfolds the pane, a file and a canvas selection leave it folded",
     async run({ page }) {
       const folded = (state: boolean) =>
         until(
@@ -3643,12 +3643,12 @@ const tests: Test[] = [
       await page.keyboard.type("// style missing");
       await analysed(page);
       assert.equal(await badge.isHidden(), true);
-      // Show in text from the canvas's menu unfolds the pane and selects the element with the focus.
+      // Go to code from the canvas's menu unfolds the pane and selects the element with the focus.
       await page.keyboard.press("Control+j");
       await folded(true);
       const api = page.locator('#app .content g[data-id="api"][data-role="element"]').first();
       await api.click({ button: "right" });
-      await page.getByRole("menuitem", { name: "Show in text" }).click();
+      await page.getByRole("menuitem", { name: "Go to code" }).click();
       await folded(false);
       await until(
         page,

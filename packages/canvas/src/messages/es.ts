@@ -540,7 +540,7 @@ export const es: typeof en = {
     bringForward: "Traer adelante",
     sendBackward: "Enviar atrás",
     sendToBack: "Enviar al fondo",
-    showInText: "Mostrar en el texto",
+    showInText: "Ir al código",
     labelInView: "Etiquetar en esta vista",
     renameInModel: "Cambiar el nombre en el modelo",
     openModel: "Abrir el modelo",

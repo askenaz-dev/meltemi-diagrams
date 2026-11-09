@@ -261,7 +261,7 @@ kept share. Folding from inside the pane SHALL move the focus to the rail's butt
 SHALL put it in the code. The grid's columns SHALL move with the page's transition and none under
 reduced motion; the canvas SHALL keep its viewport (no fit, no zoom) as its pane grows or shrinks;
 the divider SHALL keep its column, hidden and inert, while the pane is folded. A reveal that asks
-for the focus (**Show in text** from the canvas's menus, go to definition, a problem's line, a
+for the focus (**Go to code** from the canvas's menus, go to definition, a problem's line, a
 quick fix) SHALL unfold the pane; opening a file from the explorer and a canvas selection SHALL
 leave it folded. Go to definition, Ctrl+click and the problems list live inside the pane and fire
 only while it is open. On a narrow screen the code SHALL stay the Code
@@ -289,7 +289,7 @@ show the Code tab when another is shown and the Canvas tab otherwise.
 - **THEN** the rail shows 1 under its button, titled with the problems' summary, and the live region announces the summary; fixing the line removes the number
 
 #### Scenario: A reveal with focus unfolds
-- **WHEN** the pane is folded and **Show in text** is chosen in the canvas's context menu for `api`
+- **WHEN** the pane is folded and **Go to code** is chosen in the canvas's context menu for `api`
 - **THEN** the pane unfolds at its kept share and `api`'s declaration is selected in the code with the focus
 
 #### Scenario: Opening a file leaves it folded

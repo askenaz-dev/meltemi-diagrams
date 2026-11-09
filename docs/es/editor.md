@@ -10,6 +10,8 @@ indicador de cambios sin guardar y Git funcionan exactamente igual que con el te
 La [app web](web-app.md) comparte el mismo lienzo, por lo que sus herramientas de dibujo y sus
 funciones del lenguaje funcionan de la misma manera.
 
+**Ir al código** en el menú contextual de un elemento lleva a su declaración y enfoca el editor de código.
+
 ## Instalación
 
 Instala **Meltemi Diagrams for VS Code** de **meltemi** desde Extensiones, o ejecuta:
@@ -1093,7 +1095,7 @@ también lo muestra y selecciona, pero no tiene agarres, ni arrastre, ni teclas 
   eje.
 - Menú contextual de una fila: Editar la etiqueta, Cambiar el id, Conectar con… (C), Subir, Bajar,
   Poner en una sección nueva (Alt+G); luego Agregar una tarea, un hito, una marca, una sección;
-  luego Eliminar, Mostrar en el texto, Exportar SVG.
+  luego Eliminar, Ir al código, Exportar SVG.
 - **Funciones del lenguaje.** El autocompletado conoce las instrucciones de un diagrama y de una
   sección, las palabras de cláusula y de estado después de una etiqueta, las tareas y los hitos
   después de `after` y `until` (nunca una tarea que espera a la que se escribe), las unidades
