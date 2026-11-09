@@ -18,6 +18,9 @@ export default defineConfig({
         new URL("./packages/editor/src/node.ts", import.meta.url),
       ),
       "@meltemi/diagrams-editor": pkg("editor"),
+      "@meltemi/diagrams-edit/starters": fileURLToPath(
+        new URL("./packages/edit/src/starter-catalog.ts", import.meta.url),
+      ),
       "@meltemi/diagrams-edit": pkg("edit"),
       "@meltemi/diagrams-layout-elk": pkg("layout-elk"),
       "@meltemi/diagrams-layout/shapes": fileURLToPath(

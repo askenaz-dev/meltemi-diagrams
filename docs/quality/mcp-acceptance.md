@@ -56,6 +56,15 @@ interactive consent: the real Codex procedure's criterion 1 still requires that 
 
 ## The suite
 
+The story-authoring step uses a separate run-owned project. It creates a story and its export,
+inspects compiled sequential/parallel/transition times, edits timing and scene order, rejects a
+stale write while preserving a concurrent human comment and another story, and previews scene
+starts and final-state instants at matching revisions. It also proves that deleting a story with
+a remaining export is refused atomically, then removes only its own story and export. The run's
+unconditional cleanup deletes that fixture project even after an assertion fails. This journey
+also runs against a local Worker fixture in unit/integration tests; that is separate evidence
+from executing all 35 hosted steps against staging and production.
+
 `packages/acceptance/src/mcp/run.ts` is an agent built on the official SDK's client
 (`@modelcontextprotocol/client` 2.3.1). It connects to the endpoint with the `mdg_` API tokens of
 two dedicated test accounts, as Codex does with `bearer_token_env_var`, and runs one named step per
@@ -79,7 +88,7 @@ MELTEMI_ORIGIN=https://staging.diagrams.meltemi.dev pnpm acceptance:mcp
   It must be outside the uploaded results directory. Every credential in it, and every credential
   returned by refresh, is registered for redaction before assertions. A malformed or cross-origin
   manifest fails without echoing its contents.
-- `--require-complete` is the hosted delivery gate: exactly 34 passed, zero failed and zero skipped.
+- `--require-complete` is the hosted delivery gate: exactly 35 passed, zero failed and zero skipped.
   Missing account tokens or fixtures fail before running steps and leave sanitized prerequisite
   evidence. It cannot be combined with `--local` or `--probe`. Cloudflare API credentials must be
   absent from the acceptance process. Without this flag, anonymous and local diagnostics retain

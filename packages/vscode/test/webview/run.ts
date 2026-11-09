@@ -8,7 +8,10 @@ import { propertyTabTests } from "./property-tabs.js";
 import { manipulationTests } from "./manipulation.js";
 import { touchTests } from "./touch.js";
 import { connectionPreviewTests } from "./connection-preview.js";
+import { connectorSelectionTests } from "./connector-selection.js";
 import { contextActionTests } from "./context-actions.js";
+import { diagramStarterTests } from "./diagram-starters.js";
+import { storyLifecycleTests } from "./story-lifecycle.js";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1091,7 +1094,20 @@ async function lineOf(h: Harness, key: string): Promise<Rect> {
   const found = await h.page
     .locator(`.content g[data-id="${key}"][data-role="relation"]`)
     .first()
-    .boundingBox();
+    .evaluate((group) => {
+      // Interaction reach belongs to the canvas, not to the connector's painted bounds.
+      const boxes = [...group.children]
+        .filter((child) => !child.classList.contains("mdg-hit"))
+        .map((child) => child.getBoundingClientRect());
+      const x = Math.min(...boxes.map((box) => box.x));
+      const y = Math.min(...boxes.map((box) => box.y));
+      return {
+        x,
+        y,
+        width: Math.max(...boxes.map((box) => box.right)) - x,
+        height: Math.max(...boxes.map((box) => box.bottom)) - y,
+      };
+    });
   assert.ok(found, `no connector for ${key}`);
   return found;
 }
@@ -1863,8 +1879,11 @@ const tests: {
   ...manipulationTests,
   ...touchTests,
   ...connectionPreviewTests(output),
+  ...connectorSelectionTests(output),
   ...propertyTabTests(output),
   ...contextActionTests(output),
+  ...diagramStarterTests,
+  ...storyLifecycleTests,
   {
     name: "renders the diagram, the toolbar, the inspector and the minimap",
     async run(h) {
@@ -6488,9 +6507,12 @@ const tests: {
       const buttons = empty.getByRole("group", { name: "Create a diagram" }).getByRole("button");
       assert.deepEqual(await buttons.allTextContents(), [
         "Flow diagram",
-        "Free composition",
         "Sequence diagram",
+        "C4 architecture",
         "Gantt chart",
+        "Whiteboard",
+        "Kanban board",
+        "Free composition",
       ]);
       // Nothing to place without a diagram; New diagram is there.
       assert.equal(await page.locator('.toolbar button[data-tool="node"]').isVisible(), false);
@@ -6543,7 +6565,7 @@ const tests: {
       assert.equal(await page.locator(".status").textContent(), "");
       assert.equal(await page.locator(".content").innerHTML(), "");
       assert.equal(await page.locator(".overlay").innerHTML(), "");
-      assert.equal(await page.locator(".empty button").count(), 4);
+      assert.equal(await page.locator(".empty button").count(), 7);
       assert.equal(await page.locator('.toolbar button[data-tool="node"]').isVisible(), false);
       assert.ok(!(await page.locator("#app").innerHTML()).includes("overview"), "overview is gone");
     },
@@ -6588,12 +6610,17 @@ const tests: {
       assert.deepEqual(
         await page
           .locator(".menu [role=menuitem]")
-          .evaluateAll((items) => items.map((i) => [i.getAttribute("data-create"), i.textContent])),
+          .evaluateAll((items) =>
+            items.map((i) => [i.getAttribute("data-create"), i.getAttribute("aria-label")]),
+          ),
         [
           ["flow", "Flow diagram"],
-          ["free", "Free composition"],
           ["sequence", "Sequence diagram"],
+          ["c4", "C4 architecture"],
           ["gantt", "Gantt chart"],
+          ["whiteboard", "Whiteboard"],
+          ["kanban", "Kanban board"],
+          ["free", "Free composition"],
         ],
       );
       await page.locator('.menu [data-create="free"]').click();
@@ -6615,7 +6642,7 @@ const tests: {
       const page = h.page;
       assert.equal(await page.locator(".empty").isVisible(), true);
       assert.ok(((await page.locator(".empty .empty-message").textContent()) ?? "").length > 0);
-      assert.equal(await page.locator(".empty button").count(), 4);
+      assert.equal(await page.locator(".empty button").count(), 7);
       for (const button of await page.locator(".empty button").all()) {
         assert.equal(await button.isVisible(), false);
       }
@@ -6777,14 +6804,22 @@ const tests: {
       const page = h.page;
       const names = [
         "Diagrama de flujo",
-        "Composición libre",
         "Diagrama de secuencia",
+        "Arquitectura C4",
         "Diagrama de Gantt",
+        "Pizarra",
+        "Tablero Kanban",
+        "Composición libre",
       ];
       const group = page.locator(".empty").getByRole("group", { name: "Crear un diagrama" });
       assert.deepEqual(await group.getByRole("button").allTextContents(), names);
       await page.locator(".toolbar button.new-diagram").click();
-      assert.deepEqual(await page.locator(".menu [role=menuitem]").allTextContents(), names);
+      assert.deepEqual(
+        await page
+          .locator(".menu [role=menuitem]")
+          .evaluateAll((items) => items.map((item) => item.getAttribute("aria-label"))),
+        names,
+      );
       await page.locator('.menu [data-create="sequence"]').click();
       await h.settled();
       assert.equal(h.text, 'language "0.2"\n\ndiagram diagram1: sequence {\n}\n');
@@ -8357,16 +8392,18 @@ const tests: {
       // The person's own outline and the others' are all there, each on its own layer.
       assert.equal(await page.locator(".overlay .outline").count(), 1);
       assert.equal(await page.locator(".presence-outline").count(), 2);
-      // A press on Ana's tag starts a rubber band, as it would on the empty canvas: this one,
-      // from the tag above db to below and left of api, holds api and not db.
+      // A press on Ana's tag starts a rubber band, as it would on the empty canvas: this
+      // right-to-left crossing band encloses api and crosses part of db, but not cache.
       await page.mouse.move(anaTag.x + anaTag.width / 2, anaTag.y + anaTag.height / 2);
       await page.mouse.down();
       await page.mouse.move(api.x - 12, api.y + api.height + 12, { steps: 5 });
       assert.equal(await page.locator(".overlay .band").count(), 1);
+      assert.equal(await page.locator(".overlay .band.crossing").count(), 1);
       await page.mouse.up();
       await h.settled();
       assert.ok(h.session.selected.includes("api"), `selected ${h.session.selected}`);
-      assert.ok(!h.session.selected.includes("db") && !h.session.selected.includes("cache"));
+      assert.ok(h.session.selected.includes("db"), "the crossing band touches db");
+      assert.ok(!h.session.selected.includes("cache"));
       // Select all and Tab know the scene's elements only; the status never names a person.
       await h.focusStage();
       await page.keyboard.press("Control+a");
@@ -12368,7 +12405,7 @@ diagram d: flow {
       assert.ok(names.includes("Sección (G)"));
       await page.getByRole("button", { name: "Nuevo diagrama" }).click();
       assert.equal(
-        await page.getByRole("menuitem", { name: "Diagrama de Gantt" }).textContent(),
+        await page.getByRole("menuitem", { name: "Diagrama de Gantt" }).getAttribute("aria-label"),
         "Diagrama de Gantt",
       );
     },
@@ -12811,7 +12848,8 @@ diagram d: flow {
       await page.mouse.move(tec2.x + tec2.width + 10, flu0.y + flu0.height - 3, { steps: 8 });
       await page.mouse.up();
       await h.settled();
-      assert.match((await page.locator(".status").textContent()) ?? "", /3 selected/);
+      assert.deepEqual(h.session.selected, ["tec1->tec2#1", "tec1", "tec2", "flu0"]);
+      assert.match((await page.locator(".status").textContent()) ?? "", /4 selected/);
       await page.keyboard.press("Tab");
       await h.settled();
       assert.match((await page.locator(".inspector h2").textContent()) ?? "", /flu1/i);

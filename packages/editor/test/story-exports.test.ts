@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { sceneStills, storyTimeline } from "@meltemi/diagrams-motion";
+import { planEdit } from "@meltemi/diagrams-edit";
+import { applyTextEdits } from "@meltemi/diagrams-language";
 import type { StoryPlayerDocument } from "@meltemi/diagrams-player";
 import { BROKEN_STORY, FLOWS_SOURCE } from "../../../test-support/flows.js";
 import {
@@ -169,6 +171,40 @@ describe("every story in one player", () => {
 });
 
 describe("a picture per scene", () => {
+  it("uses edited scene totals in the player and every exported scene frame", () => {
+    const before = contextOf(twoViews);
+    const plan = planEdit(before.file.compilation, {
+      kind: "setSceneDuration",
+      story: "tour",
+      scene: "first",
+      durationMs: 1500,
+    });
+    if (!plan.ok) throw new Error(plan.rejection.reason);
+    const changed = applyTextEdits(TWO_VIEWS, plan.plan.edits);
+    expect(applyTextEdits(changed, plan.plan.inverse)).toBe(TWO_VIEWS);
+    const context = contextOf(write("timed-views.meltemi", changed));
+    const story = storyOf(context, "tour");
+    const timeline = storyTimeline(story);
+    expect(timeline.durationMs).toBe(2200);
+    expect(timeline.scenes[1]!.startMs).toBe(1500);
+    const player = embedded(produceExport(context, request({ kind: "story", story }, "html")));
+    expect(player.stories[0]!.timeline.durationMs).toBe(2200);
+    const scenes = produceExport(
+      context,
+      request({ kind: "story", story }, "svg", { scenes: true }),
+    );
+    if (!("texts" in scenes)) throw new Error(JSON.stringify(scenes));
+    const instants = sceneStills(timeline).map((s) => s.atMs);
+    expect(instants).toEqual([1499.99, 2200]);
+    scenes.texts.forEach((scene, i) => {
+      const frame = produceExport(
+        context,
+        request({ kind: "story", story }, "svg", { at: instants[i]! }),
+      );
+      expect("text" in frame && frame.text).toBe(scene.output);
+    });
+  });
+
   it("names a scene's file after the one-frame name", () => {
     expect(sceneFileName("purchase.purchase.svg", "overview")).toBe(
       "purchase.purchase.overview.svg",

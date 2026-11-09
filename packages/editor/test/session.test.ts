@@ -220,7 +220,8 @@ describe("render and state", () => {
     const broken = session.update(
       analyzeDocument({ text: manual.replace('api["API"]', 'api["API'), revision: 2 }),
     );
-    expect(broken.map((m) => m.type)).toEqual(["render", "stale", "inspector"]);
+    expect(broken.map((m) => m.type)).toEqual(["render", "stale", "inspector", "story"]);
+    expect(broken.find((m) => m.type === "story")).toMatchObject({ stories: [], playback: null });
     const stale = broken.find((m) => m.type === "stale")!;
     expect(stale).toMatchObject({ count: expect.any(Number) });
     const refused = session.receive({

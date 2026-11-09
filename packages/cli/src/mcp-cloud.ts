@@ -310,6 +310,25 @@ export function cloudHandlers(options: CloudToolsOptions): HandlersOf<typeof TOO
       return answer({ revision: latest.revision, ...checked });
     },
 
+    inspect_story: async ({ project, path, story }) => {
+      const latest = await client().files(project);
+      if (!Object.hasOwn(latest.files, path) || !path.endsWith(".meltemi"))
+        throw new Refusal("request.invalid", `The project has no .meltemi file ${path}.`);
+      const result = await engine.inspectStory({
+        revision: latest.revision,
+        files: latest.files,
+        file: path,
+        story,
+      });
+      if (!result.ok)
+        throw new Refusal(
+          result.code,
+          result.message,
+          result.diagnostics ? { diagnostics: result.diagnostics } : {},
+        );
+      return { structured: result.inspection };
+    },
+
     upload_image: async ({ project, path, data }) => {
       const bytes = fromBase64(data);
       if (!bytes) throw new Refusal("request.invalid", "data is not base64.");

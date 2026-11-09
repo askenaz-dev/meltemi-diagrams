@@ -12,6 +12,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { readPng, writePng } from "../png.js";
 import { Agent, refusalOf } from "./agent.js";
+import { storyAuthoringJourney } from "./stories.js";
 import { Skip, type Capabilities, type Step } from "./harness.js";
 import { ask, rpc, type Fetch, type Target } from "./host.js";
 import { FIXTURE_CLIENT_PREFIX, type OAuthFixtures } from "./oauth-fixture-format.js";
@@ -35,6 +36,7 @@ export const CATALOGUE_NAMES: readonly string[] = [
   "restore_version",
   "open_url",
   "preview",
+  "inspect_story",
   "get_sharing",
   "set_link_access",
   "invite",
@@ -887,6 +889,19 @@ const twoDiagrams: Step<SuiteState> = {
   },
 };
 
+const stories: Step<SuiteState> = {
+  name: "3 a story is authored, timed, inspected and preserved through concurrent edits",
+  criterion: 3,
+  after: [MAIN],
+  async run({ state, log }) {
+    const project = await createProject(state, "stories");
+    await storyAuthoringJourney(first(state), text(project["id"]));
+    log(
+      "story created, timed and reordered; conflict preserved human source; scene boundaries previewed; only the authored story and its export deleted",
+    );
+  },
+};
+
 const retried: Step<SuiteState> = {
   name: "5 a retried creation or write with the same key makes one",
   criterion: 5,
@@ -1699,6 +1714,7 @@ export const STEPS: readonly Step<SuiteState>[] = [
   refreshAndRevoke,
   created,
   twoDiagrams,
+  stories,
   retried,
   independent,
   toolsAlone,

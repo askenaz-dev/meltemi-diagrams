@@ -508,6 +508,8 @@ export class Studio {
     this.openPath = path;
     this.current = undefined;
     this.filesChanged();
+    // Opening a file means its ordinary view; an explicit story selection follows separately.
+    this.receive({ type: "pickStory", story: null });
   }
 
   /**
@@ -844,8 +846,10 @@ export class Studio {
         {
           type: "empty",
           revision,
+          document: path,
           message: path === MANIFEST_NAME ? m.manifest : m.openSource,
         },
+        { type: "story", revision, document: path, stories: [], playback: null },
       ]);
     }
     return analysis;

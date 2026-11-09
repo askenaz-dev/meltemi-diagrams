@@ -1,0 +1,8 @@
+diagram d: flow { a -> b }
+story tour for d {
+  scene first {
+    reveal a over 2s // Keep the action and its time.
+    hold 2000ms // Only this final pause changes.
+  }
+  scene next { hold 1s }
+}

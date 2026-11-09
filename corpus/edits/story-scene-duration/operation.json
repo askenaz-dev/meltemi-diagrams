@@ -1,0 +1,4 @@
+{
+  "operation": { "kind": "setSceneDuration", "story": "tour", "scene": "first", "durationMs": 4000 },
+  "diagram": "d"
+}

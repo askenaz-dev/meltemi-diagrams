@@ -66,6 +66,7 @@ import { attachmentDependent, attachNote } from "./attachments.js";
 import { createElement, createRelation, requirePortOf, usedIds } from "./create.js";
 import { deleteStatements } from "./delete.js";
 import { createDiagram } from "./diagrams.js";
+import { createDiagramFromStarter } from "./diagram-starters.js";
 import { endpointText, requireEndPosition, routeParts } from "./routes.js";
 import { insertAfter } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
@@ -136,8 +137,10 @@ import {
   insertScene,
   insertStoryAction,
   removeStoryAction,
+  removeStory,
   renameInStories,
   setStoryTiming,
+  setSceneDuration,
   storyDependents,
 } from "./stories.js";
 import {
@@ -182,6 +185,7 @@ export function planEdit(
         : "story" in operation ||
             "theme" in operation ||
             operation.kind === "createDiagram" ||
+            operation.kind === "createDiagramFromStarter" ||
             operation.kind === "createStory"
           ? createTextContext(compilation)
           : createContext(compilation, operation.diagram);
@@ -194,9 +198,11 @@ export function planEdit(
             ? runTheme(ctx, operation)
             : operation.kind === "createDiagram"
               ? createDiagram(ctx, operation)
-              : operation.kind === "createStory"
-                ? createStory(ctx, operation)
-                : run(ctx as EditContext, operation);
+              : operation.kind === "createDiagramFromStarter"
+                ? createDiagramFromStarter(ctx, operation)
+                : operation.kind === "createStory"
+                  ? createStory(ctx, operation)
+                  : run(ctx as EditContext, operation);
     verifyResult(ctx, edits);
     const plan: EditPlan = {
       operation,
@@ -266,6 +272,10 @@ function runStory(ctx: TextContext, operation: StoryOperation): TextEdit[] {
   switch (operation.kind) {
     case "setStoryTiming":
       return setStoryTiming(ctx, operation);
+    case "setSceneDuration":
+      return setSceneDuration(ctx, operation);
+    case "removeStory":
+      return removeStory(ctx, operation);
     case "insertStoryAction":
       return insertStoryAction(ctx, operation);
     case "removeStoryAction":
@@ -292,7 +302,7 @@ function run(
   ctx: EditContext,
   operation: Exclude<
     EditOperation,
-    | { kind: "batch" | "createDiagram" | "createStory" }
+    | { kind: "batch" | "createDiagram" | "createDiagramFromStarter" | "createStory" }
     | ModelOperation
     | StoryOperation
     | ThemeOperation

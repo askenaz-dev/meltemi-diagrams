@@ -214,3 +214,23 @@ playing story's) and plays it at once, so **Add to scene** and the scene button 
 **Export scenes** writes a picture of every scene, and **Export HTML** the player. In the web app's
 export dialog and in VS Code's **Export HTML Player**, **Every story** writes the player of every
 story of a file that has more than one.
+
+Selecting another diagram or file in the explorer leaves story mode immediately; **Edit diagram**
+in the story picker does the same. Opening a story explicitly starts its playback again. If a
+source edit temporarily makes a present story invalid, its last valid frame stays visible until
+it can be drawn again; removing that story ends playback.
+
+**Delete story** in the timeline, or the story's explorer menu and Delete key, asks before removing
+that story. The confirmation names any export profiles that must go with it. Its diagrams, other
+stories and unrelated comments remain. Undo restores the exact text as one edit, without starting
+playback. A read-only project offers playback and exports while editing controls remain hidden.
+
+Select a scene's name to edit **Scene duration (s)**. This is its total time: transition plus
+sequential actions, with the longest child determining each parallel block's time. Changing the
+total changes only the final top-level `hold`, or adds one. For example, `reveal a over 2s` followed
+by `hold 1s` totals 3 s; setting 4 s changes the pause to 2 s. Setting 1 s is rejected because the
+content already needs 2 s, and the field keeps the draft with the minimum and a correction hint.
+No actions are rescaled. Setting the minimum leaves an existing final `hold 0ms`, preserving its
+comments. Select an action or a fade/morph transition bar to edit **Selected action duration (s)**;
+parallel totals are derived, and cut transitions remain instantaneous. Dragging a bar's end still
+works. Enter or leaving a field commits once; Escape or cancelling a drag writes nothing.

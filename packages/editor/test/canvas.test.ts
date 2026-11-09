@@ -770,10 +770,10 @@ describe("keys and messages", () => {
 
   it("accepts a new diagram of the kinds it creates and previews of moves, resizes and rotations", () => {
     const action = (a: unknown) => isCanvasMessage({ type: "action", revision: 1, action: a });
-    for (const type of ["flow", "free", "sequence"]) {
+    for (const type of ["flow", "free", "sequence", "gantt", "c4", "whiteboard", "kanban"]) {
       expect(action({ kind: "createDiagram", type }), type).toBe(true);
     }
-    expect(action({ kind: "createDiagram", type: "c4" })).toBe(false);
+    expect(action({ kind: "createDiagram", type: "unknown" })).toBe(false);
     expect(action({ kind: "createDiagram" })).toBe(false);
     const move = { kind: "move", ids: ["api"], delta: { x: 200, y: 0 } };
     const resize = { kind: "resize", id: "api", box: { x: 0, y: 0, width: 200, height: 80 } };

@@ -27,7 +27,7 @@ reaches an address on the internet uses the endpoint):
   `.cursor/mcp.json`.
 - It uses the person's `mdg login`; until they sign in, each tool answers `auth.required`, and the
   next call after `mdg login` works without a restart. Never run `mdg login` for them.
-- `mdg mcp --folder <dir>` serves `validate` and `preview` only, over the `.meltemi` files of a
+- `mdg mcp --folder <dir>` serves `validate`, `inspect_story` and `preview`, over the `.meltemi` files of a
   folder, with no account: write the files with your own tools, then check and look at them.
 - On a machine other people use, the server may ask for `MELTEMI_MCP_KEY` as a bearer token; the
   person sets it in your client's configuration, never in a file you write.
@@ -53,6 +53,8 @@ runs live sessions and publishes (`access.denied`).
 - The app: `open_url` (the address that opens the project in the browser).
 - Pictures: `preview` (a diagram, or a story's frame, drawn with the command line's engine: on the
   server through the endpoint, on the person's machine through the local server).
+- Story timelines: `inspect_story` (the named story's compiled scene, transition and action
+  timings and active views at the current revision; read-only, with `projects:read`).
 - Sharing: `get_sharing`, `set_link_access` (`private`, `view` or `edit`), `invite`,
   `list_invitations`, `revoke_invitation`, `set_member_role`, `remove_member`.
 - Live sessions: `get_live`, `start_live`, `end_live`.
@@ -88,6 +90,36 @@ what was saved, at which revision, and ask for the picture again. `renderer.unav
 endpoint means the service cannot draw or check right now, and nothing was written: say so, and
 that the local server (`mdg mcp`) does this work on the person's machine. Thirty previews and three hundred
 calls a minute per account are allowed; `rate.limited` gives `retryAfter` in seconds.
+
+## Story timelines
+
+Follow [stories.md](stories.md#authoring-and-revising-with-an-agent) to create, time, reorder and
+delete stories through small source edits. The MCP edits the same `.meltemi` text the person sees;
+it does not need a separate scene-writing language.
+
+After a successful write and whole-project `validate`, call:
+
+```json
+{ "project": "<id-from-list_projects>", "path": "diagrams/checkout.meltemi", "story": "purchase" }
+```
+
+Use that object with `inspect_story`. Its result contains `revision`, `path`, story `id` and
+`title`, total `durationMs`, resolved `views`, and ordered `scenes`. Each scene includes its id,
+title, active view, start/end/duration, transition, nested action intervals and `stillAtMs`.
+Timings come from the same compiled timeline as the player and exports, including default
+durations and `parallel` blocks. The report refuses more than 10000 scenes/actions rather than
+silently omitting part of the timeline. It does not fetch images or change source.
+
+Call `preview` for the scene's `startMs` and `stillAtMs`, passing e.g. `"at": "1700ms"`, the same
+path and story, and `"format": "svg"`. Compare the preview's revision with the inspection's;
+another person's edit may arrive between the calls. A mismatch means inspect and review the
+new snapshot again, not that either call is bound to an old revision. A file with compilation
+errors returns `diagram.invalid` with diagnostics and no timeline; a missing story returns
+`request.invalid`. The tool uses the same project access and `projects:read` scope as preview.
+
+In folder mode omit `project`. Its `revision` is a content-derived snapshot identity from disk,
+not a writable account revision. Re-inspect after disk edits. Use `write_files` with current
+`ifRevision` only in account mode, as in the workflow above.
 
 ## Sharing, live sessions and publishing: only when asked
 

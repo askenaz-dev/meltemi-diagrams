@@ -210,9 +210,17 @@ In Cursor, `.cursor/mcp.json` holds `{ "mcpServers": { "meltemi": { "url": "http
 Without a sign-in the server still starts, and its tools answer `auth.required` until you run
 `mdg login` in another terminal; the next call uses it.
 
-With `--folder`, it serves two tools, `validate` and `preview`, over the `.meltemi` files of a folder
+With `--folder`, it serves three tools, `validate`, `inspect_story` and `preview`, over the `.meltemi` files of a folder
 on disk, with no account and no network: an agent working in a repository writes the files with its
 own tools and looks at them as pictures.
+
+For a story, `inspect_story` takes its file `path` and `story` id (plus `project` in account mode).
+It reports the compiled total duration, ordered scenes, active views, transitions and nested
+action timings in milliseconds. Preview each scene's `startMs` and `stillAtMs` and compare the
+preview's revision to the inspection's: each call reads the current snapshot, so another edit may
+require another inspection. In folder mode the revision identifies disk content, not a cloud
+write revision. The skill's [story guide](../skills/meltemi-diagrams/reference/stories.md) covers
+safe creation, timing edits, reordering and deletion while preserving comments and other stories.
 
 ```bash
 npx -y @meltemi/diagrams-cli@latest mcp --folder .

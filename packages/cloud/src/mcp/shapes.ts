@@ -69,6 +69,7 @@ export function renderersOf(op: OpCtx): RenderersApi {
   return {
     render: (projectId, request) => guard(() => renderers.render(projectId, request)),
     validate: (projectId, request) => guard(() => renderers.validate(projectId, request)),
+    inspectStory: (projectId, request) => guard(() => renderers.inspectStory(projectId, request)),
     catalog: (projectId, request) => guard(() => renderers.catalog(projectId, request)),
     stats: (projectId) => guard(() => renderers.stats(projectId)),
   };

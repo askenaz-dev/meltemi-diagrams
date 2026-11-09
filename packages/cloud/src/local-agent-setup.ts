@@ -183,7 +183,9 @@ native plugin activation.
 
 Available: whoami, list_projects, create_project, get_project, rename_project, read_files,
 write_files, validate, upload_image, list_versions, create_version, restore_version, open_url,
-preview. Sharing, invitations, guest live sessions and publishing are unavailable locally and
+preview, inspect_story. For stories, inspect the compiled timeline and preview scene starts and
+final-state instants, comparing revisions; preserve other stories and comments. Sharing,
+invitations, guest live sessions and publishing are unavailable locally and
 answer local.feature-unavailable. Ordinary browser/agent synchronization remains active.
 
 The following template and language/layout rules are generated from the canonical skill. Its CLI

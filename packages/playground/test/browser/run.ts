@@ -39,6 +39,9 @@ import { encodeShare, SHARE_LIMITS } from "../../src/share.js";
 import { readZip, writeZip } from "../../src/zip.js";
 import { BROKEN_STORY, FLOWS_SOURCE, PURCHASE_SOURCE } from "../../../../test-support/flows.js";
 import { contextActionTests } from "./context-actions.js";
+import { diagramStarterTests } from "./diagram-starters.js";
+import { storyLifecycleTests } from "./story-lifecycle.js";
+import { connectorSelectionTests } from "./connector-selection.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "..", "..", "dist");
@@ -2503,7 +2506,7 @@ const tests: Test[] = [
       await bar.getByRole("button", { name: "New diagram…" }).click();
       const dialog = page.locator("dialog[open]");
       // The radio is hidden under its card's icon: the card is what is pressed.
-      await dialog.locator("label.segment", { hasText: "Gantt chart" }).click();
+      await dialog.getByRole("radio", { name: "Gantt chart", exact: true }).check();
       assert.equal(await dialog.getByRole("radio", { name: "Gantt chart" }).isChecked(), true);
       await dialog.getByLabel("Name").fill("plan");
       await dialog.getByRole("button", { name: "Create" }).click();
@@ -2998,7 +3001,7 @@ const tests: Test[] = [
         .click();
       let dialog = page.locator("dialog[open]");
       await dialog.getByLabel("Name").fill("checkout");
-      await dialog.locator("label.segment", { hasText: "Sequence diagram" }).click();
+      await dialog.getByRole("radio", { name: "Sequence diagram", exact: true }).check();
       await dialog.getByRole("button", { name: "Create" }).click();
       await expectOpen(page, "diagrams/checkout.meltemi");
       await analysed(page);
@@ -7256,6 +7259,9 @@ const tests: Test[] = [
     },
   }),
   ...contextActionTests({ output, analysed, until }),
+  ...diagramStarterTests({ output, templates, analysed, openTemplate, expectOpen }),
+  ...storyLifecycleTests({ output, until }),
+  ...connectorSelectionTests({ output, analysed }),
 ];
 
 /** A project somebody shared by its link (its metadata and its files, for anybody), or one that is not found. */

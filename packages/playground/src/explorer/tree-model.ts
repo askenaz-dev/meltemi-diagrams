@@ -3,6 +3,7 @@
 // the rules of the names the explorer writes (new diagrams and folders, renames, moves, copies).
 
 import { planEdit } from "@meltemi/diagrams-edit";
+import type { DiagramStarterId } from "@meltemi/diagrams-edit/starters";
 import { applyTextEdits } from "@meltemi/diagrams-language";
 import { compile } from "@meltemi/diagrams-model";
 import { MANIFEST_NAME } from "@meltemi/diagrams-project";
@@ -276,11 +277,11 @@ export function diagramPath(folder: string, name: string): string {
  * The text of a new diagram's file: the `language` header and an empty diagram of a kind, written
  * by the `createDiagram` edit the canvas uses, with the name as its id and its title.
  */
-export function newDiagramText(kind: "flow" | "free" | "sequence" | "gantt", name: string): string {
+export function newDiagramText(kind: DiagramStarterId, name: string): string {
   const title = name.trim().replace(/\.meltemi$/, "");
   const planned = planEdit(compile(""), {
-    kind: "createDiagram",
-    type: kind,
+    kind: "createDiagramFromStarter",
+    starter: kind,
     id: diagramId(title),
     title,
   });

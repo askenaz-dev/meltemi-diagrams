@@ -61,7 +61,7 @@ describe("the complete hosted runner's prerequisites", () => {
       const evidence = JSON.parse(await readFile(join(directory, "results/results.json"), "utf8"));
       expect(evidence).toMatchObject({
         passed: false,
-        completeness: { required: true, complete: false, expected: 34 },
+        completeness: { required: true, complete: false, expected: 35 },
       });
       expect(evidence.prerequisites).toEqual(
         expect.arrayContaining([

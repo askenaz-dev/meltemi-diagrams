@@ -1729,9 +1729,9 @@ ruta: un alcance amplio nunca añade un rol. Cada llamada se cuenta (300 por min
 `rate.limited` con `retryAfter`) y se registra como `mcp: <herramienta> <ms> ms <código>`, nunca con
 sus argumentos.
 
-Las veintisiete herramientas: `whoami`; `list_projects`, `create_project`, `get_project`,
+Las veintiocho herramientas: `whoami`; `list_projects`, `create_project`, `get_project`,
 `rename_project`; `read_files`, `write_files`, `validate`, `upload_image`; `list_versions`,
-`create_version`, `restore_version`; `open_url`; `preview`; `get_sharing`, `set_link_access`,
+`create_version`, `restore_version`; `open_url`; `preview`, `inspect_story`; `get_sharing`, `set_link_access`,
 `invite`, `list_invitations`, `revoke_invitation`, `set_member_role`, `remove_member`; `get_live`,
 `start_live`, `end_live`; `list_publications`, `publish`, `unpublish`. Cada una llama a la operación
 que llama su ruta y responde `structuredContent` y el mismo JSON como texto; un
@@ -1747,8 +1747,18 @@ objeto renderizador construya el catálogo que publica la página, lo guarda y l
 dirección pública (`HEAD`): una dirección que no responde `200` es `502 publish.unverified` con su
 `url`, y la publicación existe.
 
+`inspect_story` recibe `project`, `path` y `story`, con el mismo alcance `projects:read` y
+visibilidad del proyecto que `preview`. Informa la revisión de la instantánea actual, duración de
+la historia, escenas ordenadas y vistas activas, transiciones y el inicio/fin/duración de acciones
+anidadas en milisegundos, además del `stillAtMs` de cada escena para previsualizar su estado final.
+Los tiempos vienen de la timeline compilada del reproductor, incluidos valores por omisión y
+acciones paralelas. No cambia fuentes ni lee bytes de imágenes. Cada previsualización posterior
+lee su propia instantánea actual: compara revisiones antes de afirmar que revisaste la timeline
+inspeccionada. Una historia ausente es `request.invalid`; los errores de compilación son
+`diagram.invalid` con diagnósticos; se rechazan más de 10000 escenas/acciones.
+
 Cuando falla una llamada al objeto renderizador (superó su límite de CPU, está sobrecargado o se
-reinició), `preview`, `validate`, `write_files` y `publish` responden `503 renderer.unavailable`, cuyo
+reinició), `preview`, `inspect_story`, `validate`, `write_files` y `publish` responden `503 renderer.unavailable`, cuyo
 mensaje nombra `mdg mcp`; `write_files` y `publish` no han cambiado nada entonces, y la clave de
 idempotencia no guarda respuesta, así que un reintento funciona cuando el objeto vuelve a responder.
 
@@ -1764,6 +1774,7 @@ token de API de la línea de comandos, y nunca llaman a `/mcp` ni al objeto rend
 | -------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `preview`                        | la imagen y su informe, con el motor del renderizador             | `GET …/files`, y `GET …/blobs/<hash>` para sus imágenes y fuentes   |
 | `validate`                       | los diagnósticos                                                  | `GET …/files`                                                       |
+| `inspect_story`                  | la timeline compilada, sin dibujar                                | `GET …/files`                                                       |
 | `write_files`                    | la comprobación de cada archivo `.meltemi` escrito                | `GET …/files`, y luego `PUT …/files` con `Idempotency-Key`          |
 | `publish`                        | el catálogo, con el script y el generador de la línea de comandos | `GET …/publish`, `GET …/files`, `PUT …/publish`, una lectura `HEAD` |
 | `whoami`                         |                                                                   | `GET /api/session` (su `email`), `GET /api/account/usage`           |

@@ -71,12 +71,12 @@ async function localTools(): Promise<Listed[]> {
 }
 
 describe("one catalogue for both servers", () => {
-  it("lists the same twenty-seven tools on the endpoint and on mdg mcp", async () => {
+  it("lists the same twenty-eight tools on the endpoint and on mdg mcp", async () => {
     const m = await mcp();
     const client = await m.connect(await m.token(ANA));
     const hosted = (await client.listTools()).tools as unknown as Listed[];
     const local = await localTools();
-    expect(hosted).toHaveLength(27);
+    expect(hosted).toHaveLength(28);
     expect(firstDifference(hosted, local)).toBeUndefined();
     expect(local).toEqual(hosted);
   }, 60_000);
@@ -116,6 +116,7 @@ describe("an unavailable renderer", () => {
     };
     const renderers: RenderersApi = {
       render: exceeded,
+      inspectStory: exceeded,
       validate: exceeded,
       catalog: exceeded,
       stats: exceeded,
@@ -124,11 +125,16 @@ describe("an unavailable renderer", () => {
     return { m, client, id };
   }
 
-  it("answers preview and validate with renderer.unavailable, naming mdg mcp", async () => {
+  it("answers preview, inspection and validate with renderer.unavailable, naming mdg mcp", async () => {
     const { client, id } = await throwing();
     const preview = refused(await call(client, "preview", { project: id, path: "flow.meltemi" }));
     expect(preview["code"]).toBe("renderer.unavailable");
     expect(String(preview["message"])).toContain("mdg mcp");
+    expect(
+      refused(
+        await call(client, "inspect_story", { project: id, path: "flow.meltemi", story: "tour" }),
+      )["code"],
+    ).toBe("renderer.unavailable");
     expect(refused(await call(client, "validate", { project: id }))["code"]).toBe(
       "renderer.unavailable",
     );

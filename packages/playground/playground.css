@@ -2232,6 +2232,50 @@ a.pg-menu-item {
   outline-offset: 2px;
 }
 
+.diagram-starters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 12px 0;
+  border: 0;
+}
+
+.diagram-starters legend {
+  margin-bottom: 8px;
+}
+.starter-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.starter-choice > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.starter-choice small {
+  color: var(--pg-muted);
+  line-height: 1.4;
+}
+.starter-choice svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.starter-choice:has(input:checked) {
+  border-color: var(--pg-accent);
+  background: color-mix(in srgb, var(--pg-accent-soft) 60%, transparent);
+}
+.starter-choice:has(input:focus-visible) {
+  outline: 2px solid var(--pg-focus);
+  outline-offset: 2px;
+}
+
 .dialog-where {
   color: var(--pg-muted);
   font-size: 12px;

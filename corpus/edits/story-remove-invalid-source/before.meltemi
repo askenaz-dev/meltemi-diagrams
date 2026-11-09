@@ -1,0 +1,7 @@
+language "0.2"
+
+diagram base: flow { node a }
+story broken for base {
+  scene first { hold 1s }
+// This diagram must remain untouched while the story brace is missing.
+diagram second: flow { node b }

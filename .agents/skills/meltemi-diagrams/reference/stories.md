@@ -75,6 +75,48 @@ fragments; entity paths (`shop.api`) in C4 views. Times are `800ms` or `1.5s`, u
 | `story.empty-scene`        | warning: give the scene an action or remove it                                |
 | `prop.invalid-value`       | a time without `ms` or `s`, beyond 600 s, or a statement out of place         |
 
+## Authoring and revising with an agent
+
+1. Read the current file and its imported diagrams. Inventory diagram ids, existing story ids,
+   scene ids, named relations and export profiles before choosing targets. A new story uses its
+   own stable id; do not replace an existing story unless the person requested it.
+2. Write a small `story` block with named scenes, titles and explicit times. Add it alongside
+   the diagram, preserving comments, formatting, other stories and exports. A story in a separate
+   file imports the diagram: `import checkout from "./checkout.meltemi"`.
+3. Validate the whole project after each logical edit, including edits to shared diagrams or
+   imported views. A valid story alone does not prove that an export in another file still works.
+   Fix errors and relevant warnings before presenting the result.
+4. With MCP, call `inspect_story` with the project, file path and story id. It returns the
+   compiled timeline: total `durationMs`, ordered scenes, resolved `view` identities,
+   `startMs`/`endMs`/`durationMs`, transitions and nested actions. Action `path` starts with the
+   scene index and then its nested action indexes. All times are absolute milliseconds on the
+   story clock; omitted source times already have the language defaults applied.
+5. Preview the start and `stillAtMs` of every scene, plus the middle of important actions. The
+   exact end of a scene is the start of the next, which may switch view or reset scene effects;
+   `stillAtMs` gives its final state just before that boundary (or the exact end of the last).
+   Inspect the pictures, not only the JSON. Each inspection and preview reads its own snapshot:
+   compare their `revision` values and re-inspect if another edit arrived. These calls do not lock
+   a revision or request a historical preview.
+6. To adjust a scene's length, edit its action durations or its trailing `hold`, then inspect
+   again. Sequential actions add; `parallel` lasts as long as its longest child; a scene includes
+   its transition. Do not scale every action just to add a pause. When reordering scenes, check
+   each active view and its required transition again: a preceding view may have changed.
+7. To delete a story, remove only that story block. Find exports `for <story-id>` across the
+   project first; report them and remove or retarget those dependencies only within the person's
+   requested scope. Keep unrelated stories, scenes and diagrams intact. Validate the whole
+   project again and inspect the surviving story when relevant.
+
+For account projects, every write uses `read_files`' current `revision` as `ifRevision` and a
+fresh idempotency key per logical change. A `revision.mismatch` requires another read and a
+minimal reapplication on the person's latest text, preserving their comments and edits. Never
+retry an old whole-file replacement over newer source. See [mcp.md](mcp.md#story-timelines).
+
+With `mdg mcp --folder <dir>`, the same `inspect_story` reads files from disk without an account.
+Its content-derived `revision` identifies a folder snapshot; it is not a cloud write revision.
+Use your file tools for small source edits and re-inspect after any disk change. Without MCP,
+validate through the CLI and export a few known scene/action instants as below; do not claim to
+have inspected a compiled timeline through a tool that is unavailable.
+
 ## Checking a story
 
 ```bash

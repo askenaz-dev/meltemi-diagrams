@@ -110,9 +110,9 @@ describe("the explicit local actor", () => {
     await client.close();
   });
 
-  it("retains all 27 schemas and refuses all 13 unavailable tools before their inputs/effects", async () => {
+  it("retains all 28 schemas and refuses all 13 unavailable tools before their inputs/effects", async () => {
     const { h, client } = await localHarness();
-    expect((await client.listTools()).tools).toHaveLength(27);
+    expect((await client.listTools()).tools).toHaveLength(28);
     const disabled = CATALOGUE.filter(
       (tool) => !["projects:read", "projects:write"].includes(tool.scope),
     );

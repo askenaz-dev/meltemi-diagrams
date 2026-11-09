@@ -16,18 +16,21 @@ import type {
   RendererCore,
   ValidateOutcome,
   ValidateRequest,
+  InspectStoryRequest,
+  InspectStoryOutcome,
 } from "@meltemi/diagrams-mcp/preview";
 import { nodeRenderer } from "@meltemi/diagrams-mcp/node";
 
 /** What the tools ask of the engine. */
 export interface DrawingEngine {
+  inspectStory(request: InspectStoryRequest): Promise<InspectStoryOutcome>;
   render(request: RenderRequest): Promise<RenderOutcome>;
   validate(request: ValidateRequest): Promise<ValidateOutcome>;
   catalog(request: CatalogRequest): Promise<CatalogOutcome>;
 }
 
 /** What draws: the renderer's core, or a stand-in of the tests. */
-type Core = Pick<RendererCore, "render" | "validate" | "catalog">;
+type Core = Pick<RendererCore, "render" | "validate" | "catalog" | "inspectStory">;
 
 export class LocalEngine implements DrawingEngine {
   private core: Core | undefined;
@@ -48,6 +51,10 @@ export class LocalEngine implements DrawingEngine {
 
   render(request: RenderRequest): Promise<RenderOutcome> {
     return this.turn((core) => core.render(request));
+  }
+
+  inspectStory(request: InspectStoryRequest): Promise<InspectStoryOutcome> {
+    return this.turn((core) => core.inspectStory(request));
   }
 
   validate(request: ValidateRequest): Promise<ValidateOutcome> {

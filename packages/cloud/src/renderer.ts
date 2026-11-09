@@ -17,6 +17,8 @@ import {
   type RendererStats,
   type ValidateOutcome,
   type ValidateRequest,
+  type InspectStoryRequest,
+  type InspectStoryOutcome,
 } from "@meltemi/diagrams-mcp/preview";
 import type { Env } from "./env.js";
 import { sqlPreviewCache } from "./renderer-cache.js";
@@ -41,6 +43,11 @@ export class ProjectRenderer extends DurableObject<Env> {
   /** Draws a preview, or answers it from the cache; a request it cannot draw is an answer too. */
   async render(request: RenderRequest): Promise<RenderOutcome> {
     return this.core.render(request);
+  }
+
+  /** Inspects a compiled story at the supplied project snapshot without drawing it. */
+  async inspectStory(request: InspectStoryRequest): Promise<InspectStoryOutcome> {
+    return this.core.inspectStory(request);
   }
 
   /** Checks a project's files (the MCP tools `validate` and `write_files`). */

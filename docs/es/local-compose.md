@@ -207,8 +207,8 @@ necesitando su propia conexión. Los diagramas y activos subidos permanecen en e
 
 ## Funciones disponibles
 
-Catorce herramientas centrales cubren proyectos, archivos, versiones, descripción del actor,
-direcciones del editor y vistas previas. El catálogo compartido también lista trece herramientas
+Quince herramientas centrales cubren proyectos, archivos, versiones, descripción del actor,
+direcciones del editor, vistas previas y timelines de historias. El catálogo compartido también lista trece herramientas
 de compartir, sesiones de invitados y publicación; devuelven `local.feature-unavailable` y no
 cambian nada en este modo. Sus controles no aparecen en el editor. La sincronización ordinaria
 entre tu navegador y los agentes sigue activa.

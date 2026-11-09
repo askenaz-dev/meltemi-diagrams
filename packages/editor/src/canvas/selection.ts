@@ -1,13 +1,87 @@
-import { pointInShape } from "@meltemi/diagrams-layout/shapes";
+import { pointInShape, turnedOutline } from "@meltemi/diagrams-layout/shapes";
 import { center, contains, unionBox, type Box, type Point } from "./geometry.js";
 import { intoFrame } from "./turning.js";
 import type { ShapeName } from "./protocol.js";
 
-/** Ids of the boxes fully inside a rectangle, in the order of `boxes`. */
+export interface RectangleSelectionOptions {
+  readonly mode?: "contain" | "cross";
+  /** Containers require full enclosure even when a band crosses their children. */
+  readonly groups?: ReadonlySet<string>;
+  readonly shapes?: ReadonlyMap<string, Stacked & { readonly labelBox?: Box }>;
+  /** Visible stroke pieces, split at protected title gaps; also free lines and pens. */
+  readonly strokes?: ReadonlyMap<string, readonly (readonly Point[])[]>;
+}
+
+/** Whether a segment touches the closed rectangle, including its boundary. */
+function segmentCrossesRect(a: Point, b: Point, rect: Box): boolean {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const sides = [-dx, dx, -dy, dy];
+  const distances = [
+    a.x - rect.x,
+    rect.x + rect.width - a.x,
+    a.y - rect.y,
+    rect.y + rect.height - a.y,
+  ];
+  let enter = 0;
+  let leave = 1;
+  for (let i = 0; i < sides.length; i++) {
+    const side = sides[i]!;
+    const distance = distances[i]!;
+    if (side === 0) {
+      if (distance < 0) return false;
+      continue;
+    }
+    const at = distance / side;
+    if (side < 0) enter = Math.max(enter, at);
+    else leave = Math.min(leave, at);
+    if (enter > leave) return false;
+  }
+  return true;
+}
+
+/** Whether any part of a drawn stroke touches a normalized selection rectangle. */
+export function strokeCrossesRect(points: readonly Point[], rect: Box): boolean {
+  if (points.length === 1) return contains(rect, { ...points[0]!, width: 0, height: 0 });
+  return points.slice(1).some((point, index) => segmentCrossesRect(points[index]!, point, rect));
+}
+
+function shapeCrossesRect(shape: Stacked & { readonly labelBox?: Box }, rect: Box): boolean {
+  const intersects = (box: Box) =>
+    box.x <= rect.x + rect.width &&
+    box.x + box.width >= rect.x &&
+    box.y <= rect.y + rect.height &&
+    box.y + box.height >= rect.y;
+  if (shape.labelBox && intersects(shape.labelBox)) return true;
+  const outline = turnedOutline(
+    shape.shape,
+    shape.box,
+    shape.rotation ?? 0,
+    shape.radius === undefined ? {} : { radius: shape.radius },
+  );
+  if (outline.length > 0 && strokeCrossesRect([...outline, outline[0]!], rect)) return true;
+  // The rectangle can sit wholly inside a large shape without crossing its outline.
+  return [
+    { x: rect.x, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y + rect.height },
+    { x: rect.x, y: rect.y + rect.height },
+  ].some((point) =>
+    pointInShape(
+      shape.shape,
+      shape.box,
+      intoFrame(point, shape.box, shape.rotation),
+      shape.radius === undefined ? {} : { radius: shape.radius },
+    ),
+  );
+}
+
+/** Contained objects, or crossed drawing when explicitly requested, in source order. */
 export function selectInRect(
   boxes: ReadonlyMap<string, Box>,
   rect: Box,
   lines: ReadonlyMap<string, readonly Point[]> = new Map(),
+  options: RectangleSelectionOptions = {},
 ): string[] {
   const normal: Box = {
     x: Math.min(rect.x, rect.x + rect.width),
@@ -20,9 +94,28 @@ export function selectInRect(
     p.x <= normal.x + normal.width &&
     p.y >= normal.y &&
     p.y <= normal.y + normal.height;
+  const crossed = (id: string, line: readonly Point[]) =>
+    (options.strokes?.get(id) ?? [line]).some((piece) => strokeCrossesRect(piece, normal));
   return [
-    ...[...boxes].filter(([, box]) => contains(normal, box)).map(([id]) => id),
-    ...[...lines].filter(([, line]) => line.length > 0 && line.every(inside)).map(([id]) => id),
+    ...[...boxes]
+      .filter(([id, box]) => {
+        if (options.mode !== "cross" || options.groups?.has(id)) return contains(normal, box);
+        if (options.strokes?.has(id)) return crossed(id, []);
+        const shape = options.shapes?.get(id);
+        if (shape) return shapeCrossesRect(shape, normal);
+        return (
+          box.x <= normal.x + normal.width &&
+          box.x + box.width >= normal.x &&
+          box.y <= normal.y + normal.height &&
+          box.y + box.height >= normal.y
+        );
+      })
+      .map(([id]) => id),
+    ...[...lines]
+      .filter(([id, line]) =>
+        options.mode === "cross" ? crossed(id, line) : line.length > 0 && line.every(inside),
+      )
+      .map(([id]) => id),
   ];
 }
 

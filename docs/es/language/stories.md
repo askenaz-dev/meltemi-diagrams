@@ -224,3 +224,25 @@ que se muestra (o el de la historia que se reproduce) y la reproduce de inmediat
 escribe una imagen de cada escena, y **Exportar HTML** el reproductor. En el diálogo de exportación
 de la aplicación web y en **Exportar el reproductor HTML** de VS Code, **Todas las historias**
 escribe el reproductor de todas las historias de un archivo que tiene más de una.
+
+Seleccionar otro diagrama o archivo en el explorador sale del modo historia de inmediato;
+**Editar diagrama** en el selector de historias hace lo mismo. Abrir una historia explícitamente
+inicia su reproducción otra vez. Si una edición vuelve inválida una historia que sigue presente,
+su último fotograma válido permanece hasta poder dibujarla otra vez; eliminarla termina la reproducción.
+
+**Eliminar historia** en la línea de tiempo, o en el menú del explorador y con la tecla Suprimir,
+pide confirmación antes de eliminar esa historia. La confirmación nombra los perfiles de exportación
+que deben eliminarse con ella. Conserva sus diagramas, las otras historias y los comentarios ajenos.
+Deshacer restaura el texto exacto como una sola edición, sin iniciar la reproducción. Un proyecto de
+solo lectura ofrece reproducción y exportación, con los controles de edición ocultos.
+
+Selecciona el nombre de una escena para editar **Duración de la escena (s)**. Es su tiempo total:
+transición más acciones secuenciales, con la acción más larga determinando el tiempo de cada bloque
+paralelo. Cambiar el total solo ajusta el `hold` final de primer nivel, o agrega uno. Por ejemplo,
+`reveal a over 2s` seguido de `hold 1s` suma 3 s; indicar 4 s cambia la pausa a 2 s. Indicar 1 s se
+rechaza porque el contenido ya necesita 2 s, y el campo conserva el borrador con el mínimo y una
+indicación para corregirlo. No se reescalan acciones. Indicar el mínimo deja un `hold 0ms` final
+existente, conservando sus comentarios. Selecciona la barra de una acción o transición fade/morph
+para editar **Duración de la acción seleccionada (s)**; los totales paralelos se calculan y las
+transiciones cut siguen siendo instantáneas. También puedes arrastrar el final de una barra.
+Entrar o salir del campo confirma una sola vez; Escape o cancelar el arrastre no escribe cambios.

@@ -108,6 +108,37 @@ describe("the sign-in", () => {
 });
 
 describe("projects and files", () => {
+  it("inspects the current account story through local compilation and the files API only", async () => {
+    const source =
+      'language "0.2"\ndiagram x: flow { a -> b: "Request" as request }\nstory tour for x {\n  scene first { trace request }\n  scene last { hold 500ms }\n}\n';
+    const project = stub.addProject({ name: "Local timeline", files: { "story.meltemi": source } });
+    const first = ok(
+      await mcp.call("inspect_story", {
+        project: project.id,
+        path: "story.meltemi",
+        story: "tour",
+      }),
+    );
+    expect(first).toMatchObject({
+      id: "tour",
+      path: "story.meltemi",
+      durationMs: 1700,
+      revision: project.revision,
+    });
+    expect(stub.requests.map((request) => `${request.method} ${request.path}`)).toEqual([
+      `GET /api/projects/${project.id}/files`,
+    ]);
+    expect(
+      refusal(
+        await mcp.call("inspect_story", {
+          project: project.id,
+          path: "story.meltemi",
+          story: "missing",
+        }),
+      ),
+    ).toBe("request.invalid");
+  });
+
   let project: StubProject;
   beforeAll(() => {
     project = stub.addProject({
@@ -371,6 +402,8 @@ describe("what the local server sends and leaves", () => {
         return { ok: false, code: "request.invalid", message: "stand-in" } as const;
       },
       validate: async () => ({ ok: false, code: "request.invalid", message: "stand-in" }) as const,
+      inspectStory: async () =>
+        ({ ok: false, code: "request.invalid", message: "stand-in" }) as const,
       catalog: async () => ({ ok: false, code: "request.invalid", message: "stand-in" }) as const,
     }));
     const request = (file: string) => ({ revision: 1, files: {}, file, format: "svg" as const });

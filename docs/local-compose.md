@@ -204,7 +204,7 @@ network access. Local diagrams and uploaded assets remain in this instance.
 
 ## Supported features
 
-Fourteen core tools cover projects, files, versions, account description, editor URLs and previews.
+Fifteen core tools cover projects, files, versions, account description, editor URLs, previews and story timelines.
 The shared catalogue also lists thirteen sharing, guest-session and publication tools; those
 return `local.feature-unavailable` and change nothing in this mode. Their editor controls are
 absent. Ordinary synchronization between your browser and agents remains enabled.

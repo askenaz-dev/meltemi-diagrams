@@ -25,6 +25,9 @@ const handler = statelessHandler(() =>
       preview: async () => {
         throw new Error("not drawn here");
       },
+      inspect_story: async () => {
+        throw new Error("not inspected here");
+      },
     },
     { log: () => {} },
   ),
@@ -192,7 +195,7 @@ describe("the local server's door", () => {
     try {
       await expect(mcp.connect()).rejects.toThrow();
       const client = await mcp.connect({ Authorization: `Bearer ${KEY}` });
-      expect((await client.listTools()).tools).toHaveLength(2);
+      expect((await client.listTools()).tools).toHaveLength(3);
       expect(mcp.stdout() + mcp.stderr()).not.toContain(KEY);
     } finally {
       expect(await mcp.stop()).toBe(0);

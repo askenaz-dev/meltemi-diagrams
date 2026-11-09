@@ -170,6 +170,7 @@ describe("the catalogue", () => {
     "restore_version",
     "open_url",
     "preview",
+    "inspect_story",
     "get_sharing",
     "set_link_access",
     "invite",
@@ -185,7 +186,7 @@ describe("the catalogue", () => {
     "unpublish",
   ];
 
-  it("lists the twenty-seven tools, each with a title, a description, both schemas and annotations", async () => {
+  it("lists the twenty-eight tools, each with a title, a description, both schemas and annotations", async () => {
     const { client } = await signedIn();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(NAMES);
@@ -210,6 +211,7 @@ describe("the catalogue", () => {
       "list_versions",
       "open_url",
       "preview",
+      "inspect_story",
       "get_sharing",
       "list_invitations",
       "get_live",
@@ -600,6 +602,32 @@ describe("scopes and limits", () => {
     await client.connect(clientSide);
     return client;
   }
+
+  it("inspects a story with read scope and refuses a write-only token before reading the project", async () => {
+    const m = await mcp();
+    const ana = await m.connect(await m.token(ANA));
+    const { id } = ok<{ id: string }>(
+      await call(ana, "create_project", {
+        name: "Story scopes",
+        files: {
+          "story.meltemi":
+            "diagram x: flow { a -> b }\nstory tour for x { scene first { hold 1s } }\n",
+        },
+      }),
+    );
+    const reader = await narrowed(m, ANA, new Set(["projects:read"]));
+    const args = { project: id, path: "story.meltemi", story: "tour" };
+    expect(ok(await call(reader, "inspect_story", args))).toMatchObject({
+      id: "tour",
+      durationMs: 1000,
+    });
+    const writer = await narrowed(m, ANA, new Set(["projects:write"]));
+    expect(refused(await call(writer, "inspect_story", args))).toMatchObject({
+      code: "scope.insufficient",
+      scope: "projects:read",
+    });
+    await Promise.all([ana.close(), reader.close(), writer.close()]);
+  });
 
   it("refuses a tool a token's scopes do not include with scope.insufficient naming the scope, and changes nothing", async () => {
     const m = await mcp();

@@ -202,6 +202,57 @@ export function setStoryTiming(ctx: TextContext, op: OperationOf<"setStoryTiming
   ]);
 }
 
+/** Sets a scene's total by its ending pause, preserving its timed content. */
+export function setSceneDuration(
+  ctx: TextContext,
+  op: OperationOf<"setSceneDuration">,
+): TextEdit[] {
+  const scene = requireScene(requireStory(ctx, op.story), op.scene);
+  const final = scene.actions.at(-1);
+  const hold = final?.kind === "hold" ? final : undefined;
+  const minimum = scene.durationMs - (hold?.durationMs ?? 0);
+  if (!Number.isFinite(op.durationMs) || op.durationMs < minimum) {
+    reject("edit.invalid-value", reasons().stories.sceneMinimum(scene.id, minimum));
+  }
+  const next = Math.round(op.durationMs) - minimum;
+  const time = storyTime(next);
+  if (hold) {
+    return checked(ctx, [timeEdit(hold.node, hold.timeRange, time, null)]);
+  }
+  if (next === 0) return [];
+  const block = scene.node.block;
+  if (!block) reject("edit.unsafe-target", reasons().stories.sceneNoBlock(scene.id));
+  return checked(ctx, [insertStatement(ctx, block, scene.node.start, () => `hold ${time}`)]);
+}
+
+/** Removes a source story without deleting its diagrams or unrelated export profiles. */
+export function removeStory(ctx: TextContext, op: OperationOf<"removeStory">): TextEdit[] {
+  // A recovered, unclosed story can own later top-level text through the end of the file.
+  if (ctx.compilation.parse.diagnostics.some((d) => d.severity === "error"))
+    reject("edit.unsafe-target", reasons().stories.fixSource);
+  const story = requireStory(ctx, op.story);
+  const profiles = ctx.compilation.document.exports.filter((p) => p.target.story?.id === story.id);
+  if (profiles.length > 0 && !op.cascade) {
+    reject(
+      "edit.has-dependents",
+      reasons().stories.exportDependents(story.id, profiles.length),
+      profiles.map((p) => ({
+        kind: "export",
+        name: p.id,
+        description: reasons().stories.exportProfile(p.id),
+        range: p.range,
+      })),
+    );
+  }
+  return checked(
+    ctx,
+    deleteStatements(ctx.text, ctx.compilation.parse.root, [
+      story.node,
+      ...profiles.map((p) => p.node),
+    ]),
+  );
+}
+
 export function insertStoryAction(
   ctx: TextContext,
   op: OperationOf<"insertStoryAction">,

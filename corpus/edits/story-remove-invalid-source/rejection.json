@@ -1,0 +1,4 @@
+{
+  "code": "edit.unsafe-target",
+  "reason": "Fix the source syntax before removing a story."
+}

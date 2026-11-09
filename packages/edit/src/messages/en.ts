@@ -21,6 +21,18 @@ export interface EntityParent {
  * samples) stays as written.
  */
 export const en = {
+  starterContent: {
+    c4: "C4 architecture",
+    whiteboard: "Whiteboard",
+    kanban: "Kanban board",
+    user: "User",
+    product: "System",
+    uses: "Uses",
+    idea: "New idea",
+    todo: "To do",
+    doing: "Doing",
+    done: "Done",
+  },
   /**
    * The labels of new elements created without one, by kind: what the person would have typed, so
    * they follow the interface language.
@@ -397,6 +409,7 @@ export const en = {
 
     /** New diagrams of a file. */
     diagrams: {
+      fixSource: "Fix the source syntax before adding a diagram.",
       /** `edit.invalid-value`: with the types `createDiagram` writes. */
       notCreatable: (type: string, types: readonly string[]) =>
         `\`${type}\` is not a type of diagram that can be created here; expected one of ${types.join(", ")}.`,
@@ -742,6 +755,8 @@ export const en = {
 
     /** Stories, their scenes and actions. */
     stories: {
+      /** `edit.unsafe-target`: recovered syntax cannot define a safe deletion boundary. */
+      fixSource: "Fix the source syntax before removing a story.",
       /** `edit.unsafe-target`: with the stories of the file. */
       missing: (id: string, stories: readonly string[]) =>
         `There is no story \`${id}\`${stories.length > 0 ? `; stories: ${stories.map((s) => `\`${s}\``).join(", ")}` : ""}.`,
@@ -755,6 +770,11 @@ export const en = {
         `Scene \`${scene}\` has no action at [${path.join(", ")}].`,
       /** `edit.invalid-value`. */
       timeRange: (max: number) => `Story times run from 0 to ${max} milliseconds.`,
+      sceneMinimum: (scene: string, minimum: number) =>
+        `Scene \`${scene}\` needs at least ${minimum / 1000} s for its content. Edit its action or transition durations to shorten it.`,
+      exportDependents: (story: string, count: number) =>
+        `Removing story \`${story}\` also removes ${count} export ${count === 1 ? "profile" : "profiles"}.`,
+      exportProfile: (id: string) => `Export profile \`${id}\``,
       /** `edit.unsafe-target`. */
       noTransition: (scene: string) => `Scene \`${scene}\` has no transition.`,
       /** `edit.invalid-value`. */

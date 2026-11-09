@@ -1,0 +1,4 @@
+{
+  "operation": { "kind": "removeStory", "story": "tour", "cascade": true },
+  "diagram": "d"
+}

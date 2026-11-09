@@ -5,7 +5,7 @@ import {
   type LibraryItem,
 } from "@meltemi/diagrams-assets";
 import {
-  CREATABLE_DIAGRAMS,
+  DIAGRAM_STARTERS,
   activationPair,
   defaultLabel,
   newDiagramId,
@@ -355,10 +355,18 @@ export class CanvasSession {
     const analysis = this.analysis!;
     const stories = storyChoices(analysis);
     if (this.story && !stories.some((s) => s.id === this.story)) this.story = undefined;
-    if (stories.length === 0 && !this.story) return [];
     const playback = this.story ? storyPlayback(analysis, this.story) : undefined;
     if (this.story && !playback) return [];
-    return [{ type: "story", revision: analysis.revision, stories, playback: playback ?? null }];
+    const document = this.pathOf();
+    return [
+      {
+        type: "story",
+        revision: analysis.revision,
+        ...(document ? { document } : {}),
+        stories,
+        playback: playback ?? null,
+      },
+    ];
   }
 
   /**
@@ -376,12 +384,13 @@ export class CanvasSession {
         {
           type: "empty",
           revision: analysis.revision,
+          ...(this.path ? { document: this.path } : {}),
           message:
             analysis.compilation.document.stories.length > 0
               ? words.noDiagramStories
               : words.noDiagram,
           // Nothing to create while a story plays.
-          creatable: this.story === undefined ? [...CREATABLE_DIAGRAMS] : [],
+          creatable: this.story === undefined ? [...DIAGRAM_STARTERS] : [],
         },
         ...stories,
       ];
@@ -405,6 +414,7 @@ export class CanvasSession {
       messages.push({
         type: "stale",
         revision: analysis.revision,
+        ...(this.path ? { document: this.path } : {}),
         count: Math.max(1, errors.length),
         // A diagnostic's own message, or the session's when there is none.
         first: first
@@ -676,6 +686,7 @@ export class CanvasSession {
     }
     const body: CanvasRender = {
       revision: analysis.revision,
+      ...(this.pathOf() ? { document: this.pathOf()! } : {}),
       diagrams: analysis.diagrams.map((d) => ({ id: d.id, title: d.title })),
       diagram: view.id,
       profile: diagram.type,
@@ -884,6 +895,7 @@ export class CanvasSession {
       case "pickDiagram":
         if (!analysis.diagrams.some((d) => d.id === message.diagram)) return NONE;
         this.diagram = message.diagram;
+        this.story = undefined;
         this.selection = [];
         return { messages: this.state() };
       case "playEffects":
@@ -1141,6 +1153,17 @@ export class CanvasSession {
       case "removeStoryAction":
         operation = { kind: "removeStoryAction", story: action.story, path: action.path };
         break;
+      case "removeStory":
+        operation = { kind: "removeStory", story: action.story, cascade: action.cascade };
+        break;
+      case "setSceneDuration":
+        operation = {
+          kind: "setSceneDuration",
+          story: action.story,
+          scene: action.scene,
+          durationMs: action.durationMs,
+        };
+        break;
       case "addToScene": {
         const all =
           action.ids.length === 0 && (action.action === "focus" || action.action === "camera");
@@ -1183,7 +1206,20 @@ export class CanvasSession {
     if (!result.ok) {
       return {
         messages: [
-          { type: "rejected", code: result.rejection.code, reason: result.rejection.reason },
+          {
+            type: "rejected",
+            code: result.rejection.code,
+            reason: result.rejection.reason,
+            ...(action.kind === "removeStory" && result.rejection.code === "edit.has-dependents"
+              ? {
+                  dependents: result.rejection.dependents?.map((d) => ({
+                    kind: d.kind,
+                    description: d.description,
+                  })),
+                  retry: { ...action, cascade: true },
+                }
+              : {}),
+          },
         ],
       };
     }
@@ -3033,7 +3069,7 @@ export class CanvasSession {
     const id = newDiagramId(analysis.compilation);
     const result = planEdit(
       analysis.compilation,
-      { kind: "createDiagram", type, id },
+      { kind: "createDiagramFromStarter", starter: type, id },
       { revision: analysis.revision },
     );
     if (!result.ok) {
@@ -3044,6 +3080,7 @@ export class CanvasSession {
       };
     }
     this.pendingDiagram = id;
+    this.story = undefined;
     return { messages: [], plan: result.plan };
   }
 

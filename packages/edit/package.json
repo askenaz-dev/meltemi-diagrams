@@ -17,6 +17,11 @@
   },
   "type": "module",
   "exports": {
+    "./starters": {
+      "@meltemi/diagrams-source": "./src/starter-catalog.ts",
+      "types": "./dist/starter-catalog.d.ts",
+      "default": "./dist/starter-catalog.js"
+    },
     ".": {
       "@meltemi/diagrams-source": "./src/index.ts",
       "types": "./dist/index.d.ts",
@@ -44,6 +49,10 @@
   "publishConfig": {
     "access": "public",
     "exports": {
+      "./starters": {
+        "types": "./dist/starter-catalog.d.ts",
+        "default": "./dist/starter-catalog.js"
+      },
       ".": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"

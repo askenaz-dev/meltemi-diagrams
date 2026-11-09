@@ -20,6 +20,7 @@ import {
   type ValidRequest,
 } from "./protocol.js";
 import { rasterise } from "./raster.js";
+import type { InspectStoryOutcome } from "./inspection.js";
 
 /** An answer as the cache keeps it. */
 export interface CachedPreview {
@@ -144,6 +145,20 @@ export class RendererCore {
       ...(paths !== undefined ? { paths: paths as string[] } : {}),
       ...(layout !== undefined ? { layout } : {}),
     });
+  }
+
+  /** Inspects a compiled story timeline; a request of another shape is an answer too. */
+  async inspectStory(input: unknown): Promise<InspectStoryOutcome> {
+    const bad = (message: string) => failure("request.invalid", message);
+    if (!isRecord(input)) return bad("The request is not an object.");
+    const { revision, files, file, story } = input;
+    if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 0)
+      return bad("`revision` is not a whole number.");
+    if (!isTextMap(files)) return bad("`files` is not a map of paths to text.");
+    if (typeof file !== "string" || !file.endsWith(".meltemi") || !Object.hasOwn(files, file))
+      return bad("`file` does not name a .meltemi file of `files`.");
+    if (typeof story !== "string" || story.length === 0) return bad("`story` is not a story id.");
+    return (await this.ports.engine()).inspectStory({ revision, files, file, story });
   }
 
   /** Builds a project's catalog (`CatalogRequest`); a request of another shape is an answer too. */

@@ -74,15 +74,16 @@ function tipOf(svg: string, key: string) {
 }
 
 describe("new diagrams", () => {
-  it("offers the four kinds in an empty file and shows the diagram created", () => {
+  it("offers all seven starters in an empty file and shows the diagram created", () => {
     const canvas = open("");
     expect(canvas.messages()).toEqual([
       {
         type: "empty",
         revision: 1,
         message: expect.stringMatching(/^No diagram to draw/),
-        creatable: ["flow", "free", "sequence", "gantt"],
+        creatable: ["flow", "sequence", "c4", "gantt", "whiteboard", "kanban", "free"],
       },
+      { type: "story", revision: 1, stories: [], playback: null },
     ]);
     const text = canvas.apply({ kind: "createDiagram", type: "flow" });
     expect(text).toBe('language "0.2"\n\ndiagram diagram1: flow {\n}\n');
@@ -122,12 +123,12 @@ describe("new diagrams", () => {
     });
     expect(stale.plan).toBeUndefined();
     expect(stale.messages[0]).toMatchObject({ type: "rejected", code: "edit.stale-revision" });
-    const c4 = canvas.session.receive({
+    const unknown = canvas.session.receive({
       type: "action",
       revision: 3,
-      action: { kind: "createDiagram", type: "c4" },
+      action: { kind: "createDiagram", type: "unknown" },
     });
-    expect(c4).toEqual({ messages: [] });
+    expect(unknown).toEqual({ messages: [] });
     const created = canvas.act({ kind: "createDiagram", type: "free" });
     expect(created.plan!.baseRevision).toBe(3);
     expect(applyTextEdits(applyTextEdits("", created.plan!.edits), created.plan!.inverse)).toBe("");
