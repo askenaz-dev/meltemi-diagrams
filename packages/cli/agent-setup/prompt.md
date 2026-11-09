@@ -1,8 +1,8 @@
 # Set up Meltemi Diagrams for a coding agent
 
 You are reading this because a person asked you to set up Meltemi Diagrams in their project and
-to prove it works. Follow the steps in order. When something is unclear (which agents the project
-uses, which flow to draw, whether a folder may be written), ask the person instead of guessing.
+to prove it works. Follow the steps in order through validation and SVG export. Use the defaults
+below for routine decisions; ask only when a real blocker needs the person's decision.
 
 ## What Meltemi Diagrams is
 
@@ -22,9 +22,14 @@ installs it and has you draw once.
 3. Run `npx @meltemi/diagrams-cli@latest --version` (or `mdg --version` when the command line is
    installed). This prompt is for 1.10.0 or later. If the version is older, tell the person that
    the published command line is older than this prompt needs, and stop.
-4. Find out which coding agents the project uses: look for `.claude/`, `.agents/`, `.cursor/`,
-   `.github/copilot-instructions.md`, `.gemini/`, `.devin/` or `.windsurf/`, count yourself among
-   them, and ask the person when it is unclear.
+4. Use the current agent by default: the agent running this conversation. For Codex choose
+   `codex`; for Claude Code choose `claude`; otherwise use the matching name listed below, or
+   `agents` for a client that reads `.agents/skills/`. Install for other agents only if the person
+   explicitly requests them. Do not ask which agents they use before installing for yourself.
+5. Use the project the person named, or the root of the repository containing your working
+   directory. For a standalone project without Git, use its working directory. Do not install in
+   sibling repositories. If you are in a container of several repositories with no project selected,
+   ask only which project folder to use.
 
 ## Install the skill
 
@@ -41,22 +46,28 @@ for every folder. `claude` writes `.claude/skills/meltemi-diagrams/`; every othe
 skill folders and nothing else: it never edits `AGENTS.md`, `CLAUDE.md` or any other file of the
 project. A copy already there is kept and the command says so; add `--force` only if the person
 asks you to replace it, and `--user` (the person's own folders, for every project) only if they
-ask for that. Then read the installed `SKILL.md` before drawing.
+ask for that. If installation reports an existing copy, read its `SKILL.md` and continue with it
+when usable; that report alone is not a blocker. Then read the installed `SKILL.md` before drawing.
 
 ## Prove it
 
-1. Pick one real flow of this project (a sign-in, a checkout, a request through the services)
-   from its code or its documentation, and write it as a sequence diagram in
-   `diagrams/<name>.meltemi`: at most six participants and twelve messages, with a title. The
-   skill's `reference/sequence.md` has the syntax. If there is no code to read, run
-   `npx @meltemi/diagrams-cli@latest init --template sequence` and use the
-   `diagrams/sign-in.meltemi` it writes.
+1. Choose one simple real flow from the project's code or documentation yourself; do not ask the
+   person which flow to draw. Write a sequence diagram in `diagrams/<name>.meltemi`: at most six
+   participants and twelve messages, with a title. The skill's `reference/sequence.md` has the
+   syntax. If there is no suitable flow, run
+   `npx @meltemi/diagrams-cli@latest init --template sequence` in a temporary folder and copy only
+   its `diagrams/sign-in.meltemi` into the project. Do not copy its `project.json` or initialize
+   over the person's project. Use unused filenames for both the source and SVG; never overwrite
+   existing work. Creating these example files is part of this setup request.
 2. Run `mdg validate diagrams/<name>.meltemi` (or the `npx` form) and fix every diagnostic it
    reports until its last line reads `Checked 1 file: 0 errors, 0 warnings.`.
 3. Run `mdg export diagrams/<name>.meltemi`, which writes `diagrams/<name>.svg` beside the source.
 4. Report to the person: the validation's last line, the path of the SVG, and the folders the
-   skill was installed in. Start `mdg preview` (a local server) only if they ask to look at the
-   result in a browser, and tell them how to stop it.
+   skill was installed in or reused. Do not stop after checking versions or installing the skill,
+   and do not ask whether to continue before validation and export. If a command fails, fix it
+   within this scope or report the concrete blocker; never claim an unfinished step succeeded.
+   Start `mdg preview` (a local server) only if they ask to look at the result in a browser, and
+   tell them how to stop it.
 
 ## Never
 
@@ -74,7 +85,7 @@ ask for that. Then read the installed `SKILL.md` before drawing.
 
 ## Next
 
-Ask the person what to draw, in their words: "draw the checkout service from
+After completing the proof, suggest requests such as "draw the checkout service from
 `docs/architecture.md` as a flow diagram", "convert `diagrams/billing.mmd` and keep its layout",
 "add a C4 container view of the shop". The installed skill holds the workflow, a template, the
 rules and references for the language, layout, themes, C4, sequence diagrams, free compositions,

@@ -39,9 +39,10 @@
       <h2>One prompt</h2>
       <p>
         Paste this into your coding agent, in your project. The agent reads the
-        <a href="prompt.md">setup prompt</a>, installs the skill for the agents your project uses,
-        draws a small sequence diagram of one of its flows, validates it until no diagnostic remains
-        and tells you where the SVG is.
+        <a href="prompt.md">setup prompt</a> and installs the skill for itself in the selected
+        project. It chooses a simple flow or the sequence example, validates it until no diagnostic
+        remains, exports the SVG and tells you where it is. It installs for other agents only if you
+        explicitly request them, and asks only when a real blocker needs your decision.
       </p>
       <div class="prompt-box">
         <button
@@ -88,7 +89,7 @@
         </button>
         <pre
           class="prompt"
-        ><code>Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.</code></pre>
+        ><code>Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for yourself, the agent running this conversation, in this project only, using `npx @meltemi/diagrams-cli@latest skill install --agent &lt;names&gt;` with your own agent name (codex for Codex, claude for Claude Code). Use the current agent by default; install for other agents only if I explicitly request them. Choose a simple project flow yourself, or use the sequence example if none is available. Continue through writing the example, validating it until no diagnostic remains, and exporting the SVG; don't stop to ask which agents I use, which flow to draw, or whether to continue. Show me the validation's last line, the SVG path and the skill folder. Ask only if a real blocker needs my decision, such as several repositories with no project selected. Never sign in to the cloud, never print or commit a token, never overwrite existing work, and don't commit or change my project's configuration beyond the skill folders without asking me first.</code></pre>
         <p class="copy-status" role="status"></p>
       </div>
       <p>

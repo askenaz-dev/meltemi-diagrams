@@ -41,16 +41,18 @@ Docker editor, use **Set up my agent** there: it keeps the agent connected to th
 Paste this into your coding agent, in your project:
 
 ```text
-Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.
+Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for yourself, the agent running this conversation, in this project only, using `npx @meltemi/diagrams-cli@latest skill install --agent <names>` with your own agent name (codex for Codex, claude for Claude Code). Use the current agent by default; install for other agents only if I explicitly request them. Choose a simple project flow yourself, or use the sequence example if none is available. Continue through writing the example, validating it until no diagnostic remains, and exporting the SVG; don't stop to ask which agents I use, which flow to draw, or whether to continue. Show me the validation's last line, the SVG path and the skill folder. Ask only if a real blocker needs my decision, such as several repositories with no project selected. Never sign in to the cloud, never print or commit a token, never overwrite existing work, and don't commit or change my project's configuration beyond the skill folders without asking me first.
 ```
 
 The [agent setup page](https://diagrams.meltemi.dev/agent-setup/) shows the same prompt with a copy
 button at its top right.
 
 The agent reads the setup prompt at `https://diagrams.meltemi.dev/agent-setup/prompt.md` and
-follows it: it checks Node and the command line's version, installs the skill for the agents your
-project uses (asking you when that is unclear), proves it draws and tells you what it did. The
-prompt needs the command line 1.10.0 or later; an agent that finds an older one says so and stops.
+follows it: it checks Node and the command line's version, installs the skill for the current agent
+in the selected project, chooses a simple flow and continues through validation and SVG export.
+It installs for other agents only when you explicitly request them. It asks only when a real
+blocker needs your decision, such as a folder containing several repositories with none selected.
+The prompt needs the command line 1.10.0 or later; an agent that finds an older one says so and stops.
 An agent without web access prints the same text with the command line:
 
 ```bash
@@ -105,9 +107,12 @@ skills from, or point the agent's instructions (an `AGENTS.md`, for instance) at
 
 Following the prompt, the agent picks one real flow of your project (a sign-in, a checkout, a
 request through the services) and writes it as a small sequence diagram under `diagrams/`, at most
-six participants and twelve messages. In a folder with no code to read, it uses the sign-in that
-`mdg init --template sequence` writes. It validates the sheet until the last line reads
-`Checked 1 file: 0 errors, 0 warnings.`, exports the SVG beside it and tells you that line, where
+six participants and twelve messages, without asking you to choose the flow. When no suitable
+flow is available, it runs `mdg init --template sequence` in a temporary folder and copies only
+the sign-in source into the project, leaving the generated configuration in the temporary folder.
+It reuses an existing usable skill and chooses unused filenames for the example and export.
+Creating these example files is part of the setup request. It validates the sheet until the last
+line reads `Checked 1 file: 0 errors, 0 warnings.`, exports the SVG beside it and tells you that line, where
 the SVG is and which folders the skill went to. It starts `mdg preview`, a local server, only when
 you ask to look at the result in a browser.
 
