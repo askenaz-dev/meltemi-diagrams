@@ -43,16 +43,18 @@ Pega esto en tu agente de programación, en tu proyecto. El prompt está en ingl
 el agente lee la guía; el agente te responde en el tuyo:
 
 ```text
-Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.
+Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for yourself, the agent running this conversation, in this project only, using `npx @meltemi/diagrams-cli@latest skill install --agent <names>` with your own agent name (codex for Codex, claude for Claude Code). Use the current agent by default; install for other agents only if I explicitly request them. Choose a simple project flow yourself, or use the sequence example if none is available. Continue through writing the example, validating it until no diagnostic remains, and exporting the SVG; don't stop to ask which agents I use, which flow to draw, or whether to continue. Show me the validation's last line, the SVG path and the skill folder. Ask only if a real blocker needs my decision, such as several repositories with no project selected. Never sign in to the cloud, never print or commit a token, never overwrite existing work, and don't commit or change my project's configuration beyond the skill folders without asking me first.
 ```
 
 La [página de configuración de agentes](https://diagrams.meltemi.dev/es/agent-setup/) muestra el mismo
 prompt con un botón para copiarlo en su esquina superior derecha.
 
 El agente lee el prompt de configuración en `https://diagrams.meltemi.dev/agent-setup/prompt.md` y
-lo sigue: comprueba Node y la versión de la línea de comandos, instala la skill para los agentes
-que usa tu proyecto (te pregunta cuando no está claro), demuestra que dibuja y te cuenta lo que
-hizo. El prompt necesita la línea de comandos 1.10.0 o posterior; un agente que encuentra una
+lo sigue: comprueba Node y la versión de la línea de comandos, instala la skill para el agente
+actual en el proyecto seleccionado, elige un flujo sencillo y continúa hasta validar y exportar
+el SVG. Sólo instala para otros agentes si lo pides explícitamente. Sólo pregunta si un bloqueo
+real necesita tu decisión, como una carpeta con varios repositorios sin un proyecto seleccionado.
+El prompt necesita la línea de comandos 1.10.0 o posterior; un agente que encuentra una
 anterior lo dice y se detiene. Un agente sin acceso a la web imprime el mismo texto con la línea de
 comandos:
 
@@ -110,9 +112,13 @@ ejemplo) remitan a su `SKILL.md`.
 
 Siguiendo el prompt, el agente elige un flujo real de tu proyecto (un inicio de sesión, un pago,
 una petición a través de los servicios) y lo escribe como un diagrama de secuencia pequeño en
-`diagrams/`, con seis participantes y doce mensajes como mucho. En una carpeta sin código que leer,
-usa el inicio de sesión que escribe `mdg init --template sequence`. Valida la hoja hasta que la
-última línea dice `Checked 1 file: 0 errors, 0 warnings.`, exporta el SVG a su lado y te dice esa
+`diagrams/`, con seis participantes y doce mensajes como mucho, sin preguntarte qué flujo elegir.
+Si no hay un flujo adecuado, ejecuta `mdg init --template sequence` en una carpeta temporal y
+copia sólo el código del inicio de sesión al proyecto, dejando la configuración generada en la
+carpeta temporal. Reutiliza una skill existente que funcione y elige nombres de archivo libres
+para el ejemplo y la exportación. Crear estos archivos es parte de la solicitud de configuración.
+Valida la hoja hasta que la última línea dice `Checked 1 file: 0 errors, 0 warnings.`, exporta el
+SVG a su lado y te dice esa
 línea, dónde quedó el SVG y en qué carpetas quedó la skill. Inicia `mdg preview`, un servidor
 local, solo cuando pides ver el resultado en un navegador.
 

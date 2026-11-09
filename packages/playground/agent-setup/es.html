@@ -40,10 +40,12 @@
       <h2>Un prompt</h2>
       <p>
         Pega esto en tu agente de programación, en tu proyecto. El agente lee el
-        <a href="../../agent-setup/prompt.md">prompt de configuración</a>, instala la skill para los
-        agentes que usa tu proyecto, dibuja un diagrama de secuencia pequeño de uno de sus flujos,
-        lo valida hasta que no queda ningún diagnóstico y te dice dónde quedó el SVG. El prompt está
-        en inglés, el idioma en que el agente lee la guía; el agente te responde en el tuyo.
+        <a href="../../agent-setup/prompt.md">prompt de configuración</a> e instala la skill para sí
+        mismo en el proyecto seleccionado. Elige un flujo sencillo o el ejemplo de secuencia, lo
+        valida hasta que no queda ningún diagnóstico, exporta el SVG y te dice dónde quedó. Sólo
+        instala para otros agentes si lo pides explícitamente y sólo pregunta si un bloqueo real
+        necesita tu decisión. El prompt está en inglés, el idioma en que el agente lee la guía; el
+        agente te responde en el tuyo.
       </p>
       <div class="prompt-box">
         <button
@@ -90,7 +92,7 @@
         </button>
         <pre
           class="prompt"
-        ><code>Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.</code></pre>
+        ><code>Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for yourself, the agent running this conversation, in this project only, using `npx @meltemi/diagrams-cli@latest skill install --agent &lt;names&gt;` with your own agent name (codex for Codex, claude for Claude Code). Use the current agent by default; install for other agents only if I explicitly request them. Choose a simple project flow yourself, or use the sequence example if none is available. Continue through writing the example, validating it until no diagnostic remains, and exporting the SVG; don't stop to ask which agents I use, which flow to draw, or whether to continue. Show me the validation's last line, the SVG path and the skill folder. Ask only if a real blocker needs my decision, such as several repositories with no project selected. Never sign in to the cloud, never print or commit a token, never overwrite existing work, and don't commit or change my project's configuration beyond the skill folders without asking me first.</code></pre>
         <p class="copy-status" role="status"></p>
       </div>
       <p>
