@@ -6,6 +6,12 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 
 ## Unreleased
 
+### Delivery
+
+- The installed-package release check verifies the complete folder MCP tool catalogue and
+  inspects a compiled story timeline before previewing it. FFmpeg setup uses bounded retries
+  and timeouts and avoids the degraded hosted-runner mirror, matching CI.
+
 ### Canvas
 
 - **New diagram** offers the same seven starters in every project and both editor hosts: flow,
