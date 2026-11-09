@@ -479,7 +479,7 @@ export async function runReleaseCheck(): Promise<StepResult[]> {
         journey(scratch, cliBin),
       );
       if (walked)
-        await step("mcp: a preview through the installed local server", () =>
+        await step("mcp: story inspection and preview through the installed local server", () =>
           mcpJourney(scratch, cliBin),
         );
     }
