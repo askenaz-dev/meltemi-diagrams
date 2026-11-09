@@ -72,6 +72,31 @@ export async function storyAuthoringJourney(agent: StoryAgent, project: string):
       ({ id, startMs, durationMs, endMs }) => [id, startMs, durationMs, endMs],
     );
 
+  const validation = async (file?: string) => {
+    const result = await agent.ok("validate", { project, ...(file ? { path: file } : {}) });
+    const diagnostics = JSON.stringify(result["diagnostics"]);
+    assert.equal(result["truncated"], false, `Validation must be complete: ${diagnostics}`);
+    assert.equal(result["errors"], 0, `Validation errors: ${diagnostics}`);
+    return result;
+  };
+  const externalDiagnostics = (result: Record<string, unknown>) =>
+    (result["diagnostics"] as { path: string }[]).filter((diagnostic) => diagnostic.path !== path);
+  const baseline = externalDiagnostics(await validation());
+  const validateStory = async () => {
+    const own = await validation(path);
+    assert.equal(
+      own["warnings"],
+      0,
+      `Story validation warnings: ${JSON.stringify(own["diagnostics"])}`,
+    );
+    const projectResult = await validation();
+    assert.deepEqual(
+      externalDiagnostics(projectResult),
+      baseline,
+      `External validation diagnostics changed: ${JSON.stringify(projectResult["diagnostics"])}`,
+    );
+  };
+
   await write(STORY_BASE + AUTHORED_STORY + DELIVERY, (await read()).revision);
   const created = await read();
   const timeline = await inspect();
@@ -135,8 +160,7 @@ export async function storyAuthoringJourney(agent: StoryAgent, project: string):
     (ordered["scenes"] as { id: string }[]).map((scene) => scene.id),
     ["storage", "overview"],
   );
-  assert.equal((await agent.ok("validate", { project }))["errors"], 0);
-  assert.equal((await agent.ok("validate", { project }))["warnings"], 0);
+  await validateStory();
   const snapshot = await read();
   assert.ok(snapshot.files[path]!.includes("// A concurrent human comment."));
   assert.ok(snapshot.files[path]!.includes(STORY_BASE));
@@ -180,5 +204,5 @@ export async function storyAuthoringJourney(agent: StoryAgent, project: string):
   await agent.refused("inspect_story", { project, path, story: "walkthrough" }, "request.invalid");
   const remaining = await agent.ok("inspect_story", { project, path, story: "existing" });
   assert.equal(remaining["durationMs"], 1000);
-  assert.equal((await agent.ok("validate", { project }))["errors"], 0);
+  await validateStory();
 }

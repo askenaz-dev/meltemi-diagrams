@@ -5,9 +5,42 @@ import {
   storyAuthoringJourney,
   STORY_BASE,
   AUTHORED_STORY,
+  type StoryAgent,
 } from "../../acceptance/src/mcp/stories.js";
 import type { Refusal } from "../../acceptance/src/mcp/agent.js";
 import { call, mcp, ok, refused } from "./support/mcp.js";
+
+const IMAGE_WARNING = `diagram board: free {
+  image logo "missing.png"
+  placement {
+    place logo at (100, 100)
+    size logo (50, 50)
+  }
+}
+`;
+
+function storyAgent(
+  client: Parameters<typeof call>[0],
+  firstWrite?: (args: Record<string, unknown>) => Record<string, unknown>,
+): StoryAgent {
+  let injected = false;
+  return {
+    call: (name, args) => call(client, name, args),
+    ok: async (name, args = {}) => {
+      if (name === "write_files" && firstWrite && !injected) {
+        injected = true;
+        args = firstWrite(args);
+      }
+      return ok(await call(client, name, args));
+    },
+    refused: async (name, args, code) => {
+      const result = refused(await call(client, name, args));
+      expect(result["code"]).toBe(code);
+      const { code: actual, message, ...fields } = result;
+      return { code: actual, message, fields } as Refusal;
+    },
+  };
+}
 
 describe("agentic story authoring", () => {
   it("bounds the complete timeline instead of silently dropping scenes or actions", () => {
@@ -34,23 +67,68 @@ describe("agentic story authoring", () => {
       await call(client, "create_project", { name: "Story authoring" }),
     );
     try {
-      await storyAuthoringJourney(
-        {
-          call: (name, args) => call(client, name, args),
-          ok: async (name, args) => ok(await call(client, name, args)),
-          refused: async (name, args, code) => {
-            const result = refused(await call(client, name, args));
-            expect(result["code"]).toBe(code);
-            const { code: actual, message, ...fields } = result;
-            return { code: actual, message, fields } as Refusal;
-          },
-        },
-        id,
-      );
+      await storyAuthoringJourney(storyAgent(client), id);
     } finally {
       await client.close();
     }
   }, 60_000);
+
+  it("preserves a pre-existing image warning while requiring its story file to be clean", async () => {
+    const m = await mcp();
+    const client = await m.connect(await m.token("u-ana"));
+    const external = IMAGE_WARNING;
+    const { id } = ok<{ id: string }>(
+      await call(client, "create_project", {
+        name: "Story in an existing board project",
+        files: { "board.meltemi": external },
+      }),
+    );
+    try {
+      const before = ok(await call(client, "validate", { project: id }));
+      expect(before).toMatchObject({ errors: 0, warnings: 1, truncated: false });
+      expect(before["diagnostics"]).toMatchObject([
+        { path: "board.meltemi", code: "layout.image-unavailable" },
+      ]);
+      await storyAuthoringJourney(storyAgent(client), id);
+      const after = ok(await call(client, "validate", { project: id }));
+      expect(after).toEqual(
+        expect.objectContaining({ errors: 0, warnings: 1, diagnostics: before["diagnostics"] }),
+      );
+      const snapshot = ok(await call(client, "read_files", { project: id }));
+      expect((snapshot["files"] as Record<string, string>)["board.meltemi"]).toBe(external);
+    } finally {
+      await client.close();
+    }
+  }, 60_000);
+
+  it.each(["story", "external"] as const)(
+    "rejects a new warning in the %s source instead of hiding it",
+    async (where) => {
+      const m = await mcp();
+      const client = await m.connect(await m.token("u-ana"));
+      const { id } = ok<{ id: string }>(
+        await call(client, "create_project", { name: "New warning refusal" }),
+      );
+      const injected = storyAgent(client, (args) => {
+        const files = { ...(args["files"] as Record<string, string>) };
+        if (where === "story")
+          files["stories.meltemi"] = files["stories.meltemi"]!.replace(
+            "scene still { hold 1s }",
+            "scene still {}",
+          );
+        else files["unrelated.meltemi"] = IMAGE_WARNING;
+        return { ...args, files };
+      });
+      try {
+        await expect(storyAuthoringJourney(injected, id)).rejects.toThrow(
+          where === "story" ? "story.empty-scene" : "layout.image-unavailable",
+        );
+      } finally {
+        await client.close();
+      }
+    },
+    60_000,
+  );
 
   it("reports current source identities, imported views and compiled nested action timing without drawing", async () => {
     const m = await mcp();
