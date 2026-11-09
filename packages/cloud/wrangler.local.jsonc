@@ -70,6 +70,7 @@
     "@meltemi/diagrams-capture": "../capture/src/index.ts",
     "@meltemi/diagrams-catalog": "../catalog/src/index.ts",
     "@meltemi/diagrams-edit": "../edit/src/index.ts",
+    "@meltemi/diagrams-edit/starters": "../edit/src/starter-catalog.ts",
     "@meltemi/diagrams-editor": "../editor/src/index.ts",
     "@meltemi/diagrams-fonts": "../fonts/src/index.ts",
     "@meltemi/diagrams-i18n": "../i18n/src/index.ts",

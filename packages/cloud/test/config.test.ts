@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { CATALOGUE } from "@meltemi/diagrams-mcp";
 import { ConfigError, publishHostOf, readConfig, readIdentity } from "../src/config.js";
 import { parseJsonc } from "./browser/worker.js";
 import { testEnv } from "./support/index.js";
@@ -133,63 +134,76 @@ describe("wrangler.jsonc", () => {
     ]);
   });
 
-  it("builds the workspace packages of the Worker's closure from their sources, so that no stale build is bundled", () => {
-    const alias = (wrangler["alias"] ?? {}) as Record<string, string>;
-    type Manifest = {
-      dependencies?: Record<string, string>;
-      exports?: Record<string, Record<string, string>>;
-    };
-    const manifestOf = (folder: string) =>
-      JSON.parse(readFileSync(new URL(`../${folder}/package.json`, PACKAGE), "utf8")) as Manifest;
-    // Every package the Worker imports, and every workspace package those import in turn.
-    const closure = new Set<string>();
-    const visit = (name: string): void => {
-      if (closure.has(name)) return;
-      closure.add(name);
-      const manifest = manifestOf(name.replace("@meltemi/diagrams-", ""));
-      for (const dependency of Object.keys(manifest.dependencies ?? {})) {
+  it.each(["wrangler.jsonc", "wrangler.local.jsonc"])(
+    "builds the workspace packages of the Worker's closure from their sources, so that no stale build is bundled (%s)",
+    (configFile) => {
+      const alias = (readJsonc(configFile)["alias"] ?? {}) as Record<string, string>;
+      type Manifest = {
+        dependencies?: Record<string, string>;
+        exports?: Record<string, Record<string, string>>;
+      };
+      const manifestOf = (folder: string) =>
+        JSON.parse(readFileSync(new URL(`../${folder}/package.json`, PACKAGE), "utf8")) as Manifest;
+      // Every package the Worker imports, and every workspace package those import in turn.
+      const closure = new Set<string>();
+      const visit = (name: string): void => {
+        if (closure.has(name)) return;
+        closure.add(name);
+        const manifest = manifestOf(name.replace("@meltemi/diagrams-", ""));
+        for (const dependency of Object.keys(manifest.dependencies ?? {})) {
+          if (dependency.startsWith("@meltemi/diagrams-")) visit(dependency);
+        }
+      };
+      for (const dependency of Object.keys(
+        (JSON.parse(readFileSync(new URL("package.json", PACKAGE), "utf8")) as Manifest)
+          .dependencies ?? {},
+      )) {
         if (dependency.startsWith("@meltemi/diagrams-")) visit(dependency);
       }
-    };
-    for (const dependency of Object.keys(
-      (JSON.parse(readFileSync(new URL("package.json", PACKAGE), "utf8")) as Manifest)
-        .dependencies ?? {},
-    )) {
-      if (dependency.startsWith("@meltemi/diagrams-")) visit(dependency);
-    }
-    // The subpaths their sources and the Worker's own import (`@meltemi/diagrams-layout/viewport`,
-    // `@meltemi/diagrams-mcp/preview`): an alias of a package would make them
-    // `<its index>/viewport`, so each has an alias of its own.
-    const subpaths = new Set<string>();
-    const scan = (folder: URL): void => {
-      for (const entry of readdirSync(folder, { withFileTypes: true })) {
-        if (entry.isDirectory()) scan(new URL(`${entry.name}/`, folder));
-        else if (entry.name.endsWith(".ts")) {
-          const text = readFileSync(new URL(entry.name, folder), "utf8");
-          for (const match of text.matchAll(/from "(@meltemi\/diagrams-[a-z0-9-]+\/[a-z-]+)"/g)) {
-            subpaths.add(match[1]!);
+      // The subpaths their sources and the Worker's own import (`@meltemi/diagrams-layout/viewport`,
+      // `@meltemi/diagrams-mcp/preview`): an alias of a package would make them
+      // `<its index>/viewport`, so each has an alias of its own.
+      const subpaths = new Set<string>();
+      const scan = (folder: URL): void => {
+        for (const entry of readdirSync(folder, { withFileTypes: true })) {
+          if (entry.isDirectory()) scan(new URL(`${entry.name}/`, folder));
+          else if (entry.name.endsWith(".ts")) {
+            const text = readFileSync(new URL(entry.name, folder), "utf8");
+            for (const match of text.matchAll(/from "(@meltemi\/diagrams-[a-z0-9-]+\/[a-z-]+)"/g)) {
+              subpaths.add(match[1]!);
+            }
           }
         }
-      }
-    };
-    for (const name of closure)
-      scan(new URL(`../${name.replace("@meltemi/diagrams-", "")}/src/`, PACKAGE));
-    scan(new URL("src/", PACKAGE));
-    // `/node` entries are the Node hosts of packages the Worker gives its own readers to.
-    const wanted = [...subpaths].filter((path) => !path.endsWith("/node"));
+      };
+      for (const name of closure)
+        scan(new URL(`../${name.replace("@meltemi/diagrams-", "")}/src/`, PACKAGE));
+      scan(new URL("src/", PACKAGE));
+      // `/node` entries are the Node hosts of packages the Worker gives its own readers to.
+      const wanted = [...subpaths].filter((path) => !path.endsWith("/node"));
 
-    expect(Object.keys(alias).sort()).toEqual([...closure, ...wanted].sort());
-    for (const [name, path] of Object.entries(alias)) {
-      const [, folder, sub] = /^@meltemi\/diagrams-([a-z0-9-]+?)(?:\/([a-z-]+))?$/.exec(name)!;
-      const source = sub
-        ? manifestOf(folder!).exports?.[`./${sub}`]?.["@meltemi/diagrams-source"]?.replace(
-            /^\.\//,
-            "",
-          )
-        : "src/index.ts";
-      expect(path, name).toBe(`../${folder}/${source}`);
-      expect(existsSync(new URL(path, PACKAGE)), name).toBe(true);
-    }
+      expect(Object.keys(alias).sort()).toEqual([...closure, ...wanted].sort());
+      for (const [name, path] of Object.entries(alias)) {
+        const [, folder, sub] = /^@meltemi\/diagrams-([a-z0-9-]+?)(?:\/([a-z-]+))?$/.exec(name)!;
+        const source = sub
+          ? manifestOf(folder!).exports?.[`./${sub}`]?.["@meltemi/diagrams-source"]?.replace(
+              /^\.\//,
+              "",
+            )
+          : "src/index.ts";
+        expect(path, name).toBe(`../${folder}/${source}`);
+        expect(existsSync(new URL(path, PACKAGE)), name).toBe(true);
+      }
+    },
+  );
+
+  it("keeps the offline runtime's exact tool-count gate aligned with the registered catalogue", () => {
+    const offline = readFileSync(new URL("../../scripts/local/check-offline.mjs", PACKAGE), "utf8");
+    const count = /assert\.equal\(\(await client\.listTools\(\)\)\.tools\.length, (\d+)\);/.exec(
+      offline,
+    );
+    expect(count, "the offline check must assert the complete catalogue size").not.toBeNull();
+    expect(Number(count![1])).toBe(CATALOGUE.length);
+    expect(CATALOGUE.some((tool) => tool.name === "inspect_story")).toBe(true);
   });
 
   it("binds the database as DB and names the identity service", () => {
