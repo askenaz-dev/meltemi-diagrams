@@ -215,7 +215,10 @@ y no tiene **Nuevo diagrama**.
 
 **Nuevo diagrama…** en el explorador crea un archivo en la carpeta seleccionada con el mismo
 catálogo. Todos los proyectos ofrecen las siete opciones, cualquiera sea su plantilla inicial.
-Los archivos existentes y `project.json` se conservan. C4 crea un modelo y su vista de contexto
+Los archivos existentes y `project.json` se conservan. En el navegador, las miniaturas de colores
+muestran ejemplos de lo que puedes crear con cada tipo, junto a su nombre y descripción. Haz
+clic en un dibujo para elegirlo, o usa las flechas del teclado entre opciones. La galería se adapta
+al ancho disponible y el cuerpo del diálogo se desplaza en una pantalla baja. C4 crea un modelo y su vista de contexto
 juntos en ese archivo ([c4.md](language/c4.md)). Pizarra prepara un tablero con estilo de boceto,
 un encabezado y una nota adhesiva; Kanban prepara las columnas Por hacer, En curso y Hecho, con
 una tarjeta. Ambos son composiciones libres editables. Los textos iniciales se crean en el idioma

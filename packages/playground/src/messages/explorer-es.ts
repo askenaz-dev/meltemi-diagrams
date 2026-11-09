@@ -67,6 +67,7 @@ export const explorer: typeof en = {
       "La carpeta se lista hasta que salgas de la página; se queda en cuanto tiene un diagrama.",
     fileHint: "Como notas.md o datos.json.",
     kind: "Tipo",
+    kindHint: "Ejemplos de lo que puedes crear.",
     kinds: {
       c4: "Arquitectura C4",
       whiteboard: "Pizarra",

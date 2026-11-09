@@ -29,6 +29,8 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
   together; durations stay fixed and the right edge still resizes. Cancelled or stale moves write
   nothing, and the selection follows the moved action after its source edit is acknowledged.
 
+- The browser's **New diagram** choices show colored miniature examples for all seven types,
+  with a responsive gallery, native keyboard selection and clear light/dark previews.
 - **New diagram** offers the same seven starters in every project and both editor hosts: flow,
   sequence, C4 architecture, Gantt, whiteboard, Kanban and free composition. C4 creates a model
   and context view together; whiteboard and Kanban prepare editable boards without replacing

@@ -73,6 +73,7 @@ export const explorer = {
     folderHint: "The folder is listed until you leave the page; it stays once a diagram is in it.",
     fileHint: "Such as notes.md or data.json.",
     kind: "Kind",
+    kindHint: "Examples of what you can create.",
     kinds: {
       c4: "C4 architecture",
       whiteboard: "Whiteboard",

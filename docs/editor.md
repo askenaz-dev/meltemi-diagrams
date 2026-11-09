@@ -198,7 +198,10 @@ the buttons and has no **New diagram**.
 
 The explorer's **New diagram…** creates one file in the selected folder with the same catalogue.
 Every project offers all seven choices, whichever initial template created it. Existing files
-and `project.json` stay unchanged. C4 creates a model and its context view together in that file
+and `project.json` stay unchanged. In the browser, colored miniatures show examples of what each
+type can create; the name and description remain beside its native radio choice. Click a drawing
+to select it, or use the arrow keys between choices. The gallery adapts to the available width
+and the dialog body scrolls on a short screen. C4 creates a model and its context view together in that file
 ([c4.md](language/c4.md)). Whiteboard starts a sketched board with a heading and sticky note;
 Kanban starts a board with To do, Doing and Done columns and one card. Both are editable free
 compositions. Starter labels follow the interface language when created; changing language later
