@@ -80,6 +80,26 @@ describe("delivery workflows", () => {
     expect(text).not.toContain("git push origin main");
   });
 
+  it("bounds FFmpeg setup and avoids the degraded runner mirror in both build workflows", () => {
+    for (const name of ["ci.yml", "release.yml"]) {
+      const text = read(name);
+      const step = text.split(/- name: FFmpeg[^\n]*\n/)[1]!.split(/\n {6}- /)[0]!;
+      expect(step).toContain("timeout-minutes: 10");
+      expect(step).toContain("shell: bash");
+      expect(step).toContain("/etc/apt/sources.list.d/ubuntu.sources");
+      expect(step).toContain("/etc/apt/apt-mirrors.txt");
+      expect(step).toContain("azure\\.archive\\.ubuntu\\.com|archive.ubuntu.com");
+      expect(step).toContain("Acquire::Retries=2");
+      expect(step).toContain("Acquire::http::Timeout=30");
+      expect(step).toContain("Acquire::https::Timeout=30");
+      expect(step).toContain('sudo apt-get "${apt_options[@]}" update');
+      expect(step).toContain('sudo apt-get "${apt_options[@]}" install --yes ffmpeg');
+      if (name === "release.yml") {
+        expect(step).toContain("if: ${{ inputs.release_run_id == '' }}");
+      }
+    }
+  });
+
   it("uses Marketplace OIDC with its registered empty environment and native duplicate handling", () => {
     const text = read("release.yml");
     const marketplace = text.split("  marketplace:\n")[1]!.split("  openvsx:\n")[0]!;

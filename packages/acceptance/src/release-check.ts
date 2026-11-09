@@ -17,7 +17,12 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findFfmpeg } from "@meltemi/diagrams-capture";
+import { Workspace, toProjectPath } from "@meltemi/diagrams-project";
+import { createNodeHost } from "@meltemi/diagrams-project/node";
+import { isDeepStrictEqual } from "node:util";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import { FOLDER_TOOLS } from "../../mcp/src/catalogue/folder.js";
+import { inspectionOf } from "../../mcp/src/preview/inspection.js";
 import { REPO_ROOT, TOOL_VERSION } from "./corpus.js";
 import { readTarball } from "./tarball.js";
 
@@ -207,10 +212,115 @@ function journey(folder: string, cliBin: string): string[] {
   return lines;
 }
 
+/** The SDK surface the installed-folder smoke check exercises, also usable by its regressions. */
+export interface InstalledFolderMcp {
+  listTools(): Promise<{ tools: readonly { name: string }[] }>;
+  callTool(request: { name: string; arguments: Record<string, unknown> }): Promise<{
+    isError?: boolean | undefined;
+    content: readonly { type: string; data?: string | undefined; mimeType?: string | undefined }[];
+    structuredContent?: unknown;
+  }>;
+}
+
+/** Verify real folder capabilities, compiled purchase times and a frame of the same snapshot. */
+export async function checkInstalledFolderMcp(
+  client: InstalledFolderMcp,
+  root: string,
+): Promise<string[]> {
+  const tools = (await client.listTools()).tools.map((tool) => tool.name);
+  const expectedTools = Object.keys(FOLDER_TOOLS);
+  if (!isDeepStrictEqual([...tools].sort(), [...expectedTools].sort())) {
+    throw new Error(
+      `tools/list: expected ${expectedTools.join(", ")}; received ${tools.join(", ")}`,
+    );
+  }
+  const path = "stories/purchase.meltemi";
+  const workspace = new Workspace(createNodeHost(), toProjectPath(root), {
+    toolVersion: TOOL_VERSION,
+  });
+  const file = workspace.file(`${workspace.root}/${path}`);
+  const story = file?.compilation.document.stories.find((entry) => entry.id === "purchase");
+  if (!story || file?.diagnostics.some((entry) => entry.severity === "error")) {
+    throw new Error("The purchase story cannot be compiled for the installed MCP check.");
+  }
+  // The folder engine compiles in a virtual root. Compare imported views independently of the
+  // scratch folder's physical name, while retaining every project-relative path and diagram id.
+  const relativeView = <V extends { file: string | null }>(view: V): V => ({
+    ...view,
+    file: view.file?.startsWith(`${workspace.root}/`)
+      ? view.file.slice(workspace.root.length)
+      : view.file,
+  });
+  const expected = inspectionOf(
+    {
+      ...story,
+      target: relativeView(story.target),
+      scenes: story.scenes.map((scene) => ({ ...scene, view: relativeView(scene.view) })),
+    },
+    { revision: 0, file: path },
+    [],
+    false,
+  );
+  if (
+    !expected.ok ||
+    expected.inspection.durationMs <= 0 ||
+    expected.inspection.scenes.length === 0
+  ) {
+    throw new Error("The purchase story has no compiled timeline for the installed MCP check.");
+  }
+  const inspected = await client.callTool({
+    name: "inspect_story",
+    arguments: { path, story: "purchase" },
+  });
+  const parsed = FOLDER_TOOLS.inspect_story.output.safeParse(inspected.structuredContent);
+  if (inspected.isError || !parsed.success)
+    throw new Error("inspect_story returned an invalid report.");
+  const inspection = parsed.data;
+  if (!Number.isSafeInteger(inspection.revision) || inspection.revision < 0) {
+    throw new Error("inspect_story returned an invalid folder snapshot revision.");
+  }
+  if (!isDeepStrictEqual({ ...inspection, revision: 0 }, expected.inspection)) {
+    throw new Error("inspect_story differs from the compiled purchase timeline.");
+  }
+  const at = `${inspection.scenes[inspection.scenes.length - 1]!.stillAtMs}ms`;
+  const result = await client.callTool({
+    name: "preview",
+    arguments: { path, story: "purchase", at },
+  });
+  const report = FOLDER_TOOLS.preview.output.safeParse(result.structuredContent);
+  const image = result.content.find((item) => item.type === "image");
+  if (
+    result.isError ||
+    !report.success ||
+    report.data.format !== "png" ||
+    image?.mimeType !== "image/png" ||
+    !image.data
+  ) {
+    throw new Error("preview returned an invalid PNG report for the inspected purchase story.");
+  }
+  if (report.data.revision !== inspection.revision) {
+    throw new Error("preview and inspect_story refer to different folder snapshots.");
+  }
+  const png = Buffer.from(image.data, "base64");
+  if (
+    png.length < 24 ||
+    !png.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex")) ||
+    png.readUInt32BE(16) !== report.data.width ||
+    png.readUInt32BE(20) !== report.data.height
+  ) {
+    throw new Error("preview PNG dimensions differ from its report.");
+  }
+  return [
+    `tools/list: ${tools.join(", ")}`,
+    `inspect_story: purchase, ${inspection.scenes.length} scenes, ${inspection.durationMs} ms, revision ${inspection.revision}`,
+    `preview: PNG ${report.data.width}×${report.data.height}, ${png.length} bytes at ${at}, same revision`,
+  ];
+}
+
 /**
  * The installed local MCP server (`mcp-local-server`): `mcp --folder` on the purchase project the
- * journey made, on a free port, driven by the SDK's client over Streamable HTTP as an agent drives
- * it: `initialize`, `tools/list` and a PNG `preview`.
+ * journey made, on a free port, driven by the SDK over Streamable HTTP: initialize, the canonical
+ * folder catalogue, the compiled story timeline and a PNG preview of its final scene.
  */
 async function mcpJourney(folder: string, cliBin: string): Promise<string[]> {
   const server = spawn(
@@ -245,25 +355,9 @@ async function mcpJourney(folder: string, cliBin: string): Promise<string[]> {
       if (info?.name !== "meltemi-diagrams" || info.version !== TOOL_VERSION) {
         throw new Error(`initialize named ${info?.name} ${info?.version}`);
       }
-      const tools = (await client.listTools()).tools.map((tool) => tool.name);
-      if (tools.join() !== "validate,preview") throw new Error(`tools/list: ${tools.join(", ")}`);
-      const result = (await client.callTool({
-        name: "preview",
-        arguments: { path: "diagrams/payment.meltemi" },
-      })) as {
-        isError?: boolean;
-        content: { type: string; data?: string; mimeType?: string }[];
-        structuredContent?: Record<string, unknown>;
-      };
-      const image = result.content.find((item) => item.type === "image");
-      if (result.isError || image?.mimeType !== "image/png" || !image.data) {
-        throw new Error(`preview answered ${JSON.stringify(result.structuredContent)}`);
-      }
-      const png = Buffer.from(image.data, "base64");
       return [
         `${url}: ${info.name} ${info.version}`,
-        `tools/list: ${tools.join(", ")}`,
-        `preview: PNG ${png.readUInt32BE(16)}×${png.readUInt32BE(20)}, ${png.length} bytes`,
+        ...(await checkInstalledFolderMcp(client, join(folder, "shop"))),
       ];
     } finally {
       await client.close();
