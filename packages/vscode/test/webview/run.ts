@@ -7895,7 +7895,7 @@ const tests: {
       assert.equal(await menu.isVisible(), true);
       assert.deepEqual(
         await menu.getByRole("menuitem").evaluateAll((items) => items.map((i) => i.textContent)),
-        ["CopyCtrl+C", "Show in text", "Export SVG"],
+        ["CopyCtrl+C", "Go to code", "Export SVG"],
       );
       await menu.getByRole("menuitem", { name: /^Copy/ }).click();
       await h.settled();
@@ -8239,7 +8239,7 @@ const tests: {
       assert.equal(await menu.isVisible(), true);
       assert.deepEqual(
         await menu.getByRole("menuitem").evaluateAll((items) => items.map((i) => i.textContent)),
-        ["CopyCtrl+C", "Show in text", "Open the model", "Export SVG"],
+        ["CopyCtrl+C", "Go to code", "Open the model", "Export SVG"],
       );
       await menu.getByRole("menuitem", { name: "Open the model" }).click();
       await h.settled();

@@ -10,6 +10,8 @@ as they do for the text.
 The [web app](web-app.md) shares the same canvas, so its drawing tools and language features work
 the same way there.
 
+**Go to code** in an element's context menu jumps to its declaration and focuses the code editor.
+
 ## Installing
 
 Install **Meltemi Diagrams for VS Code** by **meltemi** from the Extensions view, or run:
@@ -1003,7 +1005,7 @@ selects, but has no handles, no drag and no key that writes.
 - New diagram and the buttons of an empty file offer **Gantt chart** (a bars glyph) and write an
   empty `diagram diagram1: gantt { }`, drawn as four weeks with its axis.
 - Context menu of a row: Edit label, Change id, Connect to… (C), Move up, Move down, Put in a new
-  section (Alt+G); then Add a task, a milestone, a marker, a section; then Delete, Show in text,
+  section (Alt+G); then Add a task, a milestone, a marker, a section; then Delete, Go to code,
   Export SVG.
 - **Language features.** Completion knows the statements of a chart and of a section, the clause
   and status words after a label, the tasks and milestones after `after` and `until` (never a task

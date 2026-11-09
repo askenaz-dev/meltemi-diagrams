@@ -541,7 +541,7 @@ export const en = {
     bringForward: "Bring forward",
     sendBackward: "Send backward",
     sendToBack: "Send to back",
-    showInText: "Show in text",
+    showInText: "Go to code",
     labelInView: "Label in this view",
     renameInModel: "Rename in the model",
     openModel: "Open the model",

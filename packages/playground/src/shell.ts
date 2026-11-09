@@ -319,7 +319,7 @@ export class Playground {
       changed: () => this.scheduleKeep(),
       analysis: (analysis) => this.showAnalysis(analysis),
       reveal: (range) => {
-        // A reveal that asks for the focus (Show in text) unfolds the pane; a canvas selection
+        // A reveal that asks for the focus (Go to code) unfolds the pane; a canvas selection
         // reveals quietly and leaves a folded pane folded.
         if (range.focus) this.revealCode(range.start, range.end);
         else this.code.reveal(range.start, range.end, false);
