@@ -1,10 +1,15 @@
 import {
+  applyTextEdits,
   isIdentifierText,
+  isToken,
   type Block,
   type KeywordStatement,
   type TextEdit,
+  type Token,
+  type Trivia,
 } from "@meltemi/diagrams-language";
 import {
+  compile,
   STORY_MAX_TIME,
   singleIdent,
   storyTargetKind,
@@ -18,10 +23,17 @@ import {
 import { reject, insertStatement, type TextContext } from "./context.js";
 import { deleteStatements } from "./delete.js";
 import { appendBlock, newStoryId, topLevelNames } from "./diagrams.js";
-import { insertAfter, verifyNoNewErrors } from "./insert.js";
+import { commentsAbove, insertAfter, verifyNoNewErrors } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
 import { removeListItems, type OperationOf } from "./plan.js";
-import { formatNumber, quoteString } from "./text.js";
+import {
+  firstTokenOf,
+  formatNumber,
+  isCommentTrivia,
+  lineIndent,
+  lineStart,
+  quoteString,
+} from "./text.js";
 import type { Dependent } from "./types.js";
 
 /** The story references of a file to an id of one of its diagrams. */
@@ -117,7 +129,7 @@ export function storyDependents(
 
 // ---------------------------------------------------------------------- story operations
 
-function requireStory(ctx: TextContext, id: string): StoryDefinition {
+export function requireStory(ctx: TextContext, id: string): StoryDefinition {
   const story = ctx.compilation.document.stories.find((s) => s.id === id);
   if (!story) {
     const ids = ctx.compilation.document.stories.map((s) => s.id);
@@ -126,7 +138,7 @@ function requireStory(ctx: TextContext, id: string): StoryDefinition {
   return story;
 }
 
-function requireScene(story: StoryDefinition, id: string): StoryScene {
+export function requireScene(story: StoryDefinition, id: string): StoryScene {
   const scene = story.scenes.find((s) => s.id === id);
   if (!scene) reject("edit.unsafe-target", reasons().stories.noScene(story.id, id));
   return scene;
@@ -155,12 +167,12 @@ function actionAt(story: StoryDefinition, path: readonly number[]): StoryAction 
 }
 
 /** The edits, once they are known to add no errors to the file. */
-function checked(ctx: TextContext, edits: TextEdit[]): TextEdit[] {
+export function checked(ctx: TextContext, edits: TextEdit[]): TextEdit[] {
   verifyNoNewErrors(ctx, edits);
   return edits;
 }
 
-function storyTime(ms: number): string {
+export function storyTime(ms: number): string {
   if (!Number.isFinite(ms) || ms < 0 || ms > STORY_MAX_TIME) {
     reject("edit.invalid-value", reasons().stories.timeRange(STORY_MAX_TIME));
   }
@@ -207,14 +219,30 @@ export function setSceneDuration(
   ctx: TextContext,
   op: OperationOf<"setSceneDuration">,
 ): TextEdit[] {
-  const scene = requireScene(requireStory(ctx, op.story), op.scene);
+  const story = requireStory(ctx, op.story);
+  const scene = requireScene(story, op.scene);
   const final = scene.actions.at(-1);
   const hold = final?.kind === "hold" ? final : undefined;
-  const minimum = scene.durationMs - (hold?.durationMs ?? 0);
+  const previous = story.scenes[scene.index - 1];
+  const following = story.scenes[scene.index + 1];
+  const incoming = previous
+    ? Math.max(0, previous.startMs + previous.durationMs - scene.startMs)
+    : 0;
+  const outgoing = following
+    ? Math.max(0, scene.startMs + scene.durationMs - following.startMs)
+    : 0;
+  const actionEnd = final
+    ? final.startMs + final.durationMs - scene.startMs
+    : incoming > 0
+      ? 0
+      : (scene.transition?.durationMs ?? 0);
+  const prefix = hold ? hold.startMs - scene.startMs : actionEnd;
+  const minimum = Math.max(prefix, scene.transition?.durationMs ?? 0, incoming, outgoing);
   if (!Number.isFinite(op.durationMs) || op.durationMs < minimum) {
     reject("edit.invalid-value", reasons().stories.sceneMinimum(scene.id, minimum));
   }
-  const next = Math.round(op.durationMs) - minimum;
+  if (op.durationMs === scene.durationMs) return [];
+  const next = Math.round(op.durationMs) - prefix;
   const time = storyTime(next);
   if (hold) {
     return checked(ctx, [timeEdit(hold.node, hold.timeRange, time, null)]);
@@ -308,6 +336,228 @@ export function removeStoryAction(
   return checked(ctx, deleteStatements(ctx.text, ctx.compilation.parse.root, [action.node]));
 }
 
+interface ActionSource {
+  readonly start: number;
+  readonly end: number;
+  readonly text: string;
+  readonly lineComment: boolean;
+  readonly leadingLineComment: boolean;
+  readonly indent: string;
+}
+
+/**
+ * Block comments after `;` and standalone comment lines belong to the following action, until a
+ * blank line. An inline `//` on the preceding statement's final line stays with that statement,
+ * including when it follows `;`.
+ */
+function commentsAfterSemicolon(ctx: TextContext, block: Block, node: KeywordStatement): Trivia[] {
+  const separators: Token[] = [];
+  let previousLine = -1;
+  for (let i = block.children.indexOf(node) - 1; i >= 0; i--) {
+    const child = block.children[i]!;
+    if (!isToken(child) || (child.kind !== "Semicolon" && child.kind !== "Newline")) {
+      previousLine = lineStart(ctx.text, Math.max(child.start, child.end - 1));
+      break;
+    }
+    separators.unshift(child);
+  }
+  const comments: Trivia[] = [];
+  let afterSemicolon = false;
+  let afterNewline = false;
+  for (const separator of separators) {
+    const attached = separator.leadingTrivia.filter(isCommentTrivia);
+    if (afterSemicolon)
+      comments.push(
+        ...attached.filter(
+          (comment) =>
+            comment.kind !== "LineComment" || lineStart(ctx.text, comment.start) !== previousLine,
+        ),
+      );
+    if (separator.kind === "Semicolon") afterSemicolon = true;
+    else if (afterNewline && attached.length === 0) {
+      // A blank line detaches comments from the action below it.
+      comments.length = 0;
+      afterSemicolon = false;
+    }
+    afterNewline = separator.kind === "Newline";
+  }
+  return comments;
+}
+
+/**
+ * An action's exact source, including attached comment-only lines and inline comments on either
+ * side. Separators and indentation outside the payload stay in their original slots. In
+ * particular, a blank line ends attachment, a block comment after `;` belongs to the following
+ * action, and an inline `//` on the action's final line stays with it even after `;`.
+ */
+function actionSource(ctx: TextContext, block: Block, action: StoryAction): ActionSource {
+  const node = action.node;
+  const leading = [
+    ...commentsAbove(block, node),
+    ...commentsAfterSemicolon(ctx, block, node),
+    ...(firstTokenOf(node)?.leadingTrivia.filter(isCommentTrivia) ?? []),
+  ];
+  const start = Math.min(node.start, ...leading.map((comment) => comment.start));
+  let end = node.end;
+  let last: Trivia | undefined;
+  let afterSemicolon = false;
+  for (let i = block.children.indexOf(node) + 1; i < block.children.length; i++) {
+    const child = block.children[i]!;
+    if (!isToken(child)) break;
+    for (const comment of child.leadingTrivia.filter(isCommentTrivia)) {
+      if (
+        !afterSemicolon ||
+        (comment.kind === "LineComment" &&
+          lineStart(ctx.text, comment.start) === lineStart(ctx.text, node.end - 1))
+      ) {
+        end = comment.end;
+        last = comment;
+      }
+    }
+    if (child.kind !== "Semicolon") break;
+    afterSemicolon = true;
+  }
+  return {
+    start,
+    end,
+    text: ctx.text.slice(start, end),
+    lineComment: last?.kind === "LineComment",
+    leadingLineComment: leading.some(
+      (comment) =>
+        comment.kind === "LineComment" && !ctx.text.slice(start, comment.start).includes("\n"),
+    ),
+    indent:
+      lineStart(ctx.text, node.start) + lineIndent(ctx.text, node.start).length === node.start
+        ? lineIndent(ctx.text, node.start)
+        : lineIndent(ctx.text, block.open.start) + ctx.unit,
+  };
+}
+
+/** A moved trailing `//` needs a line break before another statement, comment or closing brace. */
+function actionSeparator(
+  ctx: TextContext,
+  source: ActionSource,
+  separator: string,
+  indent: string,
+  next?: ActionSource,
+): string {
+  let safe = separator;
+  if (source.lineComment && !/^[ \t]*\r?\n/.test(safe))
+    safe = ctx.eol + indent + safe.replace(/^[ \t;]*/, "");
+  // A standalone leading `//` must not become the previous action's inline trailing comment.
+  if (next?.leadingLineComment && !safe.includes("\n")) safe += ctx.eol + indent;
+  return safe;
+}
+
+/** Reorders direct scene actions by permuting their source payloads, keeping gap trivia in place. */
+export function reorderStoryAction(
+  ctx: TextContext,
+  op: OperationOf<"reorderStoryAction">,
+): TextEdit[] {
+  if (ctx.compilation.parse.diagnostics.some((d) => d.severity === "error"))
+    reject("edit.unsafe-target", reasons().stories.reorderSyntax);
+  if (
+    !Array.isArray(op.path) ||
+    op.path.length !== 2 ||
+    op.path.some((index) => !Number.isInteger(index) || index < 0)
+  )
+    reject("edit.invalid-value", reasons().stories.reorderPath);
+  const story = requireStory(ctx, op.story);
+  const scene = sceneAt(story, op.path[0]);
+  const action = actionAt(story, op.path);
+  const current = scene.actions.indexOf(action);
+  if (!Number.isInteger(op.index) || op.index < 0 || op.index >= scene.actions.length)
+    reject("edit.invalid-value", reasons().stories.reorderIndex(scene.actions.length - 1));
+  if (current === op.index) return [];
+  const block = scene.node.block;
+  if (!block) reject("edit.unsafe-target", reasons().stories.sceneNoBlock(scene.id));
+  const nodes = new Set(scene.actions.map((item) => item.node));
+  const first = block.statements.indexOf(scene.actions[0]!.node);
+  if (
+    first < 0 ||
+    block.statements.slice(first).some((node) => !nodes.has(node as KeywordStatement))
+  )
+    reject("edit.unsafe-target", reasons().stories.reorderBoundary);
+
+  const sources = scene.actions.map((item) => actionSource(ctx, block, item));
+  if (sources.some((source, i) => i > 0 && source.start < sources[i - 1]!.end))
+    reject("edit.unsafe-target", reasons().stories.reorderBoundary);
+  const low = Math.min(current, op.index);
+  const high = Math.max(current, op.index);
+  const before = sources.slice(low, high + 1);
+  const after = [...before];
+  after.splice(op.index - low, 0, ...after.splice(current - low, 1));
+  const start = before[0]!.start;
+  const inlineStart = ctx.text.slice(lineStart(ctx.text, start), start).trim() !== "";
+  let newText = after[0]!.leadingLineComment && inlineStart ? ctx.eol + after[0]!.indent : "";
+  for (let i = 0; i < after.length; i++) {
+    const source = after[i]!;
+    newText += source.text;
+    if (i < after.length - 1) {
+      const gap = ctx.text.slice(before[i]!.end, before[i + 1]!.start);
+      newText += actionSeparator(ctx, source, gap, after[i + 1]!.indent, after[i + 1]);
+    }
+  }
+  const last = before.at(-1)!;
+  const next = sources[high + 1];
+  const boundary = next?.start ?? block.close.start;
+  const suffix = ctx.text.slice(last.end, boundary);
+  const safeSuffix = actionSeparator(
+    ctx,
+    after.at(-1)!,
+    suffix,
+    next?.indent ?? lineIndent(ctx.text, scene.node.start),
+    next,
+  );
+  const edits = [{ start, end: boundary, newText: newText + safeSuffix }];
+  checked(ctx, edits);
+
+  // Comment movement must not swallow a neighbour, change a header or silently change timing.
+  const candidate = applyTextEdits(ctx.text, edits);
+  const nextStory = compile(candidate, ctx.compilation.options).document.stories.find(
+    (item) => item.id === story.id,
+  );
+  const nextScene = nextStory?.scenes[scene.index];
+  const expected = [...scene.actions];
+  expected.splice(op.index, 0, ...expected.splice(current, 1));
+  // Source times can be fractional milliseconds; addition in a different order can change only
+  // the final floating-point bit. This permits that error, never a changed written duration.
+  const sameDuration = (actual: number | undefined, original: number) =>
+    actual !== undefined &&
+    Math.abs(actual - original) <=
+      Number.EPSILON *
+        Math.max(1, Math.abs(scene.startMs), Math.abs(original)) *
+        (scene.actions.length + story.scenes.length + 1);
+  const sameActionDuration = (actual: StoryAction, original: StoryAction): boolean =>
+    actual.durationMs === original.durationMs &&
+    actual.writtenMs === original.writtenMs &&
+    actual.children.length === original.children.length &&
+    actual.children.every((child, i) => sameActionDuration(child, original.children[i]!));
+  const transitionText = (text: string, item: StoryScene) =>
+    item.transition ? text.slice(item.transition.node.start, item.transition.node.end) : null;
+  if (
+    !sameDuration(nextScene?.durationMs, scene.durationMs) ||
+    !sameDuration(nextStory?.durationMs, story.durationMs) ||
+    !nextScene ||
+    nextScene.startMs !== scene.startMs ||
+    nextScene.id !== scene.id ||
+    nextScene.title !== scene.title ||
+    nextScene.view.name !== scene.view.name ||
+    nextScene.view.file !== scene.view.file ||
+    nextScene.transition?.durationMs !== scene.transition?.durationMs ||
+    transitionText(candidate, nextScene) !== transitionText(ctx.text, scene) ||
+    nextScene.actions.length !== expected.length ||
+    nextScene.actions.some(
+      (item, i) =>
+        !sameActionDuration(item, expected[i]!) ||
+        candidate.slice(item.node.start, item.node.end) !==
+          ctx.text.slice(expected[i]!.node.start, expected[i]!.node.end),
+    )
+  )
+    reject("edit.unsafe-target", reasons().stories.reorderBoundary);
+  return edits;
+}
+
 /**
  * Appends `story <id> for <diagram> {` with one empty scene `scene <scene> {` and `}`, and `}`,
  * after the last top-level statement, separated by a blank line, with `title "…"` first inside
@@ -366,7 +616,16 @@ export function insertScene(ctx: TextContext, op: OperationOf<"insertScene">): T
     const separated = edit.newText.startsWith(ctx.eol)
       ? { ...edit, newText: ctx.eol + edit.newText }
       : edit;
-    return checked(ctx, [separated]);
+    const following = story.scenes[after.index + 1];
+    const orphaned =
+      following?.node.block?.statements.filter(
+        (stmt): stmt is KeywordStatement =>
+          stmt.kind === "KeywordStatement" && stmt.keyword.text === "overlap",
+      ) ?? [];
+    return checked(ctx, [
+      separated,
+      ...deleteStatements(ctx.text, ctx.compilation.parse.root, orphaned),
+    ]);
   }
   return checked(ctx, [
     insertStatement(ctx, body, story.node.start, render, {

@@ -198,7 +198,10 @@ the buttons and has no **New diagram**.
 
 The explorer's **New diagram…** creates one file in the selected folder with the same catalogue.
 Every project offers all seven choices, whichever initial template created it. Existing files
-and `project.json` stay unchanged. C4 creates a model and its context view together in that file
+and `project.json` stay unchanged. In the browser, colored miniatures show examples of what each
+type can create; the name and description remain beside its native radio choice. Click a drawing
+to select it, or use the arrow keys between choices. The gallery adapts to the available width
+and the dialog body scrolls on a short screen. C4 creates a model and its context view together in that file
 ([c4.md](language/c4.md)). Whiteboard starts a sketched board with a heading and sticky note;
 Kanban starts a board with To do, Doing and Done columns and one card. Both are editable free
 compositions. Starter labels follow the interface language when created; changing language later
@@ -1249,7 +1252,28 @@ declared in that model, in this file or in the model's own file.
   ending pause, keeping the timed content and parallel groups intact. The field explains the
   content minimum; shortening below it requires editing the actions or transition first. Enter or
   leaving the field commits once; Escape cancels. See [story timing](language/stories.md#in-the-editor).
-- **Delete story.** The timeline button and the explorer's story menu/Delete key ask for
+- **Reorder actions.** Drag the body of a top-level action before or after another in the same
+  scene. The marker previews its new start; dropping moves its source statement without changing
+  any duration or the scene total. **Move earlier** / **Move later**, or Alt+Left/Right on the
+  selected clip, move one position. An **In parallel** header moves its whole block; its children
+  stay simultaneous and individually resizable. Transitions stay at the beginning. This is
+  insertion-style ordering, not free timestamp placement. The right edge still resizes duration.
+  Escape, dropping outside the scene or a concurrent source update cancels; Undo restores the
+  exact source. The selected clip and duration field follow the moved action.
+  Very short actions outside groups have reachable body caps; scenes containing only instantaneous actions use
+  the move buttons or keyboard, since they have no distinct temporal positions.
+- **Select and name scenes.** **Selected scene** chooses the editing target independently of
+  playback, including empty scenes with the same start. Its row stays selected while playing
+  rows are marked separately. **Story name** and **Scene name** edit display titles with Enter or
+  blur; Escape cancels. Scene labels also accept F2/double click, and explorer stories accept Rename/F2.
+- **Panel height.** Drag the timeline's upper separator, or use its arrow keys when focused.
+  Escape cancels a drag. The size is kept locally with the editor's view state.
+- **Scene placement.** **Scene timing** chooses **Sequential** or **Overlap**. Set **Overlap
+  duration (s)**, then **Transition** and its duration independently. The maximum shared interval
+  is limited by both adjacent scenes; timing edits cannot shorten below required overlaps.
+- **Delete scene.** The lower panel removes the selected scene after confirmation and retains
+  its story and diagram. Removing the final scene leaves **New scene** available.
+- **Delete story.** The button beside the upper story selector and the explorer's story menu/Delete key ask for
   confirmation, including any export profiles that must be removed. The diagram remains, playback
   ends and Undo restores the exact source as one edit.
 - **New story.** Beside the story picker, whenever a diagram is shown or a story plays, **New

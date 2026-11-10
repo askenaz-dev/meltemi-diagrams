@@ -785,8 +785,9 @@ export class Studio {
     const before = this.host.text(path);
     this.host.write(path, text);
     this.revisions.set(path, this.revision(path) + 1);
-    // Files of the project are read through the workspace's cache.
-    this.workspaceOf(path).invalidate(absolute(path));
+    // Without a manifest, the canvas and project outline can read one file through different
+    // workspace roots. Every existing reader must forget its cached text before analysing it.
+    for (const workspace of this.sessions.all()) workspace.invalidate(absolute(path));
     // The open file reads the others, such as the file of its project's theme.
     if (path !== this.openPath) this.current = undefined;
     if (path === MANIFEST_NAME || !path.endsWith(".meltemi")) this.renew();

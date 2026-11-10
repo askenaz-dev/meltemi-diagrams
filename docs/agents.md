@@ -221,7 +221,9 @@ own tools and looks at them as pictures.
 
 For a story, `inspect_story` takes its file `path` and `story` id (plus `project` in account mode).
 It reports the compiled total duration, ordered scenes, active views, transitions and nested
-action timings in milliseconds. Preview each scene's `startMs` and `stillAtMs` and compare the
+action timings in milliseconds, including overlapping scene intervals. A preview at `startMs`
+or `stillAtMs` follows the global clock and includes all active scenes; directed scene exports
+isolate a scene's own closing state. Preview shared intervals and compare the
 preview's revision to the inspection's: each call reads the current snapshot, so another edit may
 require another inspection. In folder mode the revision identifies disk content, not a cloud
 write revision. The skill's [story guide](../skills/meltemi-diagrams/reference/stories.md) covers

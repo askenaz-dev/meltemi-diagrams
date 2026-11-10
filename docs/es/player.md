@@ -31,6 +31,15 @@ reproductor HTML** pregunta qué historia o diagrama escribir (o **Todas las his
 archivo tiene más de una) y escribe la misma página que la línea de comandos, y la línea de tiempo
 del lienzo tiene un botón **Exportar HTML** para la historia que reproduce.
 
+En el navegador, **Exportar HTML** abre el selector de exportación con la historia actual elegida.
+Las opciones HTML permiten incluir encabezado/descripción, resumen textual, detalles/enlaces
+de elementos y controles de reproducción. Las primeras tres empiezan desmarcadas; los controles,
+marcados. El zoom y el desplazamiento siguen disponibles sin detalles. Los detalles y enlaces
+omitidos se quitan de los datos de inspección opcionales y de los enlaces del dibujo; los textos
+visibles del diagrama, la geometría y los tiempos siguen siendo necesarios en la página sin
+conexión. La generación programática conserva sus valores predeterminados si no se indican
+estas opciones.
+
 ## Varias historias
 
 Un archivo puede contar varios flujos de un mismo dibujo, cada uno una `story` del mismo diagrama
@@ -59,6 +68,7 @@ sus escenas y dice "Historia: Refund". La página lleva el nombre de la primera 
 | Alejar / Acercar                   | `-` / `+` (o `=`)                                                 | El paso de zoom anterior o siguiente, alrededor del elemento con el foco o del centro        |
 | Nivel de zoom                      | `1`                                                               | Muestra el zoom; al pulsarlo, tamaño real                                                    |
 | Ajustar el dibujo                  | `0`                                                               | El dibujo completo, nunca por encima del tamaño real                                         |
+| Pantalla completa                  | Escape para salir                                                 | Abre el reproductor a pantalla completa; conserva los controles y devuelve el foco al salir  |
 |                                    | Mayús y una flecha                                                | Desplaza un octavo de la ventana del dibujo                                                  |
 |                                    | Arriba / Abajo                                                    | Recorre los elementos y las relaciones, y dice cada uno                                      |
 |                                    | Entrar                                                            | Muestra los detalles del elemento alcanzado; en uno seleccionado que abre una vista, la abre |
@@ -91,6 +101,11 @@ descripción emergente con su tecla y un anillo de foco visible.
   ([proyectos](language/projects.md#idioma-de-las-exportaciones)), nunca el del espectador.
 
 ## Explorar un dibujo
+
+La pantalla completa presenta el dibujo y los controles habilitados, sin resúmenes, paneles de
+inspección ni rutas de vistas. Al salir se recuperan esas superficies y el foco del teclado.
+El botón de pantalla completa sigue disponible al omitir los controles de reproducción; si el
+navegador o la página que lo aloja no lo admite, el botón deshabilitado explica el motivo.
 
 - **Zoom y desplazamiento.** Ctrl o Cmd con la rueda (y el pellizco de un panel táctil) acerca o
   aleja alrededor del puntero, del 10 % al 800 %. La rueda sola desplaza un dibujo más grande que
@@ -151,8 +166,11 @@ Una página o un fragmento contiene un elemento `<meltemi-player>` con su docume
 | `autoplay`            | Se reproduce de inmediato, salvo que el espectador pida movimiento reducido      |
 | `loop`                | Vuelve a empezar al final                                                        |
 | `static`              | Empieza en la vista estática                                                     |
-| `controls="false"`    | Oculta los controles; el teclado y el resumen se mantienen                       |
+| `controls="false"`    | Oculta reproducción/zoom; conserva pantalla completa y teclado                   |
 | `interactive="false"` | Dibuja el fotograma y los controles de reproducción: sin zoom, tarjetas ni panel |
+| `summary="false"`     | Omite el resumen textual                                                         |
+| `details="false"`     | Omite tarjetas, paneles y enlaces de inspección; conserva zoom y desplazamiento  |
+| `fullscreen="false"`  | Omite el botón de pantalla completa                                              |
 | `lang`                | El idioma de los controles: `es` o `en`                                          |
 | `story`               | Una página de varias historias: el id de la historia que se muestra primero      |
 

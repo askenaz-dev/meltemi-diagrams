@@ -116,6 +116,26 @@ describe("exports that pick what nothing says", () => {
     return output;
   };
 
+  it("passes explicit HTML presentation without changing API defaults", () => {
+    const clean = exportOf("checkout", "html", {
+      player: {
+        heading: false,
+        description: false,
+        summary: false,
+        details: false,
+        controls: false,
+      },
+    });
+    expect("text" in clean).toBe(true);
+    if (!("text" in clean)) return;
+    expect(clean.text).not.toContain("<h1>");
+    expect(clean.text).toContain('controls="false" summary="false" details="false"');
+    const legacy = exportOf("checkout", "html");
+    if (!("text" in legacy)) throw new Error(JSON.stringify(legacy));
+    expect(legacy.text).toContain("<h1>");
+    expect(legacy.text).not.toContain('summary="false"');
+  });
+
   it("gives endless effects one loop of their cycles, and says so", () => {
     const gif = video(exportOf("checkout", "gif"));
     expect(gif.video.durationMs).toBe(6000);

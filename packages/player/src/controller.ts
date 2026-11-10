@@ -1,8 +1,10 @@
 import { DEFAULT_LOCALE, type Locale } from "@meltemi/diagrams-i18n";
 import {
   DRILL_DURATIONS,
+  hasSceneOverlap,
   sceneGroups,
   sceneStills,
+  storySceneIndexAt,
   transitionFor,
   type DrillSpec,
   type StoryTimeline,
@@ -180,6 +182,8 @@ export class PlayerController {
   story: number;
   /** The final states of the scenes of the story shown, made once per story. */
   private stills: { readonly story: number; readonly at: readonly number[] } | null = null;
+  /** Static overlapping scenes cannot be recovered from their end time alone. */
+  private staticScene = 0;
   /** The element or relation selected, whose details the panel shows. */
   selection: ItemRef | null = null;
   /** The item the keyboard walk reached. */
@@ -222,13 +226,11 @@ export class PlayerController {
 
   /** The scene at a time: the last one that has started. */
   sceneIndexAt(t: number): number {
-    const scenes = this.scenes;
-    let index = 0;
-    for (let i = 0; i < scenes.length; i++) if (scenes[i]!.startMs <= t) index = i;
-    return index;
+    return storySceneIndexAt({ scenes: this.scenes }, t);
   }
 
   get sceneIndex(): number {
+    if (this.staticView && this.timeline && hasSceneOverlap(this.timeline)) return this.staticScene;
     return this.sceneIndexAt(this.time);
   }
 
@@ -250,6 +252,7 @@ export class PlayerController {
     const stories = this.stories;
     if (stories.length === 0) return;
     this.story = Math.max(0, Math.min(stories.length - 1, Math.trunc(index)));
+    this.staticScene = 0;
     this.playing = false;
     this.selection = null;
     this.focused = null;
@@ -309,6 +312,7 @@ export class PlayerController {
   seek(t: number): void {
     const duration = this.duration;
     const clamped = Math.max(0, duration === null ? t : Math.min(duration, t));
+    this.staticScene = this.sceneIndexAt(clamped);
     this.time =
       this.staticView && this.scenes.length > 0
         ? this.sceneEnd(this.sceneIndexAt(clamped))
@@ -319,15 +323,18 @@ export class PlayerController {
     const scenes = this.scenes;
     if (scenes.length === 0) return;
     const i = Math.max(0, Math.min(scenes.length - 1, index));
+    this.staticScene = i;
     this.time = this.staticView ? this.sceneEnd(i) : scenes[i]!.startMs;
   }
 
   setStatic(on: boolean): void {
+    const index = this.sceneIndex;
     this.staticView = on;
     if (!on) return;
     // Nothing moves in the static view.
     this.playing = false;
-    if (this.scenes.length > 0) this.time = this.sceneEnd(this.sceneIndex);
+    this.staticScene = index;
+    if (this.scenes.length > 0) this.time = this.sceneEnd(index);
   }
 
   /** The time whose frame is drawn. */

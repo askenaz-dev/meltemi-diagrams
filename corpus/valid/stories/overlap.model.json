@@ -1,0 +1,538 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "pipeline",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 85,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 366,
+          "line": 16,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "client",
+          "kind": "node",
+          "label": "Client",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 128,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 144,
+              "line": 6,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 128,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 134,
+              "line": 6,
+              "column": 9
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "service",
+          "kind": "node",
+          "label": "Service",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 147,
+              "line": 7,
+              "column": 3
+            },
+            "end": {
+              "offset": 165,
+              "line": 7,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 147,
+              "line": 7,
+              "column": 3
+            },
+            "end": {
+              "offset": 154,
+              "line": 7,
+              "column": 10
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "database",
+          "kind": "data",
+          "label": "Database",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": "cylinder",
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 168,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 190,
+              "line": 8,
+              "column": 25
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 168,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 176,
+              "line": 8,
+              "column": 11
+            }
+          },
+          "task": null
+        }
+      ],
+      "relations": [
+        {
+          "key": "request",
+          "id": "request",
+          "from": "client",
+          "to": "service",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 193,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 221,
+              "line": 9,
+              "column": 31
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 214,
+              "line": 9,
+              "column": 24
+            },
+            "end": {
+              "offset": 221,
+              "line": 9,
+              "column": 31
+            }
+          }
+        },
+        {
+          "key": "save",
+          "id": "save",
+          "from": "service",
+          "to": "database",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 224,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 251,
+              "line": 10,
+              "column": 30
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 247,
+              "line": 10,
+              "column": 26
+            },
+            "end": {
+              "offset": 251,
+              "line": 10,
+              "column": 30
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "client",
+          "x": 80,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 270,
+              "line": 12,
+              "column": 5
+            },
+            "end": {
+              "offset": 295,
+              "line": 12,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 276,
+              "line": 12,
+              "column": 11
+            },
+            "end": {
+              "offset": 282,
+              "line": 12,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "service",
+          "x": 340,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 300,
+              "line": 13,
+              "column": 5
+            },
+            "end": {
+              "offset": 327,
+              "line": 13,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 306,
+              "line": 13,
+              "column": 11
+            },
+            "end": {
+              "offset": 313,
+              "line": 13,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "database",
+          "x": 600,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 332,
+              "line": 14,
+              "column": 5
+            },
+            "end": {
+              "offset": 360,
+              "line": 14,
+              "column": 33
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 338,
+              "line": 14,
+              "column": 11
+            },
+            "end": {
+              "offset": 346,
+              "line": 14,
+              "column": 19
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null,
+      "gantt": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [
+    {
+      "id": "concurrent",
+      "target": "pipeline",
+      "title": "Concurrent explanation",
+      "description": null,
+      "durationMs": 14000,
+      "scenes": [
+        {
+          "id": "caller",
+          "title": "Caller",
+          "view": "pipeline",
+          "transition": null,
+          "startMs": 0,
+          "durationMs": 10000,
+          "actions": [
+            {
+              "kind": "highlight",
+              "targets": [
+                "client"
+              ],
+              "all": false,
+              "startMs": 0,
+              "durationMs": 10000,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 463,
+                  "line": 21,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 488,
+                  "line": 21,
+                  "column": 30
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 435,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 492,
+              "line": 22,
+              "column": 4
+            }
+          }
+        },
+        {
+          "id": "processing",
+          "title": "Processing",
+          "view": "pipeline",
+          "transition": null,
+          "startMs": 2000,
+          "durationMs": 10000,
+          "actions": [
+            {
+              "kind": "highlight",
+              "targets": [
+                "service"
+              ],
+              "all": false,
+              "startMs": 2000,
+              "durationMs": 10000,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 546,
+                  "line": 25,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 572,
+                  "line": 25,
+                  "column": 31
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 495,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 576,
+              "line": 26,
+              "column": 4
+            }
+          }
+        },
+        {
+          "id": "storage",
+          "title": "Storage",
+          "view": "pipeline",
+          "transition": null,
+          "startMs": 4000,
+          "durationMs": 10000,
+          "actions": [
+            {
+              "kind": "highlight",
+              "targets": [
+                "database"
+              ],
+              "all": false,
+              "startMs": 4000,
+              "durationMs": 10000,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 624,
+                  "line": 29,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 651,
+                  "line": 29,
+                  "column": 32
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 579,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 655,
+              "line": 30,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "range": {
+        "start": {
+          "offset": 368,
+          "line": 18,
+          "column": 1
+        },
+        "end": {
+          "offset": 657,
+          "line": 31,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "exports": [],
+  "diagnostics": []
+}

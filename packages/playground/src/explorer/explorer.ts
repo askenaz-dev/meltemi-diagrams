@@ -5,6 +5,7 @@
 // downloads and deletions. It sits in the page's first column, resizable and collapsible to a rail.
 
 import { messages } from "../messages/index.js";
+import { planEdit } from "@meltemi/diagrams-edit";
 import type { Studio } from "../studio.js";
 import { download, h, icon, withKey } from "../ui.js";
 import { writeZip } from "../zip.js";
@@ -92,6 +93,8 @@ export class Explorer {
   /** The diagram and story the canvas shows, as it last said. */
   private shown: { diagram?: string; story?: string } = {};
   private lastOpen: string | undefined;
+  private storyRename: { key: string; revision: number; text: string | undefined } | undefined;
+  private readonly storyDeletes = new Set<string>();
   /** The row a dialog that is closing gives focus to. */
   private focusNext: string | undefined;
 
@@ -421,7 +424,11 @@ export class Explorer {
   private key(node: TreeNode, e: KeyboardEvent): boolean {
     if (this.host.studio.readOnly) return false;
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
-    if (e.key === "F2" && plain && (node.kind === "file" || node.kind === "folder")) {
+    if (
+      e.key === "F2" &&
+      plain &&
+      (node.kind === "file" || node.kind === "folder" || node.kind === "story")
+    ) {
       this.startRename(node);
       return true;
     }
@@ -470,6 +477,12 @@ export class Explorer {
         { label: words.open, run: () => this.activate(node) },
         ...(node.kind === "story"
           ? [
+              {
+                label: words.rename,
+                icon: EXPLORER_ICONS.rename,
+                keys: "F2",
+                run: () => this.startRename(node),
+              },
               {
                 label: messages().explorer.actions.deleteStoryLabel,
                 run: () => {
@@ -612,7 +625,19 @@ export class Explorer {
   // Renames and moves ----------------------------------------------------------------------------
 
   private startRename(node: TreeNode): void {
-    if (!this.editable() || (node.kind !== "file" && node.kind !== "folder")) return;
+    if (
+      !this.editable() ||
+      (node.kind !== "file" && node.kind !== "folder" && node.kind !== "story")
+    )
+      return;
+    this.storyRename =
+      node.kind === "story"
+        ? {
+            key: node.key,
+            revision: this.host.studio.revision(node.path),
+            text: this.host.studio.text(node.path),
+          }
+        : undefined;
     const value = node.kind === "file" ? baseName(node.path).replace(/\.meltemi$/, "") : node.name;
     this.tree.startRename(node.key, value);
   }
@@ -621,6 +646,36 @@ export class Explorer {
   private rename(node: TreeNode, name: string): string | undefined {
     if (!this.editable()) return undefined;
     const words = messages().explorer.actions;
+    if (node.kind === "story" && node.id) {
+      const title = name.trim();
+      if (!title) return words.empty;
+      const studio = this.host.studio;
+      const revision = studio.revision(node.path);
+      const before = studio.text(node.path);
+      const draft = this.storyRename;
+      if (draft?.key === node.key && (draft.revision !== revision || draft.text !== before)) {
+        this.storyRename = { key: node.key, revision, text: before };
+        return words.storyChanged;
+      }
+      const compilation = studio.projects
+        .forFile(studio.absolute(node.path))
+        .file(studio.absolute(node.path))?.compilation;
+      if (!compilation || compilation.text !== before) return words.storyChanged;
+      const result = planEdit(
+        compilation,
+        { kind: "setStoryTitle", story: node.id, title },
+        { revision },
+      );
+      if (!result.ok) return result.rejection.reason;
+      if (result.plan.edits.length > 0)
+        studio.applyEdits(new Map([[node.path, result.plan.edits]]));
+      this.storyRename = undefined;
+      this.host.keep();
+      this.host.status(words.renamed(node.name, title));
+      this.refresh();
+      this.focusAfter(node.key);
+      return undefined;
+    }
     if (node.kind !== "file" && node.kind !== "folder") return undefined;
     const target = renamedPath(node.path, name, node.kind);
     if (!("path" in target)) return problemText(target);
@@ -816,39 +871,63 @@ export class Explorer {
   }
 
   private async removeStory(node: TreeNode): Promise<void> {
-    if (!this.editable() || !node.id) return;
+    if (!this.editable() || !node.id || this.storyDeletes.has(node.key)) return;
+    this.storyDeletes.add(node.key);
     const studio = this.host.studio;
     const words = messages().explorer.actions;
     const path = node.path;
     const revision = studio.revision(path);
     const text = studio.text(path);
-    const compilation = studio.projects
-      .forFile(studio.absolute(path))
-      .file(studio.absolute(path))?.compilation;
-    const profiles =
-      compilation?.document.exports.filter((p) => p.target.story?.id === node.id) ?? [];
-    const sure = await this.host.confirm(
-      words.deleteStoryTitle,
-      words.deleteStory(
-        node.id,
-        profiles.map((p) => p.id),
-      ),
-      words.deleteConfirm,
-    );
-    if (!sure || !this.editable()) return;
-    if (studio.revision(path) !== revision || studio.text(path) !== text) {
-      this.host.status(words.storyChanged);
-      return;
+    const open = studio.open;
+    const shown = this.shown.story;
+    try {
+      const compilation = studio.projects
+        .forFile(studio.absolute(path))
+        .file(studio.absolute(path))?.compilation;
+      if (
+        !compilation?.document.stories.some((story) => story.id === node.id) ||
+        compilation.text !== text
+      ) {
+        this.host.status(words.storyChanged);
+        this.refresh();
+        return;
+      }
+      const profiles =
+        compilation?.document.exports.filter((p) => p.target.story?.id === node.id) ?? [];
+      const sure = await this.host.confirm(
+        words.deleteStoryTitle,
+        words.deleteStory(
+          node.id,
+          profiles.map((p) => p.id),
+        ),
+        words.deleteConfirm,
+      );
+      if (!sure || !this.editable()) return;
+      if (
+        studio.revision(path) !== revision ||
+        studio.text(path) !== text ||
+        studio.open !== open ||
+        this.shown.story !== shown
+      ) {
+        this.host.status(words.storyChanged);
+        return;
+      }
+      const result = planEdit(
+        compilation,
+        { kind: "removeStory", story: node.id, cascade: profiles.length > 0 },
+        { revision },
+      );
+      if (!result.ok) {
+        this.host.status(result.rejection.reason);
+        return;
+      }
+      if (result.plan.edits.length > 0) studio.applyEdits(new Map([[path, result.plan.edits]]));
+      this.host.keep();
+      this.refresh();
+      this.tree.focus();
+    } finally {
+      this.storyDeletes.delete(node.key);
     }
-    this.host.openFile(path);
-    studio.receive({
-      type: "action",
-      revision,
-      action: { kind: "removeStory", story: node.id, cascade: profiles.length > 0 },
-    });
-    this.host.keep();
-    this.refresh();
-    this.tree.focus();
   }
 
   private async remove(nodes: readonly TreeNode[]): Promise<void> {

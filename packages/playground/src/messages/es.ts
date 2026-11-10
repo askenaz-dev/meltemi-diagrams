@@ -420,6 +420,12 @@ export const es: typeof en = {
     embed: "Un fragmento para pegar en una página",
     autoplay: "Se reproduce al abrirse",
     loop: "Se repite en bucle",
+    playerHeading: "Incluir encabezado y descripción",
+    playerSummary: "Incluir resumen textual",
+    playerDetails: "Incluir detalles y enlaces de elementos",
+    playerDetailsHint:
+      "El zoom y el desplazamiento siguen disponibles. Siempre se incluyen los textos del diagrama y los datos de reproducción.",
+    playerControls: "Incluir controles de reproducción",
     fps: "Fotogramas por segundo",
     duration: "Duración",
     commandLine: (reason, format) =>

@@ -25,6 +25,30 @@ function setup(files: [string, string | Uint8Array][] = [], open?: string) {
 }
 
 describe("the change listener", () => {
+  it("refreshes every workspace's outline after a nested story is renamed without a manifest", () => {
+    const path = "diagrams/story.meltemi";
+    const initial = `${DIAGRAM}\nstory tour for x { title "Initial"; scene overview { hold 1s } }\n`;
+    const { studio } = setup([[path, initial]], path);
+    const titles = () => studio.outlines().get(path)?.stories;
+    // The canvas opens the file's folder; the explorer compiles the outer workspace.
+    expect(titles()).toEqual([{ id: "tour", title: "Initial" }]);
+    const start = initial.indexOf("Initial");
+    studio.applyEdits(new Map([[path, [{ start, end: start + 7, newText: "Renamed" }]]]));
+    const renamed = initial.replace('title "Initial"', 'title "Renamed"');
+    expect(studio.host.text(path)).toBe(renamed);
+    expect(titles()).toEqual([{ id: "tour", title: "Renamed" }]);
+    expect(studio.undo()).toBe(true);
+    expect(studio.host.text(path)).toBe(initial);
+    expect(titles()).toEqual([{ id: "tour", title: "Initial" }]);
+    expect(studio.redo()).toBe(true);
+    expect(titles()).toEqual([{ id: "tour", title: "Renamed" }]);
+    studio.setText(path, renamed.replace('title "Renamed"', 'title "Typed"'));
+    expect(titles()).toEqual([{ id: "tour", title: "Typed" }]);
+    expect(studio.undo()).toBe(true);
+    expect(studio.host.text(path)).toBe(renamed);
+    expect(titles()).toEqual([{ id: "tour", title: "Renamed" }]);
+  });
+
   it("reports typing with its carets, flagged as typing and not remote", () => {
     const { studio, changes } = setup([["notes.md", "hello"]]);
     studio.setText("notes.md", "hello!", {

@@ -28,6 +28,14 @@ not apply to a player. In VS Code, **Meltemi Diagrams: Export HTML Player** asks
 diagram to write (or **Every story**, when the file has more than one) and writes the same page as
 the command line, and the canvas timeline has an **Export HTML** button for the story it plays.
 
+In the browser, **Export HTML** opens the export chooser with the current story selected.
+HTML options let you include the page heading/description, text summary, element details/links
+and playback controls. The first three start unchecked; controls start checked. Zoom and pan
+remain available without element details. Omitted details and links are removed from the optional
+inspection data and drawing links; visible diagram text, geometry and timing remain necessary
+parts of the offline page. Programmatic player generation keeps its existing defaults unless
+these options are supplied.
+
 ## Several stories
 
 A file may tell several flows of one drawing, each a `story` of the same diagram
@@ -55,6 +63,7 @@ one story there is no picker.
 | Zoom out / Zoom in    | `-` / `+` (or `=`)                                       | The previous or next zoom step, around the focused element or the centre                |
 | Zoom level            | `1`                                                      | Shows the zoom; pressed, actual size                                                    |
 | Fit the drawing       | `0`                                                      | The whole drawing, never above actual size                                              |
+| Full screen           | Escape exits                                             | Opens the player in full screen; the controls stay available and focus returns on exit  |
 |                       | Shift and an arrow                                       | Pans an eighth of the drawing's window                                                  |
 |                       | Up / Down                                                | Walks the elements and relations, says each one                                         |
 |                       | Enter                                                    | Shows the details of the element reached; on a selected one that opens a view, opens it |
@@ -82,6 +91,11 @@ keeps its own arrows. Every control has a name, a tooltip with its key and a vis
   else English ([projects](language/projects.md#language-of-exports)), never the viewer's.
 
 ## Exploring a drawing
+
+Full screen presents the drawing and enabled controls, leaving summaries, inspection panels
+and view trails out of the presentation. Leaving restores those surfaces and keyboard focus.
+The fullscreen button remains available when playback controls are omitted; an unavailable
+browser or embedding context shows a disabled button with an explanation.
 
 - **Zoom and pan.** Ctrl or Cmd with the wheel (and a trackpad pinch) zooms around the pointer,
   from 10 % to 800 %. A plain wheel pans a drawing larger than its window and is left to the page
@@ -139,8 +153,11 @@ A page or fragment holds a `<meltemi-player>` element with its document in a
 | `autoplay`            | Plays at once, unless the viewer asks for reduced motion                |
 | `loop`                | Starts again at the end                                                 |
 | `static`              | Starts in the static view                                               |
-| `controls="false"`    | Hides the controls; the keyboard and the summary remain                 |
+| `controls="false"`    | Hides playback/zoom controls; fullscreen and keyboard remain            |
 | `interactive="false"` | Draws the frame and the playback controls only: no zoom, cards or panel |
+| `summary="false"`     | Omits the text summary                                                  |
+| `details="false"`     | Omits inspection cards, panels and opening links, retaining zoom/pan    |
+| `fullscreen="false"`  | Omits the fullscreen button                                             |
 | `lang`                | The language of the controls: `es` or `en`                              |
 | `story`               | A page of several stories: the id of the story shown first              |
 

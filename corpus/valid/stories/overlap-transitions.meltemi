@@ -1,0 +1,43 @@
+language "0.2"
+
+diagram context: flow {
+  layout manual
+  client["client"]
+  service["service"]
+  client -> service as request
+  placement {
+    place client at (80, 100)
+    place service at (340, 100)
+  }
+}
+
+diagram detail: flow {
+  layout manual
+  client["client"]
+  service["service"]
+  database["database"]
+  client -> service as request
+  service -> database as save
+  placement {
+    place client at (80, 100)
+    place service at (340, 100)
+    place database at (600, 100)
+  }
+}
+
+story views for context {
+  scene overview {
+    highlight client over 4s
+  }
+  scene closer {
+    overlap 2s
+    transition fade over 1s
+    camera service over 3s
+  }
+  scene inside {
+    view detail
+    overlap 1s
+    transition morph over 2s
+    reveal database over 2s
+  }
+}

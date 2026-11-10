@@ -332,12 +332,14 @@ const en = {
   /** What the story vocabulary means: completion and hover inside stories. */
   storyWords: {
     story:
-      "A story about a diagram: `story <id> for <diagram> { scene ... }`. Scenes run one after the other on one clock.",
+      "A story about a diagram: `story <id> for <diagram> { scene ... }`. Scenes share one clock; `overlap` can make adjacent scenes concurrent.",
     for: "The diagram the story starts with; scenes may change it with `view`.",
     title: 'The title of the story: `title "A purchase"`.',
     description: "A description of the story.",
     scene:
-      'A step of the story: `scene <id> ["Title"] { view; transition; actions }`. It starts when the previous one ends.',
+      'A step of the story: `scene <id> ["Title"] { view; overlap; transition; actions }`. It follows the previous scene unless an overlap is declared.',
+    overlap:
+      "Starts this scene before the previous one ends: `overlap 2s`, before actions. The shared interval cannot exceed either scene's duration; later scenes take precedence on a shared channel.",
     view: "The diagram this scene shows: `view <diagram>`, first in the scene. A change of view needs a `transition`.",
     transition:
       "How the scene's view replaces the previous one: `transition cut|fade|morph [over <time>]`, before the actions.",
@@ -1011,12 +1013,14 @@ const es: typeof en = {
 
   storyWords: {
     story:
-      "Una historia sobre un diagrama: `story <id> for <diagram> { scene ... }`. Las escenas se suceden una tras otra con un solo reloj.",
+      "Una historia sobre un diagrama: `story <id> for <diagram> { scene ... }`. Las escenas comparten un reloj; `overlap` permite solapar escenas contiguas.",
     for: "El diagrama con el que empieza la historia; las escenas pueden cambiarlo con `view`.",
     title: 'El título de la historia: `title "A purchase"`.',
     description: "Una descripción de la historia.",
     scene:
-      'Un paso de la historia: `scene <id> ["Title"] { view; transition; actions }`. Empieza cuando termina la anterior.',
+      'Un paso de la historia: `scene <id> ["Title"] { view; overlap; transition; actions }`. Va después de la anterior salvo que declares un solapamiento.',
+    overlap:
+      "Empieza esta escena antes de que termine la anterior: `overlap 2s`, antes de las acciones. El intervalo compartido no puede superar la duración de ninguna; la escena posterior tiene prioridad sobre un canal compartido.",
     view: "El diagrama que muestra esta escena: `view <diagram>`, primero en la escena. Un cambio de vista necesita una `transition`.",
     transition:
       "Cómo la vista de la escena reemplaza a la anterior: `transition cut|fade|morph [over <time>]`, antes de las acciones.",

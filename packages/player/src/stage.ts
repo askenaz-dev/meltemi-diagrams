@@ -76,6 +76,7 @@ export class Stage {
   private size: Size = { width: 1, height: 1 };
   private viewBox: Box = { x: 0, y: 0, width: 1, height: 1 };
   private measured = 0;
+  private measuredHeight = 0;
   private readonly layers: Record<"hits" | "rings" | "badges", SVGGElement>;
   private readonly nodes = new Map<string, SVGElement>();
   private state: OverlayState | null = null;
@@ -95,6 +96,7 @@ export class Stage {
     private readonly root: ShadowRoot,
     readonly interactive: boolean,
     private readonly handlers: StageHandlers,
+    private readonly links = true,
   ) {
     this.picture = el("div", { class: "picture" });
     this.overlay = svgEl("svg", { class: "overlay", "aria-hidden": "true" });
@@ -138,9 +140,20 @@ export class Stage {
   measure(force = false): void {
     const width = this.body.clientWidth;
     if (width <= 0) return;
-    if (!force && Math.abs(width - this.measured) < 0.5) return;
+    const fullscreen = this.root.host.ownerDocument.fullscreenElement === this.root.host;
+    const height = fullscreen
+      ? this.frame.clientHeight
+      : (width * this.size.height) / this.size.width;
+    if (height <= 0) return;
+    if (
+      !force &&
+      Math.abs(width - this.measured) < 0.5 &&
+      Math.abs(height - this.measuredHeight) < 0.5
+    )
+      return;
     this.measured = width;
-    const stage = { width, height: (width * this.size.height) / this.size.width };
+    this.measuredHeight = height;
+    const stage = { width, height };
     this.viewer.resize(stage);
     this.apply("direct");
     this.handlers.resized(stage);
@@ -157,6 +170,8 @@ export class Stage {
       // The page's own tooltips would cover the cards: the DOM drops the drawing's titles, the
       // frame's markup (and every export) keeps them.
       if (this.interactive) for (const title of svg.querySelectorAll("title, desc")) title.remove();
+      if (!this.links)
+        for (const link of svg.querySelectorAll("a[href]")) link.removeAttribute("href");
       const box = svg
         .getAttribute("viewBox")
         ?.split(/[\s,]+/)

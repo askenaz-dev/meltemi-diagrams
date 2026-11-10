@@ -346,3 +346,49 @@ The project creation dialog SHALL describe its cards as initial templates. Choos
 #### Scenario: Editing access is lost before creation
 - **WHEN** an editable cloud project becomes read-only while the creation dialog is open
 - **THEN** Create writes nothing and reports the access restriction in the interface language
+
+### Requirement: Explorer story naming and deletion authority
+
+The explorer SHALL offer story display-name editing through Rename/F2 and story deletion.
+The upper story selector SHALL also offer story deletion in the shared editor.
+The scene panel SHALL delete scenes rather than stories. Naming/deletion SHALL preserve unrelated
+files and refuse stale or duplicate requests without reporting a missing old story after success.
+
+#### Scenario: Rename an explorer story
+
+- **WHEN** Rename or F2 is used on a story and a title is accepted
+- **THEN** its visible name changes without changing its identifier or dependent export references
+
+#### Scenario: Delete while navigating
+
+- **WHEN** a deletion confirmation becomes stale because the source or selected story changes
+- **THEN** it writes nothing and the current story remains usable
+### Requirement: Illustrated diagram starter choices
+
+New diagram SHALL show a distinct colored vector example for each of its seven starter choices,
+with its localized name and description. A localized hint SHALL identify the drawings as examples
+of what can be created. The examples SHALL load locally without network or renderer initialization.
+They SHALL preserve the catalogue identities, order and document creation semantics.
+
+#### Scenario: Recognize each diagram type
+
+- **WHEN** New diagram is opened from any project
+- **THEN** flow, sequence, C4, Gantt, whiteboard, Kanban and free composition each have a distinct
+  visible illustration using the product's palette and retaining readable labels
+
+#### Scenario: Select an illustration accessibly
+
+- **WHEN** an author clicks an illustration or navigates its native radio choices with arrow keys
+- **THEN** exactly one choice is selected, visible focus remains available and the same starter
+  identity is passed on creation, while illustrations add no separate keyboard or spoken controls
+
+#### Scenario: Use a small or dark viewport
+
+- **WHEN** the dialog is opened in English or Spanish, light or dark, at 320 pixels or on desktop
+- **THEN** previews and labels remain visible without horizontal overflow, the body can scroll,
+  and Cancel/Create remain reachable with clear selected and focused states
+
+#### Scenario: Leave the form without creating
+
+- **WHEN** the author changes the illustrated selection and cancels or presses Escape
+- **THEN** every existing file remains identical and focus returns to the explorer

@@ -6,6 +6,7 @@ import { sceneStills, storyTimeline } from "@meltemi/diagrams-motion";
 import { planEdit } from "@meltemi/diagrams-edit";
 import { applyTextEdits } from "@meltemi/diagrams-language";
 import type { StoryPlayerDocument } from "@meltemi/diagrams-player";
+import { frameScene } from "../../player/src/frame.js";
 import { BROKEN_STORY, FLOWS_SOURCE } from "../../../test-support/flows.js";
 import {
   produceExport,
@@ -171,6 +172,29 @@ describe("every story in one player", () => {
 });
 
 describe("a picture per scene", () => {
+  it("exports an overlapping scene's own closing view instead of a later scene's global frame", () => {
+    const source = TWO_VIEWS.replace("scene second {", "scene second {\n    overlap 200ms");
+    const context = contextOf(write("overlapping-views.meltemi", source));
+    const story = storyOf(context, "tour");
+    expect(context.file.compilation.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const timeline = storyTimeline(story);
+    expect(timeline.scenes.map((scene) => scene.startMs)).toEqual([0, 200]);
+    const output = produceExport(
+      context,
+      request({ kind: "story", story }, "svg", { scenes: true }),
+    );
+    if (!("texts" in output)) throw new Error(JSON.stringify(output));
+    expect(output.texts[0]!.output).toContain('viewBox="0 0 480 300"');
+    expect(output.texts[0]!.output).toContain('data-id="a"');
+    expect(output.texts[0]!.output).not.toContain('data-id="b"');
+    expect(output.texts[1]!.output).toContain('viewBox="0 0 640 400"');
+    const doc = embedded(produceExport(context, request({ kind: "story", story }, "html")));
+    const selected = frameScene(doc, 400, { static: true, scene: 0 });
+    expect([selected!.width, selected!.height]).toEqual([480, 300]);
+    const second = frameScene(doc, 400, { static: true, scene: 1 });
+    expect([second!.width, second!.height]).toEqual([640, 400]);
+  });
+
   it("uses edited scene totals in the player and every exported scene frame", () => {
     const before = contextOf(twoViews);
     const plan = planEdit(before.file.compilation, {

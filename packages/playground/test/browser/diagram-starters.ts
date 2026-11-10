@@ -48,10 +48,103 @@ const files = (page: Page) =>
     );
   });
 
+/** Let the real dialog transition finish before reading its screen-space geometry. */
+async function settleDialog(page: Page) {
+  await page.locator("dialog[open]").evaluate(async (dialog) => {
+    await Promise.all(
+      dialog
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.finished.catch(() => null)),
+    );
+    await new Promise<void>((done) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => done())),
+    );
+  });
+}
+
+/** Check what was actually painted, rather than snapshotting SVG strings or implementation data. */
+async function expectPreviews(page: Page) {
+  await settleDialog(page);
+  const previews = page.locator("dialog[open] .starter-choice svg.starter-preview");
+  assert.equal(await previews.count(), 7);
+  const painted = await previews.evaluateAll((elements) =>
+    elements.map((element) => {
+      const svg = element as SVGSVGElement;
+      const box = svg.getBoundingClientRect();
+      const card = svg.closest(".starter-choice")!.getBoundingClientRect();
+      const shapes = [
+        ...svg.querySelectorAll("rect, path, circle, ellipse, line, polyline, polygon"),
+      ]
+        .filter((shape) => !shape.closest("defs"))
+        .map((shape) => {
+          const geometry = (shape as SVGGraphicsElement).getBBox();
+          const style = getComputedStyle(shape);
+          return {
+            geometry: [shape.localName, geometry.x, geometry.y, geometry.width, geometry.height],
+            fill: Number(style.opacity) > 0 && Number(style.fillOpacity) > 0 ? style.fill : "none",
+          };
+        });
+      return {
+        hidden: svg.getAttribute("aria-hidden"),
+        focusable: svg.getAttribute("focusable"),
+        width: box.width,
+        height: box.height,
+        inside: box.left >= card.left - 1 && box.right <= card.right + 1,
+        geometry: shapes.map((shape) => shape.geometry),
+        fills: shapes.map((shape) => shape.fill),
+      };
+    }),
+  );
+  for (const [index, preview] of painted.entries()) {
+    assert.equal(preview.hidden, "true", names[index]);
+    assert.equal(preview.focusable, "false", names[index]);
+    assert.ok(preview.width >= 100 && preview.height >= 40, "preview remains legible");
+    assert.equal(preview.inside, true, "preview stays within its card");
+    assert.ok(preview.geometry.length >= 2, "preview paints an example, not only a background");
+  }
+  assert.equal(
+    new Set(painted.map((preview) => JSON.stringify(preview.geometry))).size,
+    7,
+    "each diagram type has a different visible composition",
+  );
+  const fills = new Set(
+    painted
+      .flatMap((preview) => preview.fills)
+      .filter((fill) => !["none", "transparent", "rgba(0, 0, 0, 0)"].includes(fill)),
+  );
+  assert.ok(
+    fills.size >= 3,
+    "examples use distinguishable colors rather than inherited text color",
+  );
+}
+
+async function expectDialogFits(page: Page, width: number, height: number) {
+  const dialog = page.locator("dialog[open]");
+  const box = await dialog.boundingBox();
+  assert.ok(
+    box &&
+      box.x >= -1 &&
+      box.x + box.width <= width + 1 &&
+      box.y >= -1 &&
+      box.y + box.height <= height + 1,
+    "dialog fits viewport",
+  );
+  for (const region of [dialog, dialog.locator(".dialog-body")])
+    assert.equal(await region.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), true);
+}
+
+async function selectPreview(page: Page, index: number) {
+  const card = page.locator("dialog[open] .starter-choice").nth(index);
+  await card.locator(".starter-art").click();
+  assert.equal(await card.getByRole("radio").isChecked(), true);
+  assert.equal(await page.locator('dialog[open] input[type="radio"]:checked').count(), 1);
+}
+
 export function diagramStarterTests(h: Helpers) {
   return [
     ...["flow", "c4"].map((template) => ({
       name: `diagram catalogue: creates all seven from a ${template} project without changing existing files`,
+      viewport: { width: 1440, height: 1000 },
       async run({ page }: { page: Page }) {
         await h.openTemplate(page, template);
         const before = await files(page);
@@ -65,11 +158,12 @@ export function diagramStarterTests(h: Helpers) {
             names,
           );
           if (template === "flow" && starter === "flow") {
-            await page.waitForTimeout(250);
+            await expectPreviews(page);
+            await expectDialogFits(page, 1440, 1000);
             await page.screenshot({ path: join(h.output, "diagram-catalogue-en-light-wide.png") });
           }
           await dialog.getByLabel("Name", { exact: true }).fill(`added-${starter}`);
-          await dialog.getByRole("radio", { name: names[index], exact: true }).check();
+          await selectPreview(page, index);
           await dialog.getByRole("button", { name: "Create", exact: true }).click();
           await h.expectOpen(page, `diagrams/added-${starter}.meltemi`);
           await h.analysed(page);
@@ -146,11 +240,12 @@ export function diagramStarterTests(h: Helpers) {
     },
     ...[false, true].map((spanish) => ({
       name: `diagram catalogue: ${spanish ? "Spanish dark" : "English light"} responsive choices and keyboard on a narrow screen`,
-      viewport: { width: 390, height: 844 },
+      viewport: { width: 320, height: 844 },
       locale: spanish ? "es-CL" : "en-US",
       dark: spanish,
       async run({ page }: { page: Page }) {
         const words = spanish ? namesEs : names;
+        const before = await files(page);
         await page.getByRole("tab", { name: spanish ? "Archivos" : "Files", exact: true }).click();
         const button = page
           .locator(".explorer-bar")
@@ -163,21 +258,88 @@ export function diagramStarterTests(h: Helpers) {
             .evaluateAll((inputs) => inputs.map((input) => input.getAttribute("aria-label"))),
           words,
         );
+        await expectPreviews(page);
         await dialog.getByRole("radio").first().focus();
         await page.keyboard.press("ArrowRight");
         assert.equal(
           await dialog.getByRole("radio", { name: words[1], exact: true }).isChecked(),
           true,
         );
-        const box = await dialog.boundingBox();
-        assert.ok(box && box.x >= 0 && box.x + box.width <= 391, "dialog fits viewport");
-        assert.equal(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), true);
-        await page.waitForTimeout(250);
+        assert.equal(
+          await dialog
+            .getByRole("radio")
+            .nth(1)
+            .evaluate((el) => document.activeElement === el),
+          true,
+        );
+        assert.equal(
+          await dialog
+            .getByRole("radio")
+            .nth(1)
+            .evaluate((el) => {
+              const style = getComputedStyle(el.closest(".starter-choice")!);
+              return style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0;
+            }),
+          true,
+          "keyboard selection has a visible focus outline",
+        );
+        await selectPreview(page, 6);
+        await expectDialogFits(page, 320, 844);
+        const create = dialog.getByRole("button", {
+          name: spanish ? "Crear" : "Create",
+          exact: true,
+        });
+        await create.scrollIntoViewIfNeeded();
+        const footer = await create.boundingBox();
+        assert.ok(
+          footer && footer.y >= 0 && footer.y + footer.height <= 845,
+          "Create stays reachable",
+        );
+        await settleDialog(page);
         await page.screenshot({
           path: join(h.output, `diagram-catalogue-${spanish ? "es-dark" : "en-light"}-narrow.png`),
         });
         await page.keyboard.press("Escape");
         await page.waitForFunction(() => document.activeElement?.closest(".tree") !== null);
+        assert.deepEqual(await files(page), before);
+      },
+    })),
+    ...[
+      { spanish: false, dark: true },
+      { spanish: true, dark: false },
+      { spanish: true, dark: true },
+    ].map(({ spanish, dark }) => ({
+      name: `diagram catalogue: ${spanish ? "Spanish" : "English"} ${dark ? "dark" : "light"} colorful previews and selection on desktop`,
+      viewport: { width: 1440, height: 1000 },
+      locale: spanish ? "es-CL" : "en-US",
+      dark,
+      async run({ page }: { page: Page }) {
+        const before = await files(page);
+        await page
+          .locator(".explorer-bar")
+          .getByRole("button", { name: spanish ? "Nuevo diagrama…" : "New diagram…" })
+          .click();
+        const dialog = page.locator("dialog[open]");
+        await expectPreviews(page);
+        await expectDialogFits(page, 1440, 1000);
+        for (let index = 0; index < DIAGRAM_STARTERS.length; index++) {
+          await selectPreview(page, index);
+          const box = await dialog.locator(".starter-preview").nth(index).boundingBox();
+          assert.ok(
+            box && box.y >= 0 && box.y + box.height <= 1001,
+            "all seven previews fit on desktop",
+          );
+        }
+        await settleDialog(page);
+        await page.screenshot({
+          path: join(
+            h.output,
+            `diagram-catalogue-${spanish ? "es" : "en"}-${dark ? "dark" : "light"}-wide.png`,
+          ),
+        });
+        await page.keyboard.press("Escape");
+        await page.waitForFunction(() => document.activeElement?.closest(".tree") !== null);
+        assert.deepEqual(await files(page), before);
       },
     })),
   ];

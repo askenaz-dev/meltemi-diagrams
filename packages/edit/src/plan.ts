@@ -68,7 +68,7 @@ import { deleteStatements } from "./delete.js";
 import { createDiagram } from "./diagrams.js";
 import { createDiagramFromStarter } from "./diagram-starters.js";
 import { endpointText, requireEndPosition, routeParts } from "./routes.js";
-import { insertAfter } from "./insert.js";
+import { insertAfter, verifyNoNewErrors } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
 import { setClasses, setDescription, setElementKind, setElementLabel } from "./labels.js";
 import { clearPlacement } from "./placement.js";
@@ -137,12 +137,20 @@ import {
   insertScene,
   insertStoryAction,
   removeStoryAction,
+  reorderStoryAction,
   removeStory,
   renameInStories,
   setStoryTiming,
   setSceneDuration,
   storyDependents,
 } from "./stories.js";
+import {
+  removeScene,
+  setSceneOverlap,
+  setSceneTitle,
+  setSceneTransition,
+  setStoryTitle,
+} from "./story-scenes.js";
 import {
   formatNumber,
   formatPoint,
@@ -270,6 +278,16 @@ type StoryOperation = Extract<EditOperation, { story: string }>;
 
 function runStory(ctx: TextContext, operation: StoryOperation): TextEdit[] {
   switch (operation.kind) {
+    case "setStoryTitle":
+      return setStoryTitle(ctx, operation);
+    case "setSceneTitle":
+      return setSceneTitle(ctx, operation);
+    case "removeScene":
+      return removeScene(ctx, operation);
+    case "setSceneOverlap":
+      return setSceneOverlap(ctx, operation);
+    case "setSceneTransition":
+      return setSceneTransition(ctx, operation);
     case "setStoryTiming":
       return setStoryTiming(ctx, operation);
     case "setSceneDuration":
@@ -280,6 +298,8 @@ function runStory(ctx: TextContext, operation: StoryOperation): TextEdit[] {
       return insertStoryAction(ctx, operation);
     case "removeStoryAction":
       return removeStoryAction(ctx, operation);
+    case "reorderStoryAction":
+      return reorderStoryAction(ctx, operation);
     case "insertScene":
       return insertScene(ctx, operation);
   }
@@ -481,7 +501,7 @@ function run(
   }
 }
 
-/** Safety net: a plan must never make the document syntactically worse. */
+/** Safety net: preserve syntax and the timing constraints of opt-in overlapping stories. */
 function verifyResult(ctx: TextContext, edits: readonly TextEdit[]): void {
   if (edits.length === 0) return;
   const count = (diagnostics: readonly { severity: string; code: string }[]) =>
@@ -491,6 +511,19 @@ function verifyResult(ctx: TextContext, edits: readonly TextEdit[]): void {
   if (after > before) {
     reject("edit.unsafe-result", reasons().targets.unparsable);
   }
+  // A cascading diagram edit can remove actions and shorten a scene below its overlap.
+  // Refuse that result instead of silently changing the user's scene schedule.
+  if (
+    ctx.compilation.document.stories.some((story) =>
+      story.scenes.some((scene) =>
+        scene.node.block?.statements.some(
+          (statement) =>
+            statement.kind === "KeywordStatement" && statement.keyword.text === "overlap",
+        ),
+      ),
+    )
+  )
+    verifyNoNewErrors(ctx, edits);
 }
 
 // ---------------------------------------------------------------------- placement

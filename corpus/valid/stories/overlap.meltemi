@@ -1,0 +1,31 @@
+language "0.2"
+
+// Three independently highlighted parts share the same story clock.
+diagram pipeline: flow {
+  layout manual
+  client["Client"]
+  service["Service"]
+  database[("Database")]
+  client -> service as request
+  service -> database as save
+  placement {
+    place client at (80, 100)
+    place service at (340, 100)
+    place database at (600, 100)
+  }
+}
+
+story concurrent for pipeline {
+  title "Concurrent explanation"
+  scene caller "Caller" {
+    highlight client over 10s
+  }
+  scene processing "Processing" {
+    overlap 8s
+    highlight service over 10s
+  }
+  scene storage "Storage" {
+    overlap 8s
+    highlight database over 10s
+  }
+}

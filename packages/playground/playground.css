@@ -2233,9 +2233,17 @@ a.pg-menu-item {
 }
 
 .diagram-starters {
+  --starter-blue: color-mix(in srgb, var(--pg-accent) 85%, var(--pg-fg));
+  --starter-blue-soft: color-mix(in srgb, var(--pg-accent) 18%, var(--pg-bg));
+  --starter-cyan: color-mix(in srgb, #0891b2 85%, var(--pg-fg));
+  --starter-cyan-soft: color-mix(in srgb, #22d3ee 18%, var(--pg-bg));
+  --starter-amber: color-mix(in srgb, #d97706 85%, var(--pg-fg));
+  --starter-amber-soft: color-mix(in srgb, #fbbf24 24%, var(--pg-bg));
+  --starter-line: color-mix(in srgb, var(--pg-muted) 55%, var(--pg-bg));
+  --starter-paper: var(--pg-bg);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 10px;
   padding: 0;
   margin: 12px 0;
   border: 0;
@@ -2244,28 +2252,61 @@ a.pg-menu-item {
 .diagram-starters legend {
   margin-bottom: 8px;
 }
+.starter-hint {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+  color: var(--pg-muted);
+  font-size: 12px;
+}
 .starter-choice {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 8px;
-  padding: 12px;
+  min-width: 0;
+  padding: 8px;
   border: 1px solid var(--pg-border);
   border-radius: 8px;
   cursor: pointer;
+  transition:
+    border-color var(--pg-motion-fast) var(--pg-ease),
+    background-color var(--pg-motion-fast) var(--pg-ease);
 }
-.starter-choice > span {
+.starter-art {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--pg-surface);
+}
+.starter-art .starter-preview {
+  display: block;
+  width: 100%;
+  height: 68px;
+  pointer-events: none;
+}
+.starter-caption {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
+.starter-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1.4;
+}
+.starter-heading input {
+  flex: none;
+  margin: 0;
+  accent-color: var(--pg-accent);
+}
 .starter-choice small {
+  padding-left: 20px;
   color: var(--pg-muted);
   line-height: 1.4;
 }
-.starter-choice svg {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
+.starter-choice:hover {
+  border-color: var(--pg-muted);
 }
 .starter-choice:has(input:checked) {
   border-color: var(--pg-accent);

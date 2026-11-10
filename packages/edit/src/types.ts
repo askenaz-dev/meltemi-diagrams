@@ -380,6 +380,40 @@ export type EditOperation =
       readonly cascade: boolean;
     }
   | {
+      /** Sets the human-readable title, or removes it with null, preserving the story id. */
+      readonly kind: "setStoryTitle";
+      readonly story: string;
+      readonly title: string | null;
+    }
+  | {
+      /** Sets/removes the scene's optional display title, preserving its stable id. */
+      readonly kind: "setSceneTitle";
+      readonly story: string;
+      readonly scene: string;
+      readonly title: string | null;
+    }
+  | {
+      /** Removes a scene and clears the following scene's orphaned incoming overlap. */
+      readonly kind: "removeScene";
+      readonly story: string;
+      readonly scene: string;
+    }
+  | {
+      /** Sets incoming overlap in milliseconds; zero restores sequential placement. */
+      readonly kind: "setSceneOverlap";
+      readonly story: string;
+      readonly scene: string;
+      readonly durationMs: number;
+    }
+  | {
+      /** Sets the incoming transition kind and optional duration. */
+      readonly kind: "setSceneTransition";
+      readonly story: string;
+      readonly scene: string;
+      readonly transition: "cut" | "fade" | "morph";
+      readonly durationMs?: number;
+    }
+  | {
       /**
        * Appends an action to a scene: `reveal`, `hide`, `highlight`, `focus`, `camera` or `trace`
        * with ids of the scene's view (`all` for `focus` and `camera`), or `hold` with a time.
@@ -391,6 +425,17 @@ export type EditOperation =
       readonly targets: readonly string[];
       readonly all?: boolean;
       readonly durationMs?: number;
+    }
+  | {
+      /**
+       * Moves one top-level story action, including a whole `parallel` block, within its scene.
+       * `path` is exactly [scene index, action index]; `index` is its final sibling index.
+       * Durations, nesting, scene headers and transitions stay unchanged.
+       */
+      readonly kind: "reorderStoryAction";
+      readonly story: string;
+      readonly path: readonly number[];
+      readonly index: number;
     }
   | {
       /** Removes the story action at `path` (see `setStoryTiming`). */

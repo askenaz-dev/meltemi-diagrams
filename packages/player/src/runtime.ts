@@ -75,10 +75,14 @@ export interface EnterTransition {
 }
 
 export interface MountOptions extends PlayerOptions {
-  /** False hides the controls; the keyboard still works. */
+  /** False hides playback/zoom controls; the keyboard and fullscreen remain available. */
   readonly controls?: boolean;
   /** False leaves out the text summary, for hosts that describe the drawing themselves. */
   readonly summary?: boolean;
+  /** False leaves out inspection cards, panels and links, while keeping zoom and pan. */
+  readonly details?: boolean;
+  /** False omits the fullscreen button; available by default, including without controls. */
+  readonly fullscreen?: boolean;
   /**
    * The language of the controls, announcements and summary; by default the host's, as its
    * nearest `lang` attribute gives it, else English.
@@ -185,6 +189,9 @@ export function mountPlayer(
   const reducedMotion = options.reducedMotion ?? prefersReducedMotion();
   const controller = new PlayerController(data, { ...options, locale, reducedMotion });
   const interactive = options.interactive !== false;
+  const inspecting = interactive && options.details !== false;
+  const canInspect = () => inspecting && document.fullscreenElement !== host;
+  const showSummary = options.summary !== false;
   loadFonts(data.fontFaces);
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
   root.replaceChildren();
@@ -199,27 +206,32 @@ export function mountPlayer(
   const hint = el("span", { class: "sr", id: "hint" }, t.player.hint);
   let hover: ItemRef | null = null;
 
-  const stage = new Stage(root, interactive, {
-    hover: (item, event) => hovered(item, event),
-    click: (item) => clicked(item),
-    open: (id) => {
-      open(id);
+  const stage = new Stage(
+    root,
+    interactive,
+    {
+      hover: (item, event) => hovered(item, event),
+      click: (item) => clicked(item),
+      open: (id) => {
+        open(id);
+      },
+      moved: () => {
+        card.hide();
+        zoomUi();
+      },
+      resized: (size) => {
+        figure.dataset.details = size.width < 720 || size.height < 280 ? "below" : "side";
+      },
+      // Groups and the sections of a gantt chart hold other boxes: arrows crossing them keep the pointer.
+      container: (id) => {
+        const kind = data.details[controller.view]?.elements[id]?.kind;
+        return kind === "group" || kind === "section";
+      },
     },
-    moved: () => {
-      card.hide();
-      zoomUi();
-    },
-    resized: (size) => {
-      figure.dataset.details = size.width < 720 || size.height < 280 ? "below" : "side";
-    },
-    // Groups and the sections of a gantt chart hold other boxes: arrows crossing them keep the pointer.
-    container: (id) => {
-      const kind = data.details[controller.view]?.elements[id]?.kind;
-      return kind === "group" || kind === "section";
-    },
-  });
+    options.details !== false,
+  );
   stage.frame.style.setProperty("--meltemi-accent", data.accent);
-  if (interactive) {
+  if (inspecting) {
     stage.frame.setAttribute("aria-describedby", "hint");
     stage.body.append(panel.element);
   }
@@ -290,6 +302,23 @@ export function mountPlayer(
     { type: "button", "aria-label": t.controls.fit, title: t.controls.fitTitle },
     icon(ICONS.fit),
   );
+  const fullscreen = el(
+    "button",
+    {
+      type: "button",
+      class: "fullscreen",
+      "aria-label": t.controls.fullscreen,
+      title: t.controls.fullscreen,
+      "aria-pressed": "false",
+    },
+    icon(ICONS.fullscreen),
+  );
+  const canFullscreen = () =>
+    typeof host.requestFullscreen === "function" &&
+    typeof document.exitFullscreen === "function" &&
+    document.fullscreenEnabled !== false;
+  fullscreen.disabled = !canFullscreen();
+  if (fullscreen.disabled) fullscreen.title = t.controls.fullscreenUnavailable;
   const zoomGroup = el(
     "div",
     { class: "zoom", role: "group", "aria-label": t.controls.zoomGroup },
@@ -303,6 +332,7 @@ export function mountPlayer(
     { class: "controls", role: "group", "aria-label": t.controls.group },
     playback,
     ...(interactive ? [zoomGroup] : []),
+    ...(options.fullscreen !== false ? [fullscreen] : []),
   );
   if (options.controls === false) controls.hidden = true;
   /** The scene picker lists the scenes of the story shown. */
@@ -319,7 +349,7 @@ export function mountPlayer(
   const summaryText = el("div");
   const elementsList = el("ul", { class: "elements", "aria-label": t.details.elements });
   summary.append(summaryText);
-  if (interactive) summary.append(elementsList);
+  if (inspecting) summary.append(elementsList);
   const figure = el("figure", {
     class: "player",
     "aria-label": story
@@ -327,12 +357,12 @@ export function mountPlayer(
       : t.player.diagram(data.title ?? data.id),
   });
   figure.append(
-    ...(interactive ? [trail.element] : []),
+    ...(inspecting ? [trail.element] : []),
     stage.body,
     controls,
     live,
-    ...(interactive ? [hint, card.element] : []),
-    ...(options.summary === false ? [] : [summary]),
+    ...(inspecting ? [hint, card.element] : []),
+    ...(showSummary ? [summary] : []),
   );
   root.append(el("style", {}, STYLE), figure);
 
@@ -452,6 +482,7 @@ export function mountPlayer(
     card.hide();
   };
   const hovered = (item: ItemRef | null, event: PointerEvent) => {
+    if (!canInspect()) return;
     if (sameItem(item, hover)) return;
     hover = item;
     clearTimeout(cardTimer);
@@ -576,7 +607,7 @@ export function mountPlayer(
 
   /** Selects an item of the view on screen; opens its panel when asked. */
   const select = (item: ItemRef | null, withPanel: boolean, focusPanel = false): boolean => {
-    if (!interactive) return false;
+    if (!canInspect()) return false;
     if (!controller.select(item)) return false;
     overlay();
     const view = controller.view;
@@ -601,6 +632,7 @@ export function mountPlayer(
   const showDetails = (item: ItemRef, focusPanel = false) => select(item, true, focusPanel);
 
   const clicked = (item: ItemRef | null) => {
+    if (!canInspect()) return;
     hideCard();
     if (controller.drill || moving) return;
     if (item === null) {
@@ -613,7 +645,7 @@ export function mountPlayer(
   // ------------------------------------------------------------------ overlay, trail, lists
 
   const overlay = () => {
-    if (!interactive) return;
+    if (!inspecting) return;
     const view = controller.view;
     const badges = new Map<string, string>();
     if (!controller.drill && data.kind === "effects") {
@@ -637,7 +669,7 @@ export function mountPlayer(
     const view = controller.view;
     if (view === shownView || controller.drill) return;
     shownView = view;
-    if (interactive) {
+    if (inspecting) {
       const crumbs: Crumb[] = [
         ...(options.trail ?? []).map((c) => ({ title: c.title, go: () => c.go() })),
         ...controller.trail.map((step, index) => ({
@@ -666,9 +698,9 @@ export function mountPlayer(
       elementsList.replaceChildren(...buttons);
       elementsList.hidden = buttons.length === 0;
     }
-    if (data.kind === "story") {
+    if (showSummary && data.kind === "story") {
       if (summaryText.childElementCount === 0) summarise();
-    } else {
+    } else if (showSummary && data.kind === "effects") {
       const items = effectsSummary(data, locale, view);
       summaryText.replaceChildren(
         el(
@@ -681,6 +713,11 @@ export function mountPlayer(
     const hasEffects = !story && (data.views[view]?.plan.effects.length ?? 0) > 0;
     playback.hidden = !story && !hasEffects;
     controls.hidden = options.controls === false || (!interactive && playback.hidden);
+    if (options.fullscreen !== false) {
+      fullscreen.classList.toggle("fullscreen-standalone", controls.hidden);
+      const owner = controls.hidden ? stage.body : controls;
+      if (fullscreen.parentElement !== owner) owner.append(fullscreen);
+    }
     const endless = controller.duration === null;
     progress.hidden = endless;
     time.hidden = endless;
@@ -692,7 +729,7 @@ export function mountPlayer(
    * each headed by its title, the one shown marked current.
    */
   const summarise = () => {
-    if (data.kind !== "story") return;
+    if (!showSummary || data.kind !== "story") return;
     const list = (index: number) =>
       el(
         "ol",
@@ -828,7 +865,7 @@ export function mountPlayer(
   };
 
   const open = (id: string): boolean => {
-    if (!interactive || controller.drill || moving || data.kind !== "effects") return false;
+    if (!canInspect() || controller.drill || moving || data.kind !== "effects") return false;
     if (controller.canOpen(id)) {
       prepareDrill();
       controller.open(id);
@@ -878,7 +915,7 @@ export function mountPlayer(
   };
 
   const goUp = (): boolean => {
-    if (!interactive || controller.drill || moving) return false;
+    if (!canInspect() || controller.drill || moving) return false;
     if (controller.trail.length > 0) {
       prepareDrill();
       controller.up();
@@ -930,6 +967,7 @@ export function mountPlayer(
         static: controller.staticView,
         view: controller.view,
         story: controller.story,
+        scene: controller.sceneIndex,
       });
       svg = markup;
       stage.setSize(storySize ?? sizeOf(controller.view));
@@ -1031,6 +1069,53 @@ export function mountPlayer(
   zoomLevel.addEventListener("click", () => runViewer("zoomActual"));
   fitButton.addEventListener("click", () => runViewer("zoomFit"));
 
+  let wasFullscreen = false;
+  let fullscreenFocus: HTMLElement | null = null;
+  let restoreFullscreenFocus = false;
+  let destroyed = false;
+  const fullscreenChanged = () => {
+    const active = document.fullscreenElement === host;
+    fullscreen.setAttribute("aria-pressed", String(active));
+    const label = active ? t.controls.exitFullscreen : t.controls.fullscreen;
+    fullscreen.setAttribute("aria-label", label);
+    fullscreen.title = label;
+    fullscreen.replaceChildren(icon(active ? ICONS.exitFullscreen : ICONS.fullscreen));
+    if (wasFullscreen && !active) restoreFullscreenFocus = true;
+    if (restoreFullscreenFocus && !fullscreen.disabled && fullscreenFocus?.isConnected) {
+      fullscreenFocus.focus({ preventScroll: true });
+      restoreFullscreenFocus = false;
+    }
+    wasFullscreen = active;
+    hideCard();
+  };
+  host.addEventListener("fullscreenchange", fullscreenChanged);
+  fullscreen.addEventListener("click", async () => {
+    if (!canFullscreen()) {
+      announce(t.controls.fullscreenUnavailable);
+      return;
+    }
+    fullscreen.disabled = true;
+    try {
+      if (document.fullscreenElement === host) await document.exitFullscreen();
+      else {
+        fullscreenFocus =
+          root.activeElement instanceof HTMLElement ? root.activeElement : fullscreen;
+        await host.requestFullscreen();
+      }
+      if (!destroyed) fullscreenChanged();
+    } catch {
+      if (!destroyed) announce(t.controls.fullscreenUnavailable);
+    } finally {
+      if (!destroyed) {
+        fullscreen.disabled = !canFullscreen();
+        if (restoreFullscreenFocus && fullscreenFocus?.isConnected) {
+          fullscreenFocus.focus({ preventScroll: true });
+          restoreFullscreenFocus = false;
+        }
+      }
+    }
+  });
+
   /** The keyboard walk: focus the next item shown, reveal it and say what it is. */
   const walk = (step: 1 | -1) => {
     const item = controller.moveFocus(step, (i) => {
@@ -1061,10 +1146,15 @@ export function mountPlayer(
     const target = e.target as Element;
     if (target instanceof HTMLSelectElement) return;
     // The slider steps with its own keys; buttons click with Space and Enter.
+    if (e.key === "Escape" && document.fullscreenElement === host) {
+      e.preventDefault();
+      void document.exitFullscreen().catch(() => announce(t.controls.fullscreenUnavailable));
+      return;
+    }
     if (target instanceof HTMLInputElement && /^(Arrow|Home|End)/.test(e.key)) return;
     if (target instanceof HTMLButtonElement && (e.key === " " || e.key === "Enter")) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (interactive && panel.element.contains(target)) {
+    if (canInspect() && panel.element.contains(target)) {
       if (e.key === "Escape") {
         e.preventDefault();
         closePanel(true);
@@ -1079,12 +1169,12 @@ export function mountPlayer(
         runViewer(viewerCommand);
         return;
       }
-      if (onStage && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      if (canInspect() && onStage && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
         e.preventDefault();
         walk(e.key === "ArrowDown" ? 1 : -1);
         return;
       }
-      if (onStage && e.key === "Enter") {
+      if (canInspect() && onStage && e.key === "Enter") {
         e.preventDefault();
         const focused = controller.focused;
         const selected = controller.selection;
@@ -1094,7 +1184,7 @@ export function mountPlayer(
         else if (selected) showDetails(selected, true);
         return;
       }
-      if (onStage && e.key === "Backspace") {
+      if (canInspect() && onStage && e.key === "Backspace") {
         if (goUp()) e.preventDefault();
         return;
       }
@@ -1119,7 +1209,7 @@ export function mountPlayer(
 
   // ------------------------------------------------------------------ mount
 
-  if (options.enter && data.kind === "effects" && interactive) {
+  if (options.enter && data.kind === "effects" && inspecting) {
     const enter = options.enter;
     controller.enter(
       { key: enter.fromKey, view: enter.from },
@@ -1224,6 +1314,9 @@ export function mountPlayer(
     open: (id) => open(id),
     up: () => goUp(),
     destroy: () => {
+      destroyed = true;
+      host.removeEventListener("fullscreenchange", fullscreenChanged);
+      if (document.fullscreenElement === host) void document.exitFullscreen().catch(() => {});
       cancelAnimationFrame(request);
       clearTimeout(cardTimer);
       stage.destroy();
@@ -1265,6 +1358,9 @@ class MeltemiPlayerElement extends HTMLElement {
       loop: this.hasAttribute("loop"),
       static: this.hasAttribute("static"),
       controls: this.getAttribute("controls") !== "false",
+      summary: this.getAttribute("summary") !== "false",
+      details: this.getAttribute("details") !== "false",
+      fullscreen: this.getAttribute("fullscreen") !== "false",
       interactive: this.getAttribute("interactive") !== "false",
       locale,
     });

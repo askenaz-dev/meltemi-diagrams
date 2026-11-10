@@ -41,7 +41,15 @@ describe("story completion", () => {
     expect(completeIn("  ", '  title "A purchase"\n')).toEqual(["title", "description", "scene"]);
     const scene = completeIn("    ");
     expect(scene).toEqual(
-      expect.arrayContaining(["view", "transition", "reveal", "trace", "hold", "parallel"]),
+      expect.arrayContaining([
+        "view",
+        "overlap",
+        "transition",
+        "reveal",
+        "trace",
+        "hold",
+        "parallel",
+      ]),
     );
   });
 
@@ -70,6 +78,13 @@ describe("story completion", () => {
 });
 
 describe("story hover and outline", () => {
+  it("documents the overlap header and its bound", () => {
+    const text = purchase.replace("  scene processing {", "  scene processing {\n    overlap 1s");
+    const result = hover(analyzeDocument({ text }), text.indexOf("overlap") + 1)!;
+    expect(result.markdown).toContain("Starts this scene before the previous one ends");
+    expect(result.markdown).toContain("cannot exceed either scene's duration");
+  });
+
   it("documents actions with their place on the clock", () => {
     const action = hover(analysis, find("reveal client") + 1)!;
     expect(action.markdown).toContain("**reveal** — Fades the targets in");
@@ -219,6 +234,32 @@ describe("stories across the files of a project", () => {
       type: "empty",
       creatable: ["flow", "sequence", "c4", "gantt", "whiteboard", "kanban", "free"],
     });
+  });
+
+  it("reorders a separate story of an imported diagram without changing that diagram", () => {
+    const project = new ProjectSessions({ toolVersion: "1.0.0" });
+    const canvas = new CanvasSession({ path: tourPath });
+    canvas.update(project.analyze(tourPath, undefined, 1));
+    const before = canvas
+      .receive({ type: "pickStory", story: "tour" })
+      .messages.find((m) => m.type === "story")!;
+    const result = canvas.receive({
+      type: "action",
+      revision: 1,
+      action: { kind: "reorderStoryAction", story: "tour", path: [0, 1], index: 0 },
+    });
+    expect(result.plan, JSON.stringify(result.messages)).toBeDefined();
+    const moved = applyTextEdits(tour, result.plan!.edits);
+    expect(moved.indexOf("trace save")).toBeLessThan(moved.indexOf("reveal api"));
+    const analysis = project.analyze(tourPath, moved, 2);
+    expect(analysis.diagnostics).toEqual([]);
+    const after = canvas.update(analysis).find((m) => m.type === "story")!;
+    expect(after).toMatchObject({ reordered: { story: "tour", path: [0, 1], index: 0 } });
+    expect(after.playback!.timeline.durationMs).toBe(before.playback!.timeline.durationMs);
+    expect(after.playback!.timeline.views).toEqual(before.playback!.timeline.views);
+    expect(readFileSync(checkoutPath, "utf8")).toBe(checkout);
+    expect(readFileSync(tourPath, "utf8")).toBe(tour);
+    expect(applyTextEdits(moved, result.plan!.inverse)).toBe(tour);
   });
 
   it("finds the uses in other files", () => {
@@ -378,6 +419,62 @@ describe("story mode of the canvas session", () => {
     });
     expect(refused.messages[0]).toMatchObject({ type: "rejected", code: "edit.invalid-value" });
   });
+
+  it("reorders a story action through one revision-checked edit and acknowledges its new path once", () => {
+    const canvas = session(purchase);
+    canvas.send({ type: "pickStory", story: "purchase" });
+    const before = canvas.story()!.playback!.timeline;
+    const action = { kind: "reorderStoryAction", story: "purchase", path: [0, 1], index: 0 };
+    const stale = canvas.send({ type: "action", revision: 0, action });
+    expect(stale.plan).toBeUndefined();
+    expect(stale.messages[0]).toMatchObject({ type: "rejected" });
+    expect(canvas.text()).toBe(purchase);
+    const reordered = canvas.send({ type: "action", revision: canvas.revision(), action });
+    expect(reordered.plan).toBeDefined();
+    const message = canvas.story()!;
+    expect(message).toMatchObject({
+      reordered: { story: "purchase", path: [0, 1], index: 0 },
+    });
+    const timeline = message.playback!.timeline;
+    expect(timeline.durationMs).toBe(before.durationMs);
+    expect(timeline.scenes[0]!.actions.map((a) => [a.kind, a.startMs, a.durationMs])).toEqual([
+      ["hold", 0, 1000],
+      ["reveal", 1000, 800],
+    ]);
+    expect(timeline.scenes.slice(1)).toEqual(before.scenes.slice(1));
+    expect(applyTextEdits(canvas.text(), reordered.plan!.inverse)).toBe(purchase);
+    canvas.send({ type: "ready" });
+    expect(canvas.story()!.reordered).toBeUndefined();
+  });
+
+  it.each(["changed text", "changed document", "left story", "older analysis"])(
+    "does not acknowledge a positional reorder after %s",
+    (change) => {
+      let document = "one.meltemi";
+      const canvas = new CanvasSession({ path: () => document });
+      canvas.update(analyzeDocument({ text: purchase, revision: 1 }));
+      canvas.receive({ type: "pickStory", story: "purchase" });
+      const result = canvas.receive({
+        type: "action",
+        revision: 1,
+        action: { kind: "reorderStoryAction", story: "purchase", path: [0, 1], index: 0 },
+      });
+      expect(result.plan).toBeDefined();
+      const expected = applyTextEdits(purchase, result.plan!.edits);
+      if (change === "changed document") document = "another.meltemi";
+      if (change === "left story") canvas.receive({ type: "pickStory", story: null });
+      if (change === "older analysis")
+        canvas.update(analyzeDocument({ text: purchase, revision: 0 }));
+      const text = change === "changed text" ? `// Concurrent edit\n${expected}` : expected;
+      const messages = canvas.update(analyzeDocument({ text, revision: 2 }));
+      const story = messages.find((m) => m.type === "story");
+      expect(story).toBeDefined();
+      expect(story).not.toHaveProperty("reordered");
+      // A later coincidental source match must not revive an abandoned acknowledgement.
+      const later = canvas.update(analyzeDocument({ text: expected, revision: 3 }));
+      expect(later.find((m) => m.type === "story")).not.toHaveProperty("reordered");
+    },
+  );
 
   it("edits scene totals and removes stories through revision-checked plans", () => {
     const canvas = session(purchase);

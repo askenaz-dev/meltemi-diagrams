@@ -148,5 +148,6 @@ export type {
   ThemePanelModel,
   SceneActionKind,
   StoryPlaybackInfo,
+  StoryReorderInfo,
 } from "./canvas/protocol.js";
 export { isCanvasMessage } from "./canvas/protocol.js";

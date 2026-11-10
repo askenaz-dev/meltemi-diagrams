@@ -503,6 +503,18 @@ describe("every operation on the valid corpus", () => {
         const result = planEdit(compilation, operation);
         // A move that would break the order of events is refused by design.
         if (!result.ok && operation.kind === "moveEvent") continue;
+        // Cascading an element removal cannot shorten a scene below a written overlap.
+        if (
+          !result.ok &&
+          operation.kind === "removeElement" &&
+          operation.cascade &&
+          result.rejection.code === "edit.invalid-value" &&
+          result.rejection.diagnostic === "prop.invalid-value" &&
+          /^The overlap cannot exceed (the preceding scene's|this scene's) /.test(
+            result.rejection.reason,
+          )
+        )
+          continue;
         // A negative gap cannot sit on the outer side of the first or last participant.
         if (!result.ok && /a gap (before|after) it is 0 or more/.test(result.rejection.reason))
           continue;

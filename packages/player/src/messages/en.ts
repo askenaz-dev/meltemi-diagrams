@@ -36,6 +36,9 @@ export const en = {
     zoomOutTitle: "Zoom out (−)",
     fit: "Fit the drawing",
     fitTitle: "Fit the drawing (0)",
+    fullscreen: "Full screen",
+    exitFullscreen: "Exit full screen",
+    fullscreenUnavailable: "Full screen is not available in this browser or page.",
     actualSizeTitle: "Actual size (1)",
     /** The zoom level button, with its percentage: "Zoom 150%. Actual size (1)". */
     zoomLevel: (percent: string) => `Zoom ${percent}. Actual size (1)`,

@@ -639,7 +639,14 @@ export const en = {
         `\`${word}\` is not a story statement; a story holds \`title\`, \`description\` and \`scene\` blocks.`,
       sceneShape: 'A scene is `scene <id> ["Title"] { … }`.',
       duplicateScene: (id: string) => `The story already has a scene \`${id}\`.`,
-      sceneContents: "A scene holds `view`, `transition` and actions.",
+      sceneContents: "A scene holds `view`, `transition`, `overlap` and actions.",
+      overlapHeader: "`overlap <time>` comes before the scene's actions, once.",
+      overlapFirst:
+        "The first scene cannot overlap an earlier scene; use `overlap 0ms` or omit it.",
+      overlapPrevious: (maximum: number) =>
+        `The overlap cannot exceed the preceding scene's ${maximum}ms duration.`,
+      overlapOwn: (maximum: number) =>
+        `The overlap cannot exceed this scene's ${maximum}ms duration.`,
       viewFirst: "`view <diagram>` comes first in a scene and names one diagram.",
       transitionFirst:
         "`transition cut|fade|morph [over <time>]` comes before the scene's actions, once.",

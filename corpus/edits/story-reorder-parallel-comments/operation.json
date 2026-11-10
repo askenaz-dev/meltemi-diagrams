@@ -1,0 +1,4 @@
+{
+  "operation": { "kind": "reorderStoryAction", "story": "tour", "path": [0, 1], "index": 0 },
+  "diagram": "d"
+}

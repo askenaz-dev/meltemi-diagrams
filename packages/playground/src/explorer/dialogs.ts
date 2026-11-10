@@ -4,8 +4,8 @@
 
 import { messages } from "../messages/index.js";
 import { DIAGRAM_STARTERS, type DiagramStarterId } from "@meltemi/diagrams-edit/starters";
-import { field, h, icon, openDialog } from "../ui.js";
-import { EXPLORER_ICONS } from "./icons.js";
+import { field, h, openDialog } from "../ui.js";
+import { starterPreview } from "./starter-preview.js";
 import type { NameProblem } from "./tree-model.js";
 
 /** A refused name in words. */
@@ -33,6 +33,7 @@ function nameDialog(
   extra: readonly HTMLElement[],
   accept: (name: string) => string | undefined,
   returnTo: () => HTMLElement | undefined,
+  options: { wide?: boolean } = {},
 ): void {
   const words = messages().explorer.actions;
   const input = h("input", {
@@ -51,7 +52,7 @@ function nameDialog(
     title,
     [h("p", { class: "dialog-where" }, where), field(words.name, input, hint), ...extra, problem],
     [{ label: messages().dialog.cancel }, { label: words.create, primary: true, run }],
-    { returnTo },
+    { returnTo, ...options },
   );
   input.addEventListener("input", () => (problem.textContent = ""));
   input.addEventListener("keydown", (e) => {
@@ -86,12 +87,11 @@ export function newDiagramDialog(
       label: h(
         "label",
         { class: "starter-choice" },
-        input,
-        icon(EXPLORER_ICONS[kind === "whiteboard" || kind === "kanban" ? "free" : kind]),
+        h("span", { class: "starter-art" }, starterPreview(kind)),
         h(
           "span",
-          {},
-          h("strong", {}, words.kinds[kind]),
+          { class: "starter-caption" },
+          h("span", { class: "starter-heading" }, input, h("strong", {}, words.kinds[kind])),
           h("small", { id: `${group}-${kind}` }, words.descriptions[kind]),
         ),
       ),
@@ -99,8 +99,9 @@ export function newDiagramDialog(
   });
   const chooser = h(
     "fieldset",
-    { class: "diagram-starters" },
+    { class: "diagram-starters", "aria-describedby": `${group}-hint` },
     h("legend", { class: "field-label" }, words.kind),
+    h("p", { class: "starter-hint", id: `${group}-hint` }, words.kindHint),
     ...kinds.map((k) => k.label),
   );
   nameDialog(
@@ -110,6 +111,7 @@ export function newDiagramDialog(
     [chooser],
     (name) => accept(name, kinds.find((k) => k.input.checked)?.kind ?? "flow"),
     returnTo,
+    { wide: true },
   );
 }
 

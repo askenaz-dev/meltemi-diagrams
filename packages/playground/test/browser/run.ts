@@ -42,6 +42,9 @@ import { contextActionTests } from "./context-actions.js";
 import { diagramStarterTests } from "./diagram-starters.js";
 import { storyLifecycleTests } from "./story-lifecycle.js";
 import { connectorSelectionTests } from "./connector-selection.js";
+import { storyReorderTests } from "./story-reorder.js";
+import { storyPlayerExportTests } from "./story-player-export.js";
+import { storyWorkspaceTests } from "./story-workspace.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "..", "..", "dist");
@@ -4077,7 +4080,7 @@ const tests: Test[] = [
         ),
         "utf8",
       );
-      assert.match(page_, /<meltemi-player loop>/);
+      assert.match(page_, /<meltemi-player\b[^>]*\bloop(?:\s|>)/);
       assert.deepEqual(
         playerDocument(page_).stories.map((s) => s.id),
         ["purchase", "refund"],
@@ -7262,6 +7265,9 @@ const tests: Test[] = [
   ...diagramStarterTests({ output, templates, analysed, openTemplate, expectOpen }),
   ...storyLifecycleTests({ output, until }),
   ...connectorSelectionTests({ output, analysed }),
+  ...storyReorderTests({ output }),
+  ...storyPlayerExportTests({ download }),
+  ...storyWorkspaceTests({ output }),
 ];
 
 /** A project somebody shared by its link (its metadata and its files, for anybody), or one that is not found. */

@@ -29,8 +29,9 @@ story purchase for checkout {
 
 | Statement                                   | Default | Meaning                                                                                                                    |
 | ------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `scene <id> ["Title"] { ... }`              |         | a step; scenes run one after the other                                                                                     |
+| `scene <id> ["Title"] { ... }`              |         | a step; sequential unless an overlap is declared                                                                           |
 | `view <diagram>`                            |         | first in a scene: the diagram it shows from now on                                                                         |
+| `overlap <time>`                            |         | starts before the preceding scene ends; bounded by both durations                                                          |
 | `transition cut\|fade\|morph [over <time>]` | 800 ms  | needed when the view changes; `morph` moves boxes with the same id, `cut` takes 0                                          |
 | `reveal a, b [over <time>]`                 | 600 ms  | fades in; targets first revealed start hidden                                                                              |
 | `hide a, b [over <time>]`                   | 600 ms  | fades out                                                                                                                  |
@@ -47,6 +48,26 @@ fragments; entity paths (`shop.api`) in C4 views. Times are `800ms` or `1.5s`, u
 
 ## Rules that save iterations
 
+Use readable story/scene titles (`title "Walkthrough"`, `scene prod "Production"`) while keeping
+their stable ids. The UI's name fields edit these titles; its selected scene is independent of
+the playhead. The lower Delete scene keeps its story; story removal is beside the upper selector
+or in the explorer. Panel height is host-local view state, never project configuration.
+
+For concurrent scenes, add `overlap 2s` before the incoming scene's actions. It starts two seconds
+before the previous scene ends; the amount must fit both durations (and the 600 s time limit).
+Omission/zero means sequential. In an overlapped scene, transition and actions start together and
+the longer determines its duration; sequential scenes keep transition-first timing. Separate
+targets run together; a later scene's started claim wins on the same channel, with interpolation
+anchored at that claim's start. Same-scene parallel conflicts remain errors. Check `inspect_story`
+global starts/ends and preview an instant inside the shared interval to verify both contributions.
+Directed scene exports show each scene's own closing state, excluding later overlapping scenes.
+
+When removing or inserting a scene, clear the next scene's orphaned overlap in the same reversible
+edit and preserve its inherited view. Shortening cannot invalidate either neighbouring overlap.
+HTML export can omit heading, textual summary and optional details while retaining controls and
+zoom/pan; the player also offers fullscreen. Geometry, ids and timing needed for offline playback
+remain embedded. Do not describe presentation choices as hiding all data.
+
 - Name every relation you want to trace: `api -> db: "SQL" as save`.
 - A whiteboard's explanation is a `draw` of its pens in the order they were written
   (`draw title, arrow over 2s`): each takes a share of the time proportional to its length, in its
@@ -57,7 +78,7 @@ fragments; entity paths (`shop.api`) in C4 views. Times are `800ms` or `1.5s`, u
   `reveal` a section to show its band and rows, `draw a, b` to grow task bars from their start, and
   `trace x` to light the arrows of the chain that drives a task or milestone that follows others;
   `draw` of anything but a task, or `trace` of a task without arrows, is `story.invalid-target`.
-- Two actions on the same target and channel must not overlap (`story.conflict`): put a `reveal`
+- Two actions within one scene on the same target and channel must not overlap (`story.conflict`): put a `reveal`
   and a `hide` of the same box in sequence, not in one `parallel`.
 - A change of `view` needs a `transition` (`story.missing-transition`); use `morph` between views
   that share ids (two C4 views of one model), `fade` otherwise.
@@ -92,14 +113,16 @@ fragments; entity paths (`shop.api`) in C4 views. Times are `800ms` or `1.5s`, u
    scene index and then its nested action indexes. All times are absolute milliseconds on the
    story clock; omitted source times already have the language defaults applied.
 5. Preview the start and `stillAtMs` of every scene, plus the middle of important actions. The
-   exact end of a scene is the start of the next, which may switch view or reset scene effects;
-   `stillAtMs` gives its final state just before that boundary (or the exact end of the last).
+   sequential scene's end is the next scene's start; `stillAtMs` is just before that boundary
+   (or the final story end). With overlaps, `stillAtMs` is a global closing instant and preview
+   includes every active scene. Use directed scene exports to inspect an isolated closing state.
    Inspect the pictures, not only the JSON. Each inspection and preview reads its own snapshot:
    compare their `revision` values and re-inspect if another edit arrived. These calls do not lock
    a revision or request a historical preview.
 6. To adjust a scene's length, edit its action durations or its trailing `hold`, then inspect
-   again. Sequential actions add; `parallel` lasts as long as its longest child; a scene includes
-   its transition. Do not scale every action just to add a pause. When reordering scenes, check
+   again. Sequential actions add and `parallel` lasts as long as its longest child. A sequential
+   scene prefixes its transition; an overlapped scene runs it concurrently. Do not scale every
+   action just to add a pause. When reordering scenes, check
    each active view and its required transition again: a preceding view may have changed.
 7. To delete a story, remove only that story block. Find exports `for <story-id>` across the
    project first; report them and remove or retarget those dependencies only within the person's
@@ -116,6 +139,14 @@ Its content-derived `revision` identifies a folder snapshot; it is not a cloud w
 Use your file tools for small source edits and re-inspect after any disk change. Without MCP,
 validate through the CLI and export a few known scene/action instants as below; do not claim to
 have inspected a compiled timeline through a tool that is unavailable.
+
+The visual timeline also reorders top-level actions by dragging their bodies before/after
+siblings, or with Move earlier/Move later and Alt+Left/Right. This is insertion-style ordering:
+durations and the scene total stay fixed; starts follow source order. A parallel header moves its
+whole block without changing simultaneous children. Its right duration handles remain separate.
+This gesture reorders actions; scene overlap is configured separately. When revising the equivalent source as an
+agent, move the existing action/block with its comments, preserve durations, then validate and
+inspect again. Do not silently extract parallel children, move transitions or invent pauses.
 
 ## Checking a story
 
