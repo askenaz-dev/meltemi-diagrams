@@ -41,7 +41,7 @@ import { BROKEN_STORY, FLOWS_SOURCE, PURCHASE_SOURCE } from "../../../../test-su
 import { contextActionTests } from "./context-actions.js";
 import { diagramStarterTests } from "./diagram-starters.js";
 import { storyLifecycleTests } from "./story-lifecycle.js";
-import { connectorSelectionTests } from "./connector-selection.js";
+import { connectorSelectionTests, importedConnectorEditingTest } from "./connector-selection.js";
 import { storyReorderTests } from "./story-reorder.js";
 import { storyPlayerExportTests } from "./story-player-export.js";
 import { storyWorkspaceTests } from "./story-workspace.js";
@@ -1825,7 +1825,9 @@ const tests: Test[] = [
         .first();
       const box = (await element.boundingBox())!;
       const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-      const before = /place browser at \((\d+), (\d+)\)/.exec(await code(page))!;
+      const placement = /place browser at \((-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\)/;
+      const before = placement.exec(await code(page));
+      assert.ok(before);
       await page.mouse.move(start.x, start.y);
       await page.mouse.down();
       await page.mouse.move(start.x + 30, start.y + 10, { steps: 4 });
@@ -1838,7 +1840,8 @@ const tests: Test[] = [
           !(document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(old),
         before[0],
       );
-      const after = /place browser at \((\d+), (\d+)\)/.exec(await code(page))!;
+      const after = placement.exec(await code(page));
+      assert.ok(after);
       assert.ok(Number(after[1]) > Number(before[1]), "moved right in the code");
 
       await caretAfter(page, "box db", false);
@@ -2664,6 +2667,7 @@ const tests: Test[] = [
         .fill("flowchart LR\n  a[Shop] --> b[(Orders)]\n  b --> c{Paid?}\n");
       await dialog.getByLabel("Name of the new file").fill("shop");
       await dialog.getByRole("button", { name: "Import", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
       await analysed(page);
       await expectOpen(page, "diagrams/shop.meltemi");
       assert.match(await code(page), /diagram shop: flow/);
@@ -2672,6 +2676,46 @@ const tests: Test[] = [
         /Imported mermaid into diagrams\/shop\.meltemi: complete/,
       );
       assert.equal(await page.locator("#problems-title").textContent(), "No problems");
+    },
+  },
+  {
+    name: "closes a partial Mermaid import and keeps its findings available after a failed attempt",
+    async run({ page }) {
+      await page.getByRole("button", { name: "Import", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Import Mermaid or PlantUML" });
+      const source = dialog.getByLabel("Source");
+      const submit = dialog.getByRole("button", { name: "Import", exact: true });
+      await source.fill("classDiagram\n  A <|-- B\n");
+      await submit.click();
+      await dialog.getByText("Nothing could be imported.").waitFor();
+      assert.match((await dialog.locator(".import-findings").textContent()) ?? "", /unsupported/);
+      await expectOpen(page, "diagrams/overview.meltemi");
+
+      await source.fill("flowchart LR\n  a --> b\n  A --=> B\n");
+      await submit.evaluate((button: HTMLButtonElement) => {
+        button.click();
+        button.click();
+      });
+      await dialog.waitFor({ state: "hidden" });
+      await analysed(page);
+      await expectOpen(page, "diagrams/imported.meltemi");
+      assert.match(await code(page), /diagram imported: flow/);
+      assert.match(
+        (await page.locator(".status-text").textContent()) ?? "",
+        /partial, \d+ findings/,
+      );
+
+      await page.getByRole("button", { name: "Import report" }).click();
+      const report = page.getByRole("dialog", { name: "Import report" });
+      assert.match(
+        (await report.locator(".import-findings").textContent()) ?? "",
+        /Line 3: .*import\.syntax/,
+      );
+      const downloaded = page.waitForEvent("download");
+      await report.getByRole("button", { name: "Download the report" }).click();
+      const file = await downloaded;
+      assert.equal(file.suggestedFilename(), "imported.import.md");
+      assert.match(readFileSync((await file.path())!, "utf8"), /line 3: warning `import\.syntax`/);
     },
   },
   {
@@ -7265,6 +7309,7 @@ const tests: Test[] = [
   ...diagramStarterTests({ output, templates, analysed, openTemplate, expectOpen }),
   ...storyLifecycleTests({ output, until }),
   ...connectorSelectionTests({ output, analysed }),
+  importedConnectorEditingTest({ output, analysed }),
   ...storyReorderTests({ output }),
   ...storyPlayerExportTests({ download }),
   ...storyWorkspaceTests({ output }),

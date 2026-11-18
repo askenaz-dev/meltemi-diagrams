@@ -275,6 +275,62 @@ describe("relations", () => {
     expect(after).toContain("route save from api.east to cache.north");
   });
 
+  it("reconnects a styled arrow and preserves the rest of its route, including inline comments", () => {
+    const routed = styled
+      .replace('  db[("DB")]\n', '  db[("DB")]\n  cache["Cache"]\n')
+      .replace(
+        "route save from api.east to db.west",
+        "route save from api.east 25% to db /* destination */ .west /* anchor */ 40% via [(260, 160)]",
+      );
+    const op = { kind: "reconnectRelation", diagram: "d", relation: "save", end: "to" } as const;
+    const pinned = apply({ ...op, element: "cache", port: "north", position: 70 }, routed);
+    expect(pinned).toBe(
+      routed
+        .replace('api -> db: "save" as save', 'api -> cache: "save" as save')
+        .replace(
+          "db /* destination */ .west /* anchor */ 40%",
+          "cache /* destination */ .north /* anchor */ 70%",
+        ),
+    );
+    const automatic = apply({ ...op, element: "db", port: null }, pinned);
+    expect(automatic).toBe(
+      routed.replace(
+        "db /* destination */ .west /* anchor */ 40% via",
+        "db /* destination */  /* anchor */  via",
+      ),
+    );
+  });
+
+  it("keeps a detached implicit node in its group with its written placement", () => {
+    const grouped = `diagram d: flow {
+  layout manual
+  api["API"]
+  group systems "Systems" {
+    data cache "Cache"
+    api -> db as save // keep the arrow comment
+  }
+  placement {
+    place api at (100, 100)
+    place db at (200, 100)
+    place cache at (400, 100)
+  }
+}
+`;
+    const after = apply(
+      { kind: "reconnectRelation", diagram: "d", relation: "save", end: "to", element: "cache" },
+      grouped,
+    );
+    expect(after).toBe(
+      grouped.replace(
+        "api -> db as save // keep the arrow comment",
+        "api -> cache as save // keep the arrow comment\n    node db",
+      ),
+    );
+    expect(compile(after).document.diagrams[0]!.elementsById.get("db")?.groupPath).toEqual([
+      "systems",
+    ]);
+  });
+
   it("names and routes an anonymous relation that gets a port", () => {
     const after = apply(
       {

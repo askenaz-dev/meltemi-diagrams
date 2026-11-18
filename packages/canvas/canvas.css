@@ -584,6 +584,14 @@ body {
 
 .overlay .handle.end {
   fill: var(--mdg-select);
+  stroke: var(--vscode-editor-background, #fff);
+  cursor: grab;
+}
+
+.overlay .end-hit {
+  fill: transparent;
+  pointer-events: all;
+  cursor: grab;
 }
 
 .overlay .handle.segment {
@@ -2410,7 +2418,18 @@ body {
   background: var(--vscode-menu-separatorBackground, var(--mdg-border));
 }
 
+.picker:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100% - 8px);
+}
+
+.picker [role="listbox"] {
+  overflow: auto;
+}
+
 .picker input {
+  flex: none;
   width: calc(100% - 12px);
   margin: 2px 6px 4px;
   padding: 3px 6px;

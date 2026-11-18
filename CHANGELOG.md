@@ -12,7 +12,19 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
   inspects a compiled story timeline before previewing it. FFmpeg setup uses bounded retries
   and timeouts and avoids the degraded hosted-runner mirror, matching CI.
 
+### Import
+
+- The browser closes the Mermaid, PlantUML or Markdown import dialog when the new file opens,
+  including conversions with findings. The status bar provides the report and its download.
+
 ### Canvas
+
+- Connector ends have larger drag targets and a preview that keeps existing bends visible.
+  On flow, free and C4 diagrams, the connector menu can change either endpoint with a searchable
+  list. Reconnecting an imported or anonymous arrow keeps it selected.
+- Align and distribute use the displayed geometry, including rotated shapes and fractional
+  positions. Alignment guides snap to the displayed line, and the first edit in automatic
+  layout preserves the diagram's existing manual routes.
 
 - Stories have an explicit scene selector, separate editing/playing highlights, human-readable
   story and scene names, and a locally resizable panel. The lower delete action removes a scene;

@@ -319,6 +319,7 @@ export const en = {
     imported: (format: string, path: string, status: string, findings: number) =>
       `Imported ${format} into ${path}: ${status}${findings ? `, ${findings} findings` : ""}.`,
     importedInto: (path: string, status: string) => `Imported into ${path} (${status}).`,
+    viewReport: "Import report",
     downloadReport: "Download the report",
     report: {
       title: (name: string) => `# Import of ${name}`,

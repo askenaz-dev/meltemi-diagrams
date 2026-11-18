@@ -59,6 +59,7 @@ import { alignBoxes, distributeBoxes } from "./canvas/arrange.js";
 import { center } from "./canvas/geometry.js";
 import { scalePenPoints } from "./canvas/pens.js";
 import { carriedChildren } from "./canvas/selection.js";
+import { turnedBounds } from "./canvas/turning.js";
 import {
   isCanvasMessage,
   type CanvasAction,
@@ -672,6 +673,7 @@ export class CanvasSession {
         named: relation.id !== null,
         from: relation.from,
         to: relation.to,
+        ...(diagram.c4?.combined.includes(relation.key) ? { fixedElements: true } : {}),
         label: relation.label,
         line: relation.line,
         points: connector.points,
@@ -1146,8 +1148,8 @@ export class CanvasSession {
   private written(view: DiagramView, id: string, point: Point): Point {
     const origin = view.diagram.type === "free" ? view.layout?.origins?.get(id) : undefined;
     return {
-      x: Math.round(point.x - (origin?.x ?? 0)),
-      y: Math.round(point.y - (origin?.y ?? 0)),
+      x: point.x - (origin?.x ?? 0),
+      y: point.y - (origin?.y ?? 0),
     };
   }
 
@@ -2395,13 +2397,15 @@ export class CanvasSession {
                 }),
           });
         } else {
-          ops.push({
+          const { id, operations } = namedRelation(diagram, relation);
+          this.followNaming(relation.key, id, operations);
+          ops.push(...operations, {
             kind: "reconnectRelation",
             diagram: d,
-            relation: relation.key,
+            relation: id,
             end: action.end,
             element: action.element,
-            ...(action.port !== null ? { port: action.port } : {}),
+            port: action.port,
             ...(action.position !== undefined ? { position: action.position } : {}),
           });
         }
@@ -2744,19 +2748,30 @@ export class CanvasSession {
         for (const id of action.ids) {
           const element = diagram.elementsById.get(id);
           const box = boxes.get(id);
-          // Lines and pens have no edges to align: they keep their points; a list places its
-          // children.
-          if (element && alignable(diagram, element) && box) selected.set(id, box);
+          if (element && alignable(diagram, element) && box) {
+            selected.set(id, turnedBounds(box, view.layout.rotations?.get(id)));
+          }
         }
+        if (selected.size < 2) break;
         const centres =
           action.kind === "align"
             ? alignBoxes(selected, action.edge)
             : distributeBoxes(selected, action.axis);
+        const parents = new Set<string>();
         for (const [id, c] of centres) {
           const old = centreOf(id)!;
-          if (Math.abs(old.x - c.x) < 0.5 && Math.abs(old.y - c.y) < 0.5) continue;
+          if (Math.abs(old.x - c.x) < 0.005 && Math.abs(old.y - c.y) < 0.005) continue;
           const at = this.written(view, id, c);
           ops.push({ kind: "setPosition", diagram: d, element: id, x: at.x, y: at.y });
+          const parent = diagram.elementsById.get(id)?.groupPath.at(-1);
+          if (parent !== undefined) parents.add(parent);
+        }
+        // A placed free group derives its size about its fixed centre. Keep its interior origin
+        // steady so the new coordinates stay aligned and its untouched children do not move.
+        if (diagram.type === "free" && view.mode !== "auto") {
+          for (const parent of parents) {
+            if (isPlaced(diagram, parent)) ops.push(...steadySize(view, parent));
+          }
         }
         break;
       }
@@ -3324,16 +3339,14 @@ export class CanvasSession {
           diagram: d,
           element: id,
           parent: target,
-          ...(to && placed
-            ? { at: { x: Math.round(to.x - origin.x), y: Math.round(to.y - origin.y) } }
-            : {}),
+          ...(to && placed ? { at: { x: to.x - origin.x, y: to.y - origin.y } } : {}),
         });
       }
       // The groups left and entered stay drawn where they are.
       ops.push(...steadyGroups(view, [...reparented], target));
     }
     if (diagram.type === "free") {
-      // The groups strokes end in, kept as drawn once.
+      // Keep each affected group's interior origin steady once.
       const steady = new Set<string | null>();
       // Children are placed inside their group, so a moved group carries them.
       for (const id of moved) {
@@ -3386,6 +3399,17 @@ export class CanvasSession {
         if (!to) continue;
         const at = this.written(view, id, to);
         ops.push({ kind: "setPosition", diagram: d, element: id, x: at.x, y: at.y });
+        const parent = parentOf(id);
+        if (
+          view.mode !== "auto" &&
+          (delta.x !== 0 || delta.y !== 0) &&
+          parent !== null &&
+          !steady.has(parent) &&
+          isPlaced(diagram, parent)
+        ) {
+          steady.add(parent);
+          ops.push(...steadySize(view, parent));
+        }
       }
       return ops;
     }
@@ -3412,8 +3436,8 @@ export class CanvasSession {
         kind: "setPosition",
         diagram: d,
         element: id,
-        x: Math.round(c.x + delta.x),
-        y: Math.round(c.y + delta.y),
+        x: c.x + delta.x,
+        y: c.y + delta.y,
       });
     }
     return ops;
@@ -3452,7 +3476,13 @@ export class CanvasSession {
     const at = this.written(view, action.id, writtenCenter(action.box));
     const ops: EditOperation[] = [
       size,
-      { kind: "setPosition", diagram: d, element: action.id, x: at.x, y: at.y },
+      {
+        kind: "setPosition",
+        diagram: d,
+        element: action.id,
+        x: Math.round(at.x),
+        y: Math.round(at.y),
+      },
     ];
     // The interior moves with the left and top edges; children stay where they are drawn.
     const old = view.layout?.boxes?.get(action.id);

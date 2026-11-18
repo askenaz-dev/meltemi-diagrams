@@ -310,6 +310,8 @@ export interface RelationInfo {
   readonly named: boolean;
   readonly from: string;
   readonly to: string;
+  /** A combined C4 connector can change its port or side but cannot change model entities. */
+  readonly fixedElements?: true;
   readonly label: string | null;
   readonly line: "solid" | "dashed";
   /** The route's anchors and waypoints, before the arrowheads are cut out. */

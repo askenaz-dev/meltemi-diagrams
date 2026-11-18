@@ -65,15 +65,13 @@ function playground(readOnly: boolean) {
   return { page, calls };
 }
 
-/** Types into the source field and presses the dialog's import button. */
-async function importWith(readOnly: boolean, text: string) {
+/** Opens the import dialog and makes its button available for the tests. */
+function beginImport(readOnly: boolean) {
   const { page, calls } = playground(readOnly);
   importDialog(page as unknown as Parameters<typeof importDialog>[0]);
-  const source = (opened.body[1] as { value: string; children: unknown[] }) ?? undefined;
-  source.value = text;
-  const button = opened.actions.find((action) => action.label === en.import.import);
-  const result = await button?.run?.();
-  return { calls, result };
+  const source = opened.body[1] as { value: string };
+  const run = opened.actions.find((action) => action.label === en.import.import)!.run!;
+  return { calls, source, run };
 }
 
 describe("the import dialog", () => {
@@ -83,17 +81,29 @@ describe("the import dialog", () => {
   });
 
   it("adds the diagram and says so on a page that can be edited", async () => {
-    const { calls, result } = await importWith(false, "graph TD\n  A --> B\n");
+    const { calls, source, run } = beginImport(false);
+    source.value = "graph TD\n  A --> B\n";
+    expect(await run()).toBe(true);
     expect(calls[0]).toBe("add diagrams/imported.meltemi");
     expect(calls).toContain("keep");
     expect(calls.some((call) => call.startsWith("status "))).toBe(true);
-    expect(result).not.toBe(undefined);
+  });
+
+  it("closes a successful import with findings even if the action is activated twice", async () => {
+    const { calls, source, run } = beginImport(false);
+    source.value = "flowchart LR\n  a --> b\n  A --=> B\n";
+    expect(await Promise.all([run(), run()])).toEqual([true, true]);
+    expect(calls.filter((call) => call.startsWith("add "))).toEqual([
+      "add diagrams/imported.meltemi",
+    ]);
+    expect(calls.at(-1)).toMatch(/partial, \d+ findings/);
   });
 
   it("adds nothing and says nothing was added once the page is read-only", async () => {
-    const { calls, result } = await importWith(true, "graph TD\n  A --> B\n");
-    expect(calls).toEqual([]);
+    const { calls, source, run } = beginImport(true);
+    source.value = "graph TD\n  A --> B\n";
     // The dialog stays open, with the reason in it.
-    expect(result).toBe(false);
+    expect(await run()).toBe(false);
+    expect(calls).toEqual([]);
   });
 });

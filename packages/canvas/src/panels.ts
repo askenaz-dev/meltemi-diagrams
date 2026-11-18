@@ -233,6 +233,7 @@ export class Picker {
       } else return;
       e.preventDefault();
       this.draw();
+      this.list.children[this.active]?.scrollIntoView({ block: "nearest" });
     });
   }
 
@@ -244,16 +245,22 @@ export class Picker {
     options: { id: string; label: string }[],
     at: { x: number; y: number },
     choose: (id: string) => void,
+    label = messages().picker.label,
   ): void {
     this.returnFocus = document.activeElement as HTMLElement | null;
     this.options = options;
     this.choose = choose;
     this.active = 0;
     this.input.value = "";
+    this.element.setAttribute("aria-label", label);
     this.element.hidden = false;
-    this.element.style.left = `${at.x}px`;
-    this.element.style.top = `${at.y}px`;
+    this.element.style.maxHeight = "";
     this.draw();
+    const bounds = this.element.parentElement?.getBoundingClientRect();
+    const place = bounds ? menuPlace(at, bounds, this.element.getBoundingClientRect()) : undefined;
+    this.element.style.left = `${place?.left ?? at.x}px`;
+    this.element.style.top = `${place?.top ?? at.y}px`;
+    this.element.style.maxHeight = place ? `${place.maxHeight}px` : "";
     this.input.focus();
   }
 
@@ -289,7 +296,11 @@ export class Picker {
       });
       this.list.append(row);
     });
-    this.input.setAttribute("aria-activedescendant", `mdg-option-${this.active}`);
+    if (this.list.children[this.active]) {
+      this.input.setAttribute("aria-activedescendant", `mdg-option-${this.active}`);
+    } else {
+      this.input.removeAttribute("aria-activedescendant");
+    }
   }
 }
 

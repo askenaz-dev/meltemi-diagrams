@@ -301,7 +301,11 @@ rango se rechaza indicando el rango, y el texto queda como estaba.
   en el modelo, con nombre cuando un extremo queda fijado.
 - **Tiradores sobre la línea.** Un conector seleccionado muestra sus extremos, sus puntos de paso
   y, para cada tramo entre dos de ellos, un tirador a mitad de la línea tal como se dibuja, aunque
-  la línea gire. Al arrastrarlo se agrega un punto de paso ahí.
+  la línea gire. Al arrastrarlo se agrega un punto de paso ahí. En diagramas de flujo, diagramas
+  libres y vistas C4, arrastra cualquiera de los extremos a otro elemento para reconectar la
+  flecha. El menú contextual del conector (clic derecho o Mayús+F10) también ofrece
+  **Cambiar origen…** y **Cambiar destino…**, con una lista de elementos visibles que puedes
+  filtrar. El conector sigue seleccionado para que puedas seguir editándolo.
 - **Colores del tema.** La selección, los tiradores, el punto que toma un extremo y el punto desde
   el que empieza una conexión usan el color `selection` del tema; las guías de alineación y el
   contorno y los imanes de la caja bajo un extremo usan su color `guide`. Ambos toman por defecto
@@ -390,7 +394,8 @@ el texto y se mantiene centrado donde se dibuja el texto.
 - **`layout auto`.** ELK organiza las cajas y el lienzo muestra esa organización. El primer cambio
   de posición escribe la posición de todas las cajas, cambia el diagrama a `layout assisted` y luego
   aplica el cambio, todo en una sola edición. Solo se mueve lo que moviste. Esto vale para mover,
-  cambiar el tamaño, los puntos de paso, crear, alinear, distribuir y pegar.
+  cambiar el tamaño, los puntos de paso, crear, alinear, distribuir y pegar. Las rutas escritas
+  se conservan.
 - **`layout assisted`.** Las cajas colocadas se quedan donde están. Una caja que arrastras recibe
   su `place`, y ELK sigue organizando las demás.
 - **Organizar cuando quieras.** **Organizar los elementos sin colocar** escribe posiciones para las
@@ -406,6 +411,9 @@ el texto y se mantiene centrado donde se dibuja el texto.
   diagrama no se puede organizar, la línea de estado dice por qué, como una banda dentro de un
   grupo que organiza el motor. Ambos están en el menú de la barra de herramientas, el menú
   contextual y la paleta de comandos.
+- **Alinear las cajas seleccionadas.** Selecciona dos o más cajas y abre **Organizar** en la barra
+  de herramientas o el menú contextual del lienzo. Alinea los bordes o los centros que ves en el
+  lienzo. Con tres o más cajas también puedes dejar el mismo espacio entre ellas en ambos ejes.
 - **El menú de la insignia.** En un lienzo que edita un diagrama de flujo, una composición libre o
   una vista C4, la insignia que nombra el modo (`layout assisted`) es un botón. Su menú lista
   **Automático**, **Asistido** y **Manual**, con el modo actual marcado, y luego **Organizar los

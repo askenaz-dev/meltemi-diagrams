@@ -504,7 +504,7 @@ export function materializeOperation(view: DiagramView): EditOperation | undefin
     kind: "arrange",
     diagram: view.id,
     ...fromBoxes(view.diagram, view.layout.boxes, view.layout.origins),
-    scope: "all",
+    scope: "materialize",
   };
 }
 

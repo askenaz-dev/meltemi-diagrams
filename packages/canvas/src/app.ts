@@ -402,7 +402,10 @@ type Drag =
       kind: "end";
       relation: string;
       end: "from" | "to";
+      start: Point;
       point: Point;
+      moving: boolean;
+      reset: boolean;
       target?: { element: string; attachment: EndAttachment };
     }
   | {
@@ -4107,18 +4110,24 @@ export class CanvasApp {
         );
       }
     }
-    if (drag?.kind === "end" || drag?.kind === "connect") {
+    if ((drag?.kind === "end" && drag.moving) || drag?.kind === "connect") {
       const relation = drag.kind === "end" ? this.relations.get(drag.relation) : undefined;
-      const from =
-        drag.kind === "end"
-          ? this.screenOf(
-              drag.end === "from"
-                ? relation!.points[relation!.points.length - 1]!
-                : relation!.points[0]!,
-            )
-          : this.screenOf(drag.start?.point ?? this.linkStart(drag.from, drag.side));
-      const to = this.screenOf(drag.point);
-      add(s("line", { class: "wire", x1: from.x, y1: from.y, x2: to.x, y2: to.y }));
+      if (drag.kind === "connect") {
+        const from = this.screenOf(drag.start?.point ?? this.linkStart(drag.from, drag.side));
+        const to = this.screenOf(drag.point);
+        add(s("line", { class: "wire", x1: from.x, y1: from.y, x2: to.x, y2: to.y }));
+      } else if (relation) {
+        const from = drag.end === "from" ? drag.point : relation.points[0]!;
+        const to = drag.end === "to" ? drag.point : relation.points[relation.points.length - 1]!;
+        const points = [from, ...relation.via, to].map((p) => this.screenOf(p));
+        add(
+          s("polyline", {
+            class: "wire",
+            fill: "none",
+            points: points.map((p) => `${p.x},${p.y}`).join(" "),
+          }),
+        );
+      }
       const target = drag.target;
       const element = target ? this.elements.get(target.element) : undefined;
       if (element && target) {
@@ -4401,19 +4410,42 @@ export class CanvasApp {
   }
 
   private drawRouteHandles(relation: RelationInfo): void {
-    for (const handle of routeHandles(relation)) {
+    const handles = routeHandles(relation);
+    // Extend the ends' hit areas behind the visible handles, so nearby bends remain usable.
+    for (const handle of handles) {
+      if (handle.kind !== "end") continue;
+      const p = this.screenOf(handle.point);
+      this.overlay.append(
+        s("circle", {
+          class: "end-hit",
+          cx: p.x,
+          cy: p.y,
+          r: 11,
+          "data-id": relation.key,
+          "data-end-hit": `end:${handle.end}`,
+          "aria-hidden": "true",
+        }),
+      );
+    }
+    const words = messages().menu;
+    for (const handle of [...handles.slice(2), ...handles.slice(0, 2)]) {
       const p = this.screenOf(handle.point);
       const id = relation.key;
       if (handle.kind === "end") {
+        const label = handle.end === "from" ? words.changeSource : words.changeTarget;
         this.overlay.append(
-          s("circle", {
-            class: "handle end",
-            cx: p.x,
-            cy: p.y,
-            r: 5,
-            "data-handle": `end:${handle.end}`,
-            "data-id": id,
-          }),
+          s(
+            "circle",
+            {
+              class: "handle end",
+              cx: p.x,
+              cy: p.y,
+              r: 6,
+              "data-handle": `end:${handle.end}`,
+              "data-id": id,
+            },
+            ...(relation.fixedElements ? [] : [s("title", {}, document.createTextNode(label))]),
+          ),
         );
       } else if (handle.kind === "bend") {
         this.overlay.append(
@@ -4996,6 +5028,7 @@ export class CanvasApp {
     // A drag over a list let go of: what it carried glides back to its place, and the cards that
     // made room for it to theirs.
     const drag = this.drag;
+    if (drag?.kind === "end") this.lastHandlePress = undefined;
     const back =
       drag?.kind === "move" && drag.moving && (drag.list || this.previewShown?.list)
         ? this.drawnRects()
@@ -5283,6 +5316,7 @@ export class CanvasApp {
       const rect = arrange.getBoundingClientRect();
       const base = this.main.getBoundingClientRect();
       const commands = words.commands;
+      const alignment = this.alignmentItems();
       this.menu.open(
         [
           {
@@ -5302,6 +5336,7 @@ export class CanvasApp {
                 },
               ]
             : []),
+          ...(alignment.some((item) => !item.disabled) ? ["-" as const, ...alignment] : []),
         ],
         { x: rect.left - base.left, y: 0 },
         base,
@@ -6489,12 +6524,12 @@ export class CanvasApp {
     | { kind: "element" | "relation" | "label" | "event" | "handle"; id: string; handle?: string }
     | undefined {
     if (!(target instanceof Element)) return undefined;
-    const handle = target.closest("[data-handle]");
+    const handle = target.closest("[data-handle], [data-end-hit]");
     if (handle)
       return {
         kind: "handle",
         id: handle.getAttribute("data-id")!,
-        handle: handle.getAttribute("data-handle")!,
+        handle: handle.getAttribute("data-handle") ?? handle.getAttribute("data-end-hit")!,
       };
     const label = target.closest('[data-role="label"]');
     if (label) {
@@ -7494,7 +7529,8 @@ export class CanvasApp {
         (last.handle === hit.handle || (segment && last.handle === RELATION_PRESS)) &&
         now - last.time < DOUBLE_CLICK_MS &&
         Math.hypot(last.point.x - point.x, last.point.y - point.y) < DOUBLE_CLICK_DISTANCE;
-      if (double && this.handleDoubleClick(hit.id, hit.handle)) {
+      const endpoint = hit.handle.startsWith("end:");
+      if (double && !endpoint && this.handleDoubleClick(hit.id, hit.handle)) {
         this.lastHandlePress = undefined;
         return;
       }
@@ -7569,7 +7605,15 @@ export class CanvasApp {
           point: at,
         };
       } else if (kind === "end") {
-        this.drag = { kind: "end", relation: hit.id, end: arg as "from" | "to", point: at };
+        this.drag = {
+          kind: "end",
+          relation: hit.id,
+          end: arg as "from" | "to",
+          start: at,
+          point: at,
+          moving: false,
+          reset: double,
+        };
       } else {
         this.drag = {
           kind: kind as "bend" | "segment",
@@ -7796,11 +7840,19 @@ export class CanvasApp {
           this.requestPreview();
           break;
         }
-        const primary = this.elements.get(drag.primary)!.box;
+        const primary = this.elements.get(drag.primary)!;
+        const moving = new Set(this.withContents(drag.ids));
         const others = [...this.elements.values()]
-          .filter((el) => !drag.ids.includes(el.id) && el.kind !== "group")
-          .map((el) => el.box);
-        const resolved = resolveMove(primary, others, raw, {
+          .filter(
+            (el) =>
+              !moving.has(el.id) &&
+              !this.isHidden(el.layer) &&
+              el.kind !== "group" &&
+              !el.line &&
+              !el.pen,
+          )
+          .map((el) => turnedBounds(el.box, el.rotation));
+        const resolved = resolveMove(turnedBounds(primary.box, primary.rotation), others, raw, {
           grid: this.settings.grid,
           snap: this.snap,
           guides: this.settings.guides && this.snap,
@@ -7926,21 +7978,10 @@ export class CanvasApp {
         break;
       }
       case "end":
+        if (!this.trackEnd(drag, at, free)) return;
+        break;
       case "connect": {
-        const gantt = this.render?.profile === "gantt";
-        const except = drag.kind === "connect" ? drag.from : undefined;
-        const element = gantt ? this.ganttLinkTarget(at, except) : this.attachTarget(at, except);
-        if (element) {
-          // A bar of a chart takes a link anywhere on it: no port, no point of its border.
-          const attachment = gantt
-            ? { port: null, point: at }
-            : this.attachOn(element, at, this.reach(free));
-          drag.target = { element: element.id, attachment };
-          drag.point = attachment.port === null ? at : attachment.point;
-        } else {
-          delete drag.target;
-          drag.point = at;
-        }
+        this.trackConnection(drag, at, free);
         break;
       }
       case "event": {
@@ -8240,29 +8281,19 @@ export class CanvasApp {
         this.drawOverlay();
         return;
       }
-      case "end":
-        if (drag.target) {
-          const { attachment, element } = drag.target;
-          this.act({
-            kind: "setEnd",
-            relation: drag.relation,
-            end: drag.end,
-            element,
-            port: attachment.port,
-            ...(attachment.position !== undefined ? { position: attachment.position } : {}),
-          });
-          this.announce(
-            attachment.port === null
-              ? messages().announcements.endFree(drag.relation)
-              : messages().announcements.endPinned(
-                  drag.relation,
-                  element,
-                  attachment.port,
-                  attachment.position,
-                ),
-          );
+      case "end": {
+        const at = this.diagramOf(this.pointOf(e));
+        if (this.trackEnd(drag, at, e.altKey)) {
+          if (drag.target) {
+            const { attachment, element } = drag.target;
+            this.setConnectorEnd(drag.relation, drag.end, element, attachment);
+          }
+        } else if (drag.reset) {
+          this.lastHandlePress = undefined;
+          this.handleDoubleClick(drag.relation, `end:${drag.end}`);
         }
         break;
+      }
       case "connect":
         if (drag.target) {
           const { attachment, element } = drag.target;
@@ -8353,6 +8384,74 @@ export class CanvasApp {
     g?.setAttribute("transform", `translate(${delta.x} ${delta.y})`);
   }
 
+  private trackEnd(drag: Extract<Drag, { kind: "end" }>, at: Point, free: boolean): boolean {
+    if (
+      !drag.moving &&
+      Math.hypot(at.x - drag.start.x, at.y - drag.start.y) * this.viewport.zoom < DRAG_THRESHOLD
+    ) {
+      return false;
+    }
+    drag.moving = true;
+    this.lastHandlePress = undefined;
+    this.trackConnection(drag, at, free);
+    return true;
+  }
+
+  private trackConnection(
+    drag: Extract<Drag, { kind: "connect" | "end" }>,
+    at: Point,
+    free: boolean,
+  ): void {
+    const gantt = this.render?.profile === "gantt";
+    const except = drag.kind === "connect" ? drag.from : undefined;
+    const relation = drag.kind === "end" ? this.relations.get(drag.relation) : undefined;
+    const current = drag.kind === "end" && relation?.fixedElements ? relation[drag.end] : undefined;
+    const element = gantt
+      ? this.ganttLinkTarget(at, except)
+      : this.attachTarget(at, except, current);
+    drag.point = at;
+    if (!element) {
+      delete drag.target;
+      return;
+    }
+    // Gantt bars accept a link at any point, without an anchor.
+    const attachment = gantt
+      ? { port: null, point: at }
+      : this.attachOn(element, at, this.reach(free));
+    drag.target = { element: element.id, attachment };
+    if (attachment.port !== null) drag.point = attachment.point;
+  }
+
+  private setConnectorEnd(
+    relation: string,
+    end: "from" | "to",
+    element: string,
+    attachment: Pick<EndAttachment, "port" | "position">,
+  ): void {
+    const connector = this.relations.get(relation);
+    if (!connector) return;
+    const { port, position } = attachment;
+    if (
+      this.act({
+        kind: "setEnd",
+        relation,
+        end,
+        element,
+        port,
+        ...(position !== undefined ? { position } : {}),
+      })
+    ) {
+      const words = messages().announcements;
+      this.announce(
+        port !== null
+          ? words.endPinned(relation, element, port, position)
+          : connector[end] === element
+            ? words.endFree(relation)
+            : words.endReconnected(end, element),
+      );
+    }
+  }
+
   /** The reach of a dragged end, in diagram units at the current zoom. */
   private reach(free: boolean): { border: number; magnet: number; free: boolean } {
     const zoom = this.viewport.zoom;
@@ -8370,15 +8469,21 @@ export class CanvasApp {
    * The box a dragged end attaches to: the frontmost one whose shape is under the pointer, or the
    * one whose outline is near. Over the box the line starts from, only another box's outline.
    */
-  private attachTarget(point: Point, except?: string): ElementInfo | undefined {
-    const stack = this.stackAt(point).filter((e) => e.kind !== "group");
+  private attachTarget(point: Point, except?: string, only?: string): ElementInfo | undefined {
+    const eligible = (element: ElementInfo) =>
+      this.isConnectorElement(element) && (only === undefined || element.id === only);
+    const stack = this.stackAt(point).filter(eligible);
     const under = stack[0];
     if (under && under.id !== except) return under;
     return this.nearestOutline(
       point,
       BORDER_REACH / this.viewport.zoom,
-      (e) => e.id !== except && !stack.includes(e),
+      (e) => e.id !== except && eligible(e) && !stack.includes(e),
     );
+  }
+
+  private isConnectorElement(element: ElementInfo): boolean {
+    return element.kind !== "group" && !(this.render?.profile === "c4" && element.kind === "note");
   }
 
   /**
@@ -9202,14 +9307,7 @@ export class CanvasApp {
     if (!relation) return false;
     if (handle.startsWith("end:")) {
       const end = handle.slice(4) as "from" | "to";
-      this.act({
-        kind: "setEnd",
-        relation: id,
-        end,
-        element: end === "from" ? relation.from : relation.to,
-        port: null,
-      });
-      this.announce(messages().announcements.endFree(id));
+      this.setConnectorEnd(id, end, relation[end], { port: null });
       return true;
     }
     if (handle.startsWith("bend:")) {
@@ -9426,24 +9524,28 @@ export class CanvasApp {
       case "alignLeft":
       case "alignRight":
       case "alignTop":
-      case "alignBottom":
-        if (elementIds.length > 1)
+      case "alignBottom": {
+        const ids = this.alignmentIds();
+        if (ids.length > 1)
           this.act({
             kind: "align",
-            ids: elementIds,
+            ids,
             edge: command.slice(5).toLowerCase() as AlignEdge,
           });
         return;
+      }
       case "distributeHorizontal":
-      case "distributeVertical":
-        if (elementIds.length > 2) {
+      case "distributeVertical": {
+        const ids = this.alignmentIds();
+        if (ids.length > 2) {
           this.act({
             kind: "distribute",
-            ids: elementIds,
+            ids,
             axis: command === "distributeHorizontal" ? "horizontal" : "vertical",
           });
         }
         return;
+      }
       case "relationTool":
         if (this.render?.scenario !== null && this.render?.profile === "sequence") {
           this.announce(messages().announcements.previewReadOnly, true);
@@ -10597,6 +10699,73 @@ export class CanvasApp {
     items.push(...effects);
   }
 
+  /** The selected boxes that have positions independent of their container. */
+  private alignmentIds(): string[] {
+    return this.selection.filter((id) => {
+      const element = this.elements.get(id);
+      if (!element || this.isHidden(element.layer)) return false;
+      const parent = element.parent ? this.elements.get(element.parent) : undefined;
+      return element.kind !== "group" && !element.line && !element.pen && !parent?.list;
+    });
+  }
+
+  private alignmentItems(): MenuItem[] {
+    const { menu: words } = messages();
+    const ids = this.alignmentIds();
+    const alignments: [string, AlignEdge][] = [
+      [words.alignLeft, "left"],
+      [words.alignCentre, "center"],
+      [words.alignRight, "right"],
+      [words.alignTop, "top"],
+      [words.alignMiddle, "middle"],
+      [words.alignBottom, "bottom"],
+    ];
+    const align = alignments.map(([label, edge]) => ({
+      label,
+      disabled: ids.length < 2,
+      run: () => this.act({ kind: "align", ids, edge }),
+    }));
+    return [
+      ...align,
+      {
+        label: words.distributeHorizontally,
+        disabled: ids.length < 3,
+        run: () => this.act({ kind: "distribute", ids, axis: "horizontal" }),
+      },
+      {
+        label: words.distributeVertically,
+        disabled: ids.length < 3,
+        run: () => this.act({ kind: "distribute", ids, axis: "vertical" }),
+      },
+    ];
+  }
+
+  private endpointItems(relation: RelationInfo, at: Point): MenuItem[] {
+    if (this.stale || this.selection.length !== 1 || relation.fixedElements) return [];
+    const words = messages().menu;
+    const choices = this.painted().filter((element) => this.isConnectorElement(element));
+    return (["from", "to"] as const).flatMap((end) => {
+      const options = choices
+        .filter((element) => element.id !== relation[end])
+        .map(({ id, label }) => ({ id, label }));
+      if (options.length === 0) return [];
+      const label = end === "from" ? words.changeSource : words.changeTarget;
+      return [
+        {
+          label,
+          data: { "data-menu": `reconnect-${end}` },
+          run: () =>
+            this.picker.open(
+              options,
+              this.mainPoint(at),
+              (element) => this.setConnectorEnd(relation.key, end, element, { port: null }),
+              label,
+            ),
+        },
+      ];
+    });
+  }
+
   private openMenu(at: Point): void {
     this.menuOpening = { at, pill: this.menuPill, redrawn: false };
     this.menuWaits = false;
@@ -10655,6 +10824,7 @@ export class CanvasApp {
     }
     if (!relation) items.push(...this.belowItems(at));
     if (relation) {
+      items.push(...this.endpointItems(relation, at));
       for (const routing of ["auto", "orthogonal", "polyline", "bezier"]) {
         items.push({
           label: words.routeKind(routing),
@@ -10752,30 +10922,7 @@ export class CanvasApp {
             this.act({ kind: "setField", ids: [element.id], field: "style.rotation", value: null });
         },
       },
-      { label: words.alignLeft, disabled: elementIds.length < 2, run: run("alignLeft") },
-      {
-        label: words.alignCentre,
-        disabled: elementIds.length < 2,
-        run: () => this.act({ kind: "align", ids: elementIds, edge: "center" }),
-      },
-      { label: words.alignRight, disabled: elementIds.length < 2, run: run("alignRight") },
-      { label: words.alignTop, disabled: elementIds.length < 2, run: run("alignTop") },
-      {
-        label: words.alignMiddle,
-        disabled: elementIds.length < 2,
-        run: () => this.act({ kind: "align", ids: elementIds, edge: "middle" }),
-      },
-      { label: words.alignBottom, disabled: elementIds.length < 2, run: run("alignBottom") },
-      {
-        label: words.distributeHorizontally,
-        disabled: elementIds.length < 3,
-        run: run("distributeHorizontal"),
-      },
-      {
-        label: words.distributeVertically,
-        disabled: elementIds.length < 3,
-        run: run("distributeVertical"),
-      },
+      ...this.alignmentItems(),
       "-",
       // The text size of the selection, one common size up or down (decision 0067).
       {
@@ -10837,7 +10984,6 @@ export class CanvasApp {
 
   /** The context menu of a C4 view: local labels, the model's entities, placement. */
   private openViewMenu(at: Point): void {
-    const elementIds = this.selection.filter((id) => this.elements.has(id));
     const primary = this.selection[this.selection.length - 1];
     const element = primary ? this.elements.get(primary) : undefined;
     const relation = primary ? this.relations.get(primary) : undefined;
@@ -10854,6 +11000,7 @@ export class CanvasApp {
       items.push({ label: words.connectTo, key: "C", run: run("connect") });
     }
     if (!relation) items.push(...this.belowItems(at));
+    else items.push(...this.endpointItems(relation, at));
     // A view's relations come from the model: they take effects, and are reversed there.
     this.withEffects(items);
     if (items.length > 0) items.push("-");
@@ -10867,13 +11014,7 @@ export class CanvasApp {
         run: run("delete"),
       },
       "-",
-      { label: words.alignLeft, disabled: elementIds.length < 2, run: run("alignLeft") },
-      { label: words.alignTop, disabled: elementIds.length < 2, run: run("alignTop") },
-      {
-        label: words.distributeHorizontally,
-        disabled: elementIds.length < 3,
-        run: run("distributeHorizontal"),
-      },
+      ...this.alignmentItems(),
       "-",
       {
         label: words.showInText,
