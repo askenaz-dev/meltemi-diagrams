@@ -61,11 +61,13 @@ export {
   type ShapeSize,
 } from "./shapes.js";
 export {
+  derivedGroupSize,
   groupHeaderOf,
   isList,
   isUntitledGroup,
   listPlaces,
   type FrameTheme,
+  type FreeGroupSizing,
   type ListArrangement,
 } from "./free.js";
 export * from "./engine.js";

@@ -51,6 +51,7 @@ import {
   interiorOf,
   materializeOperation,
   steadyGroups,
+  steadyPositionGroups,
   steadySize,
   strokeParent,
   unlistedOperations,
@@ -2757,22 +2758,13 @@ export class CanvasSession {
           action.kind === "align"
             ? alignBoxes(selected, action.edge)
             : distributeBoxes(selected, action.axis);
-        const parents = new Set<string>();
         for (const [id, c] of centres) {
           const old = centreOf(id)!;
           if (Math.abs(old.x - c.x) < 0.005 && Math.abs(old.y - c.y) < 0.005) continue;
           const at = this.written(view, id, c);
           ops.push({ kind: "setPosition", diagram: d, element: id, x: at.x, y: at.y });
-          const parent = diagram.elementsById.get(id)?.groupPath.at(-1);
-          if (parent !== undefined) parents.add(parent);
         }
-        // A placed free group derives its size about its fixed centre. Keep its interior origin
-        // steady so the new coordinates stay aligned and its untouched children do not move.
-        if (diagram.type === "free" && view.mode !== "auto") {
-          for (const parent of parents) {
-            if (isPlaced(diagram, parent)) ops.push(...steadySize(view, parent));
-          }
-        }
+        ops.push(...steadyPositionGroups(view, ops));
         break;
       }
       case "reorder": {
@@ -3346,7 +3338,7 @@ export class CanvasSession {
       ops.push(...steadyGroups(view, [...reparented], target));
     }
     if (diagram.type === "free") {
-      // Keep each affected group's interior origin steady once.
+      // The groups strokes end in, kept as drawn once.
       const steady = new Set<string | null>();
       // Children are placed inside their group, so a moved group carries them.
       for (const id of moved) {
@@ -3399,18 +3391,8 @@ export class CanvasSession {
         if (!to) continue;
         const at = this.written(view, id, to);
         ops.push({ kind: "setPosition", diagram: d, element: id, x: at.x, y: at.y });
-        const parent = parentOf(id);
-        if (
-          view.mode !== "auto" &&
-          (delta.x !== 0 || delta.y !== 0) &&
-          parent !== null &&
-          !steady.has(parent) &&
-          isPlaced(diagram, parent)
-        ) {
-          steady.add(parent);
-          ops.push(...steadySize(view, parent));
-        }
       }
+      ops.push(...steadyPositionGroups(view, ops));
       return ops;
     }
     if (!delta) return ops;

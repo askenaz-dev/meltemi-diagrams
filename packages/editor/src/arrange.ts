@@ -1,6 +1,7 @@
-import type { EditOperation } from "@meltemi/diagrams-edit";
+import { formatNumber, type EditOperation } from "@meltemi/diagrams-edit";
 import {
   DEFAULT_PEN_WIDTH,
+  derivedGroupSize,
   groupHeaderOf,
   layoutDiagram,
   stacked,
@@ -281,6 +282,43 @@ export function steadySize(view: DiagramView, group: string | null): EditOperati
   return [
     { kind: "setSize", diagram: view.id, element: group, width: box.width, height: box.height },
   ];
+}
+
+/** Hold the interior of a placed free group only if new positions change its natural size. */
+export function steadyPositionGroups(
+  view: DiagramView,
+  operations: readonly EditOperation[],
+): EditOperation[] {
+  const sizingByGroup = view.layout?.freeGroupSizing;
+  if (!sizingByGroup?.size || view.mode === "auto") return [];
+  const positions = new Map<string, Point>();
+  const parents = new Set<string>();
+  const sized = new Set<string>();
+  for (const operation of operations) {
+    if (operation.kind === "setSize") sized.add(operation.element);
+    if (operation.kind !== "setPosition") continue;
+    const element = view.diagram.elementsById.get(operation.element);
+    const parent = element && parentId(element);
+    if (!parent || !sizingByGroup.has(parent)) continue;
+    parents.add(parent);
+    positions.set(operation.element, {
+      x: Number(formatNumber(operation.x)),
+      y: Number(formatNumber(operation.y)),
+    });
+  }
+  const result: EditOperation[] = [];
+  for (const parent of parents) {
+    if (sized.has(parent)) continue;
+    const sizing = sizingByGroup.get(parent)!;
+    const before = derivedGroupSize(sizing);
+    const after = derivedGroupSize(sizing, positions);
+    if (
+      Math.abs(before.width - after.width) > 1e-6 ||
+      Math.abs(before.height - after.height) > 1e-6
+    )
+      result.push(...steadySize(view, parent));
+  }
+  return result;
 }
 
 /**

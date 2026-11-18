@@ -89,6 +89,7 @@ import {
   paintOrder,
   parentOf,
   type FreeFrames,
+  type FreeGroupSizing,
   type ListArrangement,
 } from "./free.js";
 import { layoutGantt } from "./gantt.js";
@@ -251,6 +252,8 @@ export interface LayoutResult {
    * coordinates. A child's written `place` is its centre minus this origin. Empty for flow.
    */
   readonly origins?: ReadonlyMap<string, Point>;
+  /** Natural sizing inputs of placed free groups that have no written size. */
+  readonly freeGroupSizing?: ReadonlyMap<string, FreeGroupSizing>;
   /** The resolved theme the diagram was laid out with, when there is a scene. */
   readonly theme?: Theme;
   /** Sequence diagrams: the row band of every event by key, in diagram coordinates. */
@@ -2875,6 +2878,7 @@ function layoutDrawing(
     stickies,
     lists,
     origins,
+    freeGroupSizing: frames?.groupSizing,
     theme,
     shapes,
     elementLabels,
