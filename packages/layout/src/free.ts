@@ -103,6 +103,19 @@ interface Extent {
   readonly height: number;
 }
 
+/** The inputs that determine an unsized free group's dimensions. */
+export interface FreeGroupSizing {
+  readonly padding: number;
+  readonly header: number;
+  readonly titleWidth: number;
+  readonly children: readonly {
+    readonly id: string;
+    readonly place: Point | undefined;
+    readonly size: Size;
+    readonly extent: Extent | undefined;
+  }[];
+}
+
 /**
  * The size of a free group without a `size` statement: its padding, the farthest right and bottom
  * edges of its placed children measured from the interior origin, and its padding again, below its
@@ -110,14 +123,15 @@ interface Extent {
  * is what it draws beyond its box too (the label of an icon shape); its box by default.
  */
 export function derivedGroupSize(
-  children: readonly { place: Point; size: Size; extent?: Extent }[],
-  padding: number,
-  header: number,
-  titleWidth: number,
+  { children, padding, header, titleWidth }: FreeGroupSizing,
+  replacements?: ReadonlyMap<string, Point>,
 ): Size {
   let right = 0;
   let bottom = 0;
-  for (const { place, size, extent } of children) {
+  for (const child of children) {
+    const { id, size, extent } = child;
+    const place = replacements?.get(id) ?? child.place;
+    if (!place) continue;
     right = Math.max(right, place.x + (extent ? extent.x + extent.width : size.width / 2));
     bottom = Math.max(bottom, place.y + (extent ? extent.y + extent.height : size.height / 2));
   }
@@ -140,6 +154,8 @@ export interface FreeFrames {
   readonly centers: Map<string, Point>;
   /** The written, derived or arranged size of every placed group, a list's children included. */
   readonly groupSizes: Map<string, Size>;
+  /** Sizing inputs of placed, unsized groups whose children have independent positions. */
+  readonly groupSizing: ReadonlyMap<string, FreeGroupSizing>;
   /**
    * The size of every element and group, placed or not: leaves at their own size or the one a list
    * stretches them to, groups at their written, derived or arranged size.
@@ -196,19 +212,20 @@ export function freeFrames(
   // Groups are their box; leaves may draw beyond it.
   const extentAt = (child: Element, size: Size): Extent | undefined =>
     child.kind !== "group" && extentOf ? extentOf(child.id, size) : undefined;
-  const derive = (group: Element): Size =>
-    derivedGroupSize(
-      (childrenOf.get(group.id) ?? []).flatMap((child) => {
-        const place = places.get(child.id);
+  const groupSizing = new Map<string, FreeGroupSizing>();
+  const derive = (group: Element): Size => {
+    const children: FreeGroupSizing["children"] = (childrenOf.get(group.id) ?? []).flatMap(
+      (child) => {
         const size = sizeOf.get(child.id);
-        if (!place || !size) return [];
-        const extent = extentAt(child, size);
-        return [{ place, size, ...(extent ? { extent } : {}) }];
-      }),
-      padding,
-      headerOf(group),
-      titleWidth(group),
+        return size
+          ? [{ id: child.id, place: places.get(child.id), size, extent: extentAt(child, size) }]
+          : [];
+      },
     );
+    const sizing = { children, padding, header: headerOf(group), titleWidth: titleWidth(group) };
+    if (group.list === null && local.has(group.id)) groupSizing.set(group.id, sizing);
+    return derivedGroupSize(sizing);
+  };
 
   const lists = new Map<string, ListArrangement>();
   // The size of each child of a list before the list stretches it.
@@ -334,6 +351,7 @@ export function freeFrames(
   return {
     centers: centersFrom(new Map(), new Map()),
     groupSizes,
+    groupSizing,
     sizes: sizeOf,
     stretched,
     lists,

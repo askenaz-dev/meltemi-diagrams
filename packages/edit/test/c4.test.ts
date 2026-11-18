@@ -295,6 +295,17 @@ describe("model operations", () => {
       expect(after).toContain("    route visit from customer.east 25% to bank.north\n");
     });
 
+    it("preserves comments in both the model path and the view route during a reconnect", () => {
+      const text = routed(
+        "    route visit from customer.east to shop /* view */ .web.north /* point */ 30% via [(200, 300)]\n",
+      ).replace('customer -> shop.web: "Compra"', 'customer -> shop /* model */ .web: "Compra"');
+      const after = run(text, reconnect("visit", "to", "bank"));
+      expect(after).toMatch(/customer -> bank \/\* model \*\/ *: "Compra" as visit/);
+      expect(after).toMatch(
+        /route visit from customer\.east to bank \/\* view \*\/ \.north \/\* point \*\/ +via \[\(200, 300\)\]/,
+      );
+    });
+
     it("writes the port and point dropped on the edited view", () => {
       const text = routed("    route visit from customer to shop.web.north\n");
       const after = run(text, {

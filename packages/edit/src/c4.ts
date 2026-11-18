@@ -30,7 +30,7 @@ import { attachmentDependent } from "./attachments.js";
 import { insertAfter, insertBefore, verifyNoNewErrors } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
 import { removeListItems, type OperationOf } from "./plan.js";
-import { endpointText, requireEndPosition, routeParts } from "./routes.js";
+import { requireEndPosition, routeEndEdits, routeParts } from "./routes.js";
 import { storyDependents } from "./stories.js";
 import { quoteString } from "./text.js";
 import type { Dependent, DependentKind } from "./types.js";
@@ -731,11 +731,11 @@ export function reconnectModelRelation(
   if (op.position !== undefined) requireEndPosition(op.port, op.position);
   // The path from the root resolves wherever the statement sits: the lookup from the enclosing
   // entity outwards ends at the root.
-  const moved: TextEdit = { start: ref.start, end: ref.end, newText: entity.path };
-  const edits: TextEdit[] = [moved];
+  const moved = routeEndEdits(ref, undefined, entity.path, null);
+  const edits = [...moved];
   // The routes of the file's views follow the end the views now draw.
   if (relation.id !== null) {
-    const after = compile(applyTextEdits(ctx.text, [moved]), ctx.compilation.options);
+    const after = compile(applyTextEdits(ctx.text, moved), ctx.compilation.options);
     const removed: CstNode[] = [];
     for (const diagram of ctx.compilation.document.diagrams) {
       const c4 = diagram.c4;
@@ -748,7 +748,7 @@ export function reconnectModelRelation(
         diagram.id === op.view && op.port !== undefined
           ? { port: op.port, ...(op.position !== undefined ? { position: op.position } : {}) }
           : undefined;
-      const followed = followRoutes(ctx.text, ctx.model, routes, drawn, op.end, pinned);
+      const followed = followRoutes(ctx.model, routes, drawn, op.end, pinned);
       edits.push(...followed.edits);
       removed.push(...followed.removed);
     }
@@ -794,7 +794,6 @@ function writtenEnd(
  * already meets the drawn one stays as it is.
  */
 function followRoutes(
-  text: string,
   model: ModelDefinition,
   routes: readonly KeywordStatement[],
   drawn: Relation | undefined,
@@ -815,18 +814,10 @@ function followRoutes(
       reject("edit.unsafe-target", reasons().relations.routeUnreadable);
     }
     const target = end === "from" ? drawn.from : drawn.to;
-    const written = writtenEnd(model, text.slice(arg.start, arg.end));
-    let newText: string;
-    if (pinned) newText = endpointText(target, pinned.port, pinned.position);
-    else if (written.element === target) continue;
-    else {
-      const port = written.port !== null && COMPASS.has(written.port) ? written.port : null;
-      newText = endpointText(target, port);
-    }
-    const stop = (at ?? arg).end;
-    if (newText !== text.slice(arg.start, stop)) {
-      edits.push({ start: arg.start, end: stop, newText });
-    }
+    const written = writtenEnd(model, arg.text);
+    if (!pinned && written.element === target) continue;
+    const kept = written.port !== null && COMPASS.has(written.port) ? written.port : null;
+    edits.push(...routeEndEdits(arg, at, target, pinned ? pinned.port : kept, pinned?.position));
   }
   return { edits, removed };
 }
@@ -843,7 +834,7 @@ export function rewriteRouteEnd(ctx: EditContext, op: OperationOf<"rewriteRouteE
   const routes = routeStatements(ctx.diagram, op.relation);
   if (routes.length === 0) return [];
   const drawn = ctx.diagram.relations.find((r) => r.id === op.relation);
-  const followed = followRoutes(ctx.text, model, routes, drawn, op.end, undefined);
+  const followed = followRoutes(model, routes, drawn, op.end, undefined);
   const edits = [
     ...followed.edits,
     ...deleteStatements(ctx.text, ctx.compilation.parse.root, followed.removed),

@@ -850,7 +850,8 @@ class Harness {
   }
 
   place(id: string): { x: number; y: number } {
-    const match = new RegExp(`place ${id} at \\((-?\\d+), (-?\\d+)\\)`).exec(this.text);
+    const coordinate = "(-?\\d+(?:\\.\\d+)?)";
+    const match = new RegExp(`place ${id} at \\(${coordinate}, ${coordinate}\\)`).exec(this.text);
     assert.ok(match, `no place for ${id} in\n${this.text}`);
     return { x: Number(match[1]), y: Number(match[2]) };
   }
@@ -2083,6 +2084,44 @@ const tests: {
       await h.page.keyboard.press("Shift+ArrowRight");
       await h.settled();
       assert.deepEqual(h.place("db"), { x: 434, y: 112 });
+    },
+  },
+  {
+    name: "keeps the fractional drag guide on drop and aligns boxes from the Arrange toolbar",
+    text: `diagram d: free {
+  layout manual
+  box a "First"
+  box b "Second"
+  placement {
+    place a at (140, 150)
+    size a (100, 40)
+    place b at (560, 210.25)
+    size b (80, 55)
+  }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      await page.getByRole("combobox", { name: "Zoom" }).selectOption("1");
+      const neighbour = await h.centre("b");
+      await dragBy(h, "a", 140, 60.8, async () => {
+        const guide = page.locator(".overlay .guide");
+        assert.equal(await guide.count(), 1);
+        const y = await guide.evaluate((line) => line.getBoundingClientRect().y);
+        assert.ok(Math.abs(y - neighbour.y) < 1, `guide was ${Math.abs(y - neighbour.y)} px off`);
+      });
+      assert.match(h.text, /place a at \(280, 210\.25\)/);
+      const a = await h.centre("a");
+      const b = await h.centre("b");
+      await page.mouse.click(a.x, a.y);
+      await page.keyboard.down("Shift");
+      await page.mouse.click(b.x, b.y);
+      await page.keyboard.up("Shift");
+      await h.settled();
+      await page.getByRole("button", { name: "Arrange", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Align left", exact: true }).click();
+      await h.settled();
+      assert.match(h.text, /place b at \(270, 210\.25\)/);
     },
   },
   {
@@ -3492,6 +3531,31 @@ const tests: {
     },
   },
   {
+    name: "C4: endpoint picker offers entities and skips combined arrows",
+    text: C4.replace(
+      "  include customer, shop.web, shop.api, shop.db\n",
+      '  include customer, shop.web, shop.api, shop.db\n  note hint "A view note" on shop.api\n  customer -> shop.web: "Combined" as bundle\n',
+    ),
+    async run(h) {
+      const page = h.page;
+      const label = (id: string) =>
+        page.locator(`.content [data-id="${id}"][data-role="relation"] [data-role="label"]`);
+      await label("request").click({ button: "right" });
+      const menu = page.getByRole("menu");
+      await menu.getByRole("menuitem", { name: "Change destination…" }).click();
+      const picker = page.getByRole("dialog", { name: "Change destination…" });
+      await picker.getByRole("option", { name: /shop.db/ }).waitFor();
+      assert.equal(await picker.getByRole("option", { name: /view note/i }).count(), 0);
+      await page.keyboard.press("Escape");
+      await label("bundle").click({ button: "right" });
+      await menu.waitFor();
+      assert.equal(
+        await menu.getByRole("menuitem", { name: /Change (source|destination)/ }).count(),
+        0,
+      );
+    },
+  },
+  {
     name: "plays the effects of a diagram from the start, and remembers a pause over a reload",
     text: SHEET.replace(
       "  placement {",
@@ -3723,6 +3787,7 @@ const tests: {
       const db = await box('.content g[data-id="db"][data-role="element"]');
       await page.mouse.move(end.x, end.y);
       await page.mouse.down();
+      await page.mouse.move(end.x - 12, end.y - 12);
       await page.mouse.move(db.x + 3, db.y + db.height / 2 + 2, { steps: 6 });
       // db is drawn as a cylinder: the middles of its sides are its magnets, and no corner.
       assert.equal(await page.locator(".overlay .anchor:not(.active)").count(), 4);

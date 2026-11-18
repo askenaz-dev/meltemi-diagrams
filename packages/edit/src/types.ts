@@ -80,22 +80,22 @@ export type EditOperation =
     }
   | {
       /**
-       * Writes `place` statements from an arrangement: for the elements without one (`unplaced`)
-       * or for every element given (`all`, which also drops route waypoints), and turns
-       * `layout auto` into `layout assisted`.
+       * Writes `place` statements from an arrangement and turns `layout auto` into
+       * `layout assisted`. `unplaced` fills in missing places. `all` rearranges every given
+       * element and reroutes connectors. `materialize` preserves drawn positions and written routes.
        */
       readonly kind: "arrange";
       readonly diagram: string;
-      /** Centres of the arranged elements; with `all`, also of groups that are placed and sized. */
+      /** Centres of the arranged elements, including placed groups when overwriting places. */
       readonly positions: ReadonlyMap<string, Point>;
-      /** With `all`, the new sizes of groups that are placed and sized in the source. */
+      /** New sizes of placed and sized groups when overwriting places. */
       readonly sizes?: ReadonlyMap<string, { readonly width: number; readonly height: number }>;
       /**
        * With `all`, the drawn points of relations by key, ends included, in diagram coordinates:
        * the bends between the ends are written as the route's `via`, the ends left free.
        */
       readonly routes?: ReadonlyMap<string, readonly Point[]>;
-      readonly scope: "unplaced" | "all";
+      readonly scope: "unplaced" | "all" | "materialize";
       /**
        * Also writes `place` and `size` for the groups in `positions` and `sizes` (free diagrams,
        * where group children are placed inside their group). Hosts pass the positions of group
@@ -258,7 +258,8 @@ export type EditOperation =
       readonly relation: string;
       readonly end: "from" | "to";
       readonly element: string;
-      readonly port?: string;
+      /** Omitted keeps a compatible port. Null lets the layout choose. */
+      readonly port?: string | null;
       /** The point of `port`'s compass side, a percentage. */
       readonly position?: number;
     }

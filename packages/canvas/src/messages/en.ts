@@ -406,10 +406,12 @@ export const en = {
     /** A connector's end dropped on a named port or a point of a side. */
     endPinned: (relation: string, element: string, port: string, position?: number) =>
       position === undefined
-        ? `${relation} now ends at ${element}.${port}.`
-        : `${relation} now ends at ${element}, ${port} side at ${position}%.`,
+        ? `An end of ${relation} is pinned to ${element}.${port}.`
+        : `An end of ${relation} is pinned to ${element}, ${port} side at ${position}%.`,
     /** A connector's end handed back to the layout. */
     endFree: (relation: string) => `The layout places this end of ${relation}.`,
+    endReconnected: (end: "from" | "to", element: string) =>
+      `Connector ${end === "from" ? "source" : "destination"} changed to ${element}.`,
     /** The relation tool dragged on empty canvas of a free diagram: a line is being drawn. */
     drawingLine: "Drawing a line: release to place it. Shift keeps it at 45°, Escape cancels.",
     /** A free line drawn, from its first point to its last, in diagram units. */
@@ -547,6 +549,8 @@ export const en = {
     openModel: "Open the model",
     /** Swaps the ends of the selected relation, message or free line. */
     reverseDirection: "Reverse direction",
+    changeSource: "Change source…",
+    changeTarget: "Change destination…",
     /** Sequence diagrams: `autonumber` on or off. */
     numberMessages: "Number messages",
     removeFromView: "Remove from the view",

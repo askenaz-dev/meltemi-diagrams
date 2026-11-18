@@ -151,3 +151,79 @@ export function connectorSelectionTests(h: Helpers) {
     },
   }));
 }
+
+export function importedConnectorEditingTest(h: Helpers) {
+  return {
+    name: "reconnects both ends of an imported Mermaid arrow and keeps it selected",
+    async run({ page }: { page: Page }) {
+      await page.getByRole("button", { name: "Import", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Import Mermaid or PlantUML" });
+      await dialog
+        .getByLabel("Source")
+        .fill(
+          "flowchart LR\n  a[Start] -. Verify .-> b[Original]\n  c[Destination]\n  d[New source]\n",
+        );
+      await dialog.getByRole("button", { name: "Import", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+      await h.analysed(page);
+
+      const stage = page.locator("#app .stage");
+      await page.locator('#app .toolbar select[aria-label="Zoom"]').selectOption("0.5");
+      const arrow = page.locator('#app .content [data-role="relation"]');
+      await arrow.getByText("Verify", { exact: true }).click();
+      const source = page.locator(".code-input");
+      const original = await source.inputValue();
+      assert.match(original, /a --> b: "Verify"/);
+
+      const end = page.locator('#app .overlay [data-handle="end:to"]');
+      const handle = await end.boundingBox();
+      const target = await page
+        .locator('#app .content [data-role="element"][data-id="c"]')
+        .boundingBox();
+      assert.ok(handle && target);
+      const grab = { x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 + 9 };
+      assert.equal(
+        await page.evaluate(
+          ({ x, y }) => document.elementFromPoint(x, y)?.getAttribute("data-end-hit"),
+          grab,
+        ),
+        "end:to",
+      );
+      await page.mouse.click(grab.x, grab.y);
+      assert.equal(await source.inputValue(), original, "an endpoint click writes nothing");
+
+      await page.mouse.move(grab.x, grab.y);
+      await page.mouse.down();
+      await page.mouse.move(target.x, target.y + target.height / 2, { steps: 8 });
+      await stage.locator(".overlay .anchor.active").waitFor();
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      assert.equal(await source.inputValue(), original, "Escape cancels the connector drag");
+
+      await page.mouse.move(grab.x, grab.y);
+      await page.mouse.down();
+      await page.mouse.move(target.x, target.y + target.height / 2, { steps: 8 });
+      await page.mouse.up();
+      await h.analysed(page);
+      assert.match(await source.inputValue(), /a --> c: "Verify" as (\w+)/);
+      assert.match(await source.inputValue(), /route \w+ from a\.auto to c\.west 50%/);
+      const key = await arrow.getAttribute("data-id");
+      assert.ok(key);
+      await expectSelection(page, [key]);
+
+      await stage.focus();
+      await page.keyboard.press("Shift+F10");
+      const menu = page.getByRole("menu");
+      await menu.getByRole("menuitem", { name: "Change source…" }).focus();
+      await page.keyboard.press("Enter");
+      const picker = page.getByRole("dialog", { name: "Change source…" }).getByRole("combobox");
+      await picker.fill("New source");
+      await picker.press("Enter");
+      await h.analysed(page);
+      assert.match(await source.inputValue(), /d --> c: "Verify"/);
+      assert.match(await source.inputValue(), /route \w+ from d(?:\.auto)? to c\.west 50%/);
+      await expectSelection(page, [key]);
+      await page.screenshot({ path: join(h.output, "reconnected-imported-connector.png") });
+    },
+  };
+}

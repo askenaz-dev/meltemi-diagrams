@@ -52,8 +52,8 @@ export function resolveMove(
     return { delta: { x: Math.round(delta.x), y: Math.round(delta.y) }, guides: [] };
   const moved: Box = { ...primary, x: primary.x + delta.x, y: primary.y + delta.y };
   const threshold = GUIDE_DISTANCE / Math.max(options.zoom, 0.01);
-  const result = { x: delta.x, y: delta.y };
-  const guides: Guide[] = [];
+  const result = { x: Math.round(delta.x), y: Math.round(delta.y) };
+  const matches: { axis: "x" | "y"; value: number; other: Box }[] = [];
   for (const axis of ["x", "y"] as const) {
     let best: { shift: number; value: number; other: Box } | undefined;
     if (options.guides) {
@@ -69,20 +69,26 @@ export function resolveMove(
       }
     }
     if (best) {
-      result[axis] += best.shift;
-      const snapped = { ...moved, [axis]: moved[axis] + best.shift } as Box;
-      const across = axis === "x" ? "y" : "x";
-      const span = [snapped, best.other].flatMap((b) => [
-        b[across],
-        b[across] + (across === "x" ? b.width : b.height),
-      ]);
-      guides.push({ axis, value: best.value, from: Math.min(...span), to: Math.max(...span) });
+      const distance = delta[axis] + best.shift;
+      result[axis] = Math.abs(distance) < 1e-6 ? 0 : distance;
+      matches.push({ axis, value: best.value, other: best.other });
     } else if (options.snap) {
-      const c = center(moved)[axis];
-      result[axis] += snapValue(c, options.grid) - c;
+      result[axis] = snapValue(center(moved)[axis], options.grid) - center(primary)[axis];
     }
   }
-  return { delta: { x: Math.round(result.x), y: Math.round(result.y) }, guides };
+  // Draw each guide through the box after both axes have resolved, including the other axis's snap.
+  const snapped = { ...primary, x: primary.x + result.x, y: primary.y + result.y };
+  const guides = matches.map(({ axis, value, other }) => {
+    const across = axis === "x" ? "y" : "x";
+    const size = across === "x" ? "width" : "height";
+    return {
+      axis,
+      value,
+      from: Math.min(snapped[across], other[across]),
+      to: Math.max(snapped[across] + snapped[size], other[across] + other[size]),
+    };
+  });
+  return { delta: result, guides };
 }
 
 export type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";

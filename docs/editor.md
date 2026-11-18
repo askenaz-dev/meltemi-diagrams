@@ -282,7 +282,10 @@ the range, and the text stays as it was.
   the model, named when an end is pinned.
 - **Handles on the line.** A selected connector shows its ends, its bends and, for each stretch
   between two of them, a handle halfway along the line as drawn, wherever the line turns. Dragging
-  it adds a bend there.
+  it adds a bend there. In flow, free and C4 diagrams, drag either end to another element to
+  reconnect the arrow. The connector's context menu (right-click or Shift+F10) also offers
+  **Change source…** and **Change destination…**, with a searchable list of visible elements.
+  The connector stays selected so you can keep editing it.
 - **Colours from the theme.** The selection, handles, the point an end takes and the point a
   connection starts from use the theme's `selection` colour; alignment guides and the outline and
   magnets of the box under an end use its `guide` colour. Both default to the theme's `accent`, so
@@ -363,7 +366,7 @@ editor grows with the text and stays centred where the text is drawn.
 - **`layout auto`.** ELK arranges the boxes and the canvas shows that arrangement. The first change
   of position writes the position of every box, switches the diagram to `layout assisted`, and
   then applies the change, all as one edit. Only what you moved moves. This applies to moving,
-  resizing, bends, creating, aligning, distributing and pasting.
+  resizing, bends, creating, aligning, distributing and pasting. Written routes are retained.
 - **`layout assisted`.** Placed boxes stay where they are. A box you drag gets its `place`, and ELK
   keeps arranging the others.
 - **Arranging on demand.** **Arrange Unplaced Elements** writes positions for the boxes that have
@@ -377,6 +380,9 @@ auto` draws it, and writes what it draws: every `place`, the `place` and `size` 
   Double-click a bend to drop it, or recompute again to rewrite them. When the diagram cannot be
   arranged, the status line says why, such as a band inside a group the engine arranges. Both are
   in the toolbar menu, the context menu and the command palette.
+- **Aligning selected boxes.** Select two boxes or more and open **Arrange** in the toolbar or
+  the canvas context menu. Align along the edges or centres you see on the canvas. With three
+  or more boxes you can also space them evenly in either direction.
 - **The badge's menu.** On a canvas that edits a flow diagram, a free composition or a C4 view,
   the badge that names the mode (`layout assisted`) is a button. Its menu lists **Automatic**,
   **Assisted** and **Manual**, the current mode checked, then **Arrange unplaced elements** and

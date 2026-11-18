@@ -10,7 +10,7 @@ import {
   type CanvasAction,
   type HostMessage,
 } from "../src/index.js";
-import { attachEnd, magnets } from "../src/canvas/index.js";
+import { attachEnd, magnets, turnedBounds } from "../src/canvas/index.js";
 import { IconRegistry, librariesOf } from "@meltemi/diagrams-assets";
 import { createNodeIconPacks, createNodeLibraries } from "@meltemi/diagrams-assets/node";
 
@@ -394,6 +394,32 @@ describe("gestures", () => {
     expect(text).toContain("to cache.west");
   });
 
+  it("keeps an anonymous arrow selected across a retarget and clears a fixed side on a center drop", () => {
+    const { apply, session } = open(manual.replace(" as save", ""));
+    session.receive({ type: "select", ids: ["api->db#1"] });
+    const pinned = apply({
+      kind: "setEnd",
+      relation: "api->db#1",
+      end: "to",
+      element: "cache",
+      port: "west",
+      position: 35,
+    });
+    expect(pinned).toContain('api -> cache: "save" as api_db');
+    expect(pinned).toContain("route api_db from api.auto to cache.west 35%");
+    expect(session.selected).toEqual(["api_db"]);
+    const automatic = apply({
+      kind: "setEnd",
+      relation: "api_db",
+      end: "to",
+      element: "db",
+      port: null,
+    });
+    expect(automatic).toContain('api -> db: "save" as api_db');
+    expect(automatic).toContain("route api_db from api.auto to db\n");
+    expect(session.selected).toEqual(["api_db"]);
+  });
+
   it("pins ends to points of sides and hands them back to the layout", () => {
     const { apply, session } = open(manual);
     let text = apply({
@@ -646,6 +672,122 @@ describe("creating, editing and deleting", () => {
     expect(act({ kind: "align", ids: ["db", "cache"], edge: "left" }).plan).toBeUndefined();
     text = apply({ kind: "align", ids: ["api", "cache"], edge: "top" });
     expect(places(text).get("cache")).toEqual({ x: 420, y: 112 });
+  });
+
+  it("aligns the displayed bounds of a turned box and retains fractional coordinates", () => {
+    const { act, apply, session } = open(`diagram d: free {
+  layout manual
+  box turned "Turned"
+  box upright "Upright"
+  style turned { rotation 90 }
+  placement {
+    place turned at (126, 112)
+    size turned (101, 41)
+    place upright at (420, 112.25) // keep this comment and Y coordinate
+    size upright (60, 42)
+  }
+}
+`);
+    const align = { kind: "align", ids: ["turned", "upright"], edge: "left" } as const;
+    const text = apply(align);
+    expect(text).toContain(
+      "place upright at (135.5, 112.25) // keep this comment and Y coordinate",
+    );
+    const [turned, upright] = render(session.state()).elements;
+    expect(turnedBounds(turned!.box, turned!.rotation).x).toBeCloseTo(upright!.box.x, 2);
+    expect(act(align).plan).toBeUndefined();
+  });
+
+  it("keeps equal fractional gaps after distributing differently sized boxes", () => {
+    const { act, apply, session } = open(`diagram d: free {
+  layout manual
+  box a
+  box b
+  box c
+  placement {
+    place a at (100, 120)
+    size a (60, 40)
+    place b at (200, 120.25)
+    size b (50, 40)
+    place c at (501, 120)
+    size c (60, 40)
+  }
+}
+`);
+    const distribute = { kind: "distribute", ids: ["a", "b", "c"], axis: "horizontal" } as const;
+    const text = apply(distribute);
+    expect(places(text).get("b")).toEqual({ x: 300.5, y: 120.25 });
+    const [a, b, c] = render(session.state()).elements.map((e) => e.box);
+    expect(b!.x - (a!.x + a!.width)).toBe(c!.x - (b!.x + b!.width));
+    expect(act(distribute).plan).toBeUndefined();
+  });
+
+  it("aligns an automatic flow while retaining its route and untouched positions", () => {
+    const route = "route save from api.east 25% to db.west via [(275, 190)]";
+    const { messages, session, apply } = open(`diagram d: flow {
+  layout auto
+  direction LR
+  api["API"]
+  db[("DB")]
+  cache["Cache"]
+  api -> db: "save" as save
+  api -> cache
+  placement {
+    size cache (101, 47)
+    ${route} // keep my route
+  }
+}
+`);
+    const before = render(messages).elements;
+    const text = apply({ kind: "align", ids: ["api", "db"], edge: "left" });
+    expect(text).toContain("layout assisted");
+    expect(text).toContain(`${route} // keep my route`);
+    const [api, db, cache] = render(session.state()).elements;
+    expect(api!.box.x).toBeCloseTo(db!.box.x, 2);
+    expect(cache!.box.x).toBeCloseTo(before[2]!.box.x, 2);
+    expect(cache!.box.y).toBeCloseTo(before[2]!.box.y, 2);
+  });
+
+  it.each(["align", "move"] as const)("%s keeps the placed group's interior steady", (kind) => {
+    const { messages, session, apply } = open(`diagram d: free {
+  layout manual
+  group g "Group" {
+    box child
+    box sibling
+  }
+  box reference
+  placement {
+    place g at (500, 300)
+    place child at (200, 40)
+    size child (60, 40)
+    place sibling at (50, 100)
+    size sibling (60, 40)
+    place reference at (500, 500)
+    size reference (60, 40)
+  }
+}
+`);
+    const before = new Map(render(messages).elements.map((e) => [e.id, e.box]));
+    apply(
+      kind === "align"
+        ? { kind, ids: ["reference", "child"], edge: "left" }
+        : {
+            kind,
+            ids: ["child"],
+            delta: { x: before.get("reference")!.x - before.get("child")!.x, y: 0 },
+          },
+    );
+    const after = new Map(render(session.state()).elements.map((e) => [e.id, e.box]));
+    expect(after.get("child")!.x).toBeCloseTo(after.get("reference")!.x, 2);
+    expect(after.get("sibling")).toEqual(before.get("sibling"));
+  });
+
+  it("writes the fractional position reached by a drag and preserves it when nudged", () => {
+    const { apply } = open(manual);
+    const afterDrag = apply({ kind: "move", ids: ["api"], delta: { x: 28.5, y: 6.25 } });
+    expect(places(afterDrag).get("api")).toEqual({ x: 154.5, y: 118.25 });
+    const afterNudge = apply({ kind: "move", ids: ["api"], delta: { x: 1, y: 0 } });
+    expect(places(afterNudge).get("api")).toEqual({ x: 155.5, y: 118.25 });
   });
 
   it("splits a shared style from the inspector", () => {

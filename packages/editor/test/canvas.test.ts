@@ -109,6 +109,16 @@ describe("snapping", () => {
     expect(guides).toEqual([expect.objectContaining({ axis: "y", value: 75 })]);
   });
 
+  it("keeps fractional alignment and spans the snapped box in both axes", () => {
+    const other: Box = { x: 180.5, y: 128.25, width: 160, height: 56 };
+    const { delta, guides } = resolveMove(box, [other], { x: 3, y: 3 }, snap);
+    expect(delta).toEqual({ x: 0.5, y: 0.25 });
+    expect(guides).toEqual([
+      { axis: "x", value: 180.5, from: 72.25, to: 184.25 },
+      { axis: "y", value: 128.25, from: 20.5, to: 340.5 },
+    ]);
+  });
+
   it("moves freely with Alt", () => {
     expect(resolveMove(box, [], { x: 30.4, y: 9.6 }, { ...snap, free: true }).delta).toEqual({
       x: 30,

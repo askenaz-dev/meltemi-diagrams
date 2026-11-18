@@ -670,6 +670,15 @@ describe("containers and shapes on the canvas", () => {
       expect(places(after, 0).get("a")).toEqual({ x: 94, y: 30 });
     });
 
+    it("keeps its derived size when alignment keeps the same child bounds", () => {
+      const { apply, session } = open(unsized.replace("(700, 400)", "(224, 400)"));
+      const before = boxOf(session, "g");
+      const after = apply({ kind: "align", ids: ["a", "c"], edge: "right" });
+      expect(after).not.toContain("size g");
+      expect(places(after, 0).get("a")).toEqual({ x: 94, y: 30 });
+      expect(boxOf(session, "g")).toEqual(before);
+    });
+
     it("stays where it is drawn when its last child is dragged out", () => {
       const lone = unsized.replace('    box b "B"\n', "").replace("    place b at (260, 30)\n", "");
       const { apply, session } = open(lone);

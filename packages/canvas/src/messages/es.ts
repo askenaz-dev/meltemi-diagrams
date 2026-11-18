@@ -439,9 +439,11 @@ export const es: typeof en = {
       "Un trazo no tiene texto; cambia su color, su ancho y sus puntas en las propiedades.",
     endPinned: (relation, element, port, position) =>
       position === undefined
-        ? `${relation} ahora termina en ${element}.${port}.`
-        : `${relation} ahora termina en ${element}, lado ${port} al ${position} %.`,
+        ? `Un extremo de ${relation} quedó fijado en ${element}.${port}.`
+        : `Un extremo de ${relation} quedó fijado en ${element}, lado ${port} al ${position} %.`,
     endFree: (relation) => `La disposición coloca este extremo de ${relation}.`,
+    endReconnected: (end, element) =>
+      `El ${end === "from" ? "origen" : "destino"} del conector cambió a ${element}.`,
     drawingLine:
       "Dibujando una línea: suelta para colocarla. Mayús la mantiene a 45°, Esc cancela.",
     lineDrawn: (from, to) => `Se dibujó una línea de (${from.x}, ${from.y}) a (${to.x}, ${to.y}).`,
@@ -545,6 +547,8 @@ export const es: typeof en = {
     renameInModel: "Cambiar el nombre en el modelo",
     openModel: "Abrir el modelo",
     reverseDirection: "Invertir dirección",
+    changeSource: "Cambiar origen…",
+    changeTarget: "Cambiar destino…",
     numberMessages: "Numerar mensajes",
     removeFromView: "Quitar de la vista",
     messageTo: "Mensaje a…",

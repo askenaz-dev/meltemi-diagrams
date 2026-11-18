@@ -67,7 +67,7 @@ import { createElement, createRelation, requirePortOf, usedIds } from "./create.
 import { deleteStatements } from "./delete.js";
 import { createDiagram } from "./diagrams.js";
 import { createDiagramFromStarter } from "./diagram-starters.js";
-import { endpointText, requireEndPosition, routeParts } from "./routes.js";
+import { endpointText, requireEndPosition, routeEndEdits, routeParts } from "./routes.js";
 import { insertAfter, verifyNoNewErrors } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
 import { setClasses, setDescription, setElementKind, setElementLabel } from "./labels.js";
@@ -651,27 +651,29 @@ function assistedMode(ctx: EditContext): TextEdit[] {
 function arrange(ctx: EditContext, op: OperationOf<"arrange">): TextEdit[] {
   const edits: TextEdit[] = [...assistedMode(ctx)];
   const inserted: string[] = [];
+  const overwrite = op.scope !== "unplaced";
+  const coordinate = (value: number) => (op.scope === "materialize" ? value : Math.round(value));
   for (const [id, point] of op.positions) {
     const element = requireElement(ctx, id);
     if (element.kind === "line" || element.kind === "pen") continue;
     if (isListGroup(ctx, element.groupPath[element.groupPath.length - 1])) continue;
-    const rounded = { x: Math.round(point.x), y: Math.round(point.y) };
-    requireNumbers(rounded.x, rounded.y);
+    const at = { x: coordinate(point.x), y: coordinate(point.y) };
+    requireNumbers(at.x, at.y);
     if (element.kind === "group") {
       const place = findEntry<PlaceEntry>(ctx, "place", id);
       const size = findEntry<SizeEntry>(ctx, "size", id);
       const box = element.list === null ? op.sizes?.get(id) : undefined;
-      const dimensions = box ? { x: Math.round(box.width), y: Math.round(box.height) } : undefined;
+      const dimensions = box ? { x: coordinate(box.width), y: coordinate(box.height) } : undefined;
       if (dimensions) requireNumbers(dimensions.x, dimensions.y);
       if (op.writeGroups) {
         // Free diagrams: every arranged group gets a place and a size.
         if (place) {
-          if (op.scope === "all") edits.push(...pointEdits(place.node.args[2], rounded));
+          if (overwrite) edits.push(...pointEdits(place.node.args[2], at));
         } else {
           guardInvalidStatement(ctx, "place", id);
-          inserted.push(`place ${id} at ${formatPoint(rounded)}`);
+          inserted.push(`place ${id} at ${formatPoint(at)}`);
         }
-        if (dimensions && (op.scope === "all" || !place)) {
+        if (dimensions && (overwrite || !place)) {
           if (size) edits.push(...pointEdits(size.node.args[1], dimensions));
           else {
             guardInvalidStatement(ctx, "size", id);
@@ -680,19 +682,19 @@ function arrange(ctx: EditContext, op: OperationOf<"arrange">): TextEdit[] {
         }
         continue;
       }
-      // Groups that fit their children need nothing; placed and sized ones follow them with `all`.
-      if (op.scope !== "all") continue;
-      if (place) edits.push(...pointEdits(place.node.args[2], rounded));
+      // Groups that fit their children need nothing. Placed groups follow them when overwritten.
+      if (!overwrite) continue;
+      if (place) edits.push(...pointEdits(place.node.args[2], at));
       if (size && dimensions) edits.push(...pointEdits(size.node.args[1], dimensions));
       continue;
     }
     const entry = findEntry<PlaceEntry>(ctx, "place", id);
     if (entry) {
-      if (op.scope === "all") edits.push(...pointEdits(entry.node.args[2], rounded));
+      if (overwrite) edits.push(...pointEdits(entry.node.args[2], at));
       continue;
     }
     guardInvalidStatement(ctx, "place", id);
-    inserted.push(`place ${id} at ${formatPoint(rounded)}`);
+    inserted.push(`place ${id} at ${formatPoint(at)}`);
   }
   if (op.scope === "all") {
     // The engine chooses again where connectors meet the boxes: compass sides and points go and
@@ -847,10 +849,7 @@ function setRoute(ctx: EditContext, op: OperationOf<"setRoute">): TextEdit[] {
       if (port === undefined) return;
       if (ref?.kind !== "QualifiedRef")
         reject("edit.unsafe-target", reasons().placement.expectedEndpoint);
-      const text = endpointText(element, port, position);
-      const end = (at ?? ref!).end;
-      if (ctx.text.slice(ref!.start, end) !== text)
-        edits.push({ start: ref!.start, end, newText: text });
+      edits.push(...routeEndEdits(ref, at, element, port, position));
     };
     endEdit(parts.fromRef, parts.fromAt, relation.from, op.from, op.fromPosition);
     endEdit(parts.toRef, parts.toAt, relation.to, op.to, op.toPosition);
@@ -869,7 +868,8 @@ function setRoute(ctx: EditContext, op: OperationOf<"setRoute">): TextEdit[] {
       (op.from === null || op.to === null || emptied) &&
       free(op.from, op.fromPosition, entry.from) &&
       free(op.to, op.toPosition, entry.to) &&
-      op.via.length === 0
+      op.via.length === 0 &&
+      [...tokensOf(entry.node)].slice(1).every(hasOnlyWhitespaceTrivia)
     ) {
       return deleteStatements(ctx.text, ctx.compilation.parse.root, [entry.node]);
     }

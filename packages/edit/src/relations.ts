@@ -16,8 +16,9 @@ import {
 import { reject, requireElement, requireNamedRelation, type EditContext } from "./context.js";
 import { freeId, requirePortOf } from "./create.js";
 import { deleteStatements } from "./delete.js";
+import { diagramBody, groupBlock, insertAfter } from "./insert.js";
 import { reversedLinePoints } from "./lines.js";
-import { endpointText, requireEndPosition, routeParts } from "./routes.js";
+import { endpointText, requireEndPosition, routeEndEdits, routeParts } from "./routes.js";
 import { insertPlacements, removeListItems, requireNewId, type OperationOf } from "./plan.js";
 import { messages, reasons } from "./messages/index.js";
 import { eventDependents, eventIdsOf, nestedInCalls, reversedActivation } from "./sequence.js";
@@ -253,7 +254,7 @@ export function reconnectRelation(
 ): TextEdit[] {
   const relation = requireRelation(ctx, op.relation);
   requireElement(ctx, op.element);
-  if (op.port !== undefined) requirePortOf(ctx, op.element, op.port);
+  if (op.port !== undefined && op.port !== null) requirePortOf(ctx, op.element, op.port);
   if (op.position !== undefined) requireEndPosition(op.port, op.position);
   const node = writtenRelation(relation);
   const endRef = op.end === "from" ? node.source : node.target;
@@ -273,16 +274,13 @@ export function reconnectRelation(
     // A compass port, and its point, carry over to the new element; a named port of the old one
     // does not.
     const keptPort = current !== op.element && endpoint.named ? "auto" : endpoint.port;
-    const port = op.port ?? (endpoint.explicitPort ? keptPort : undefined);
+    const port = op.port === undefined ? (endpoint.explicitPort ? keptPort : null) : op.port;
     const kept =
-      op.port === undefined && port === endpoint.port && endpoint.position !== undefined
-        ? Math.round(endpoint.position * 1000) / 10
+      op.port === undefined && port === endpoint.port && at?.kind === "NumberLiteral"
+        ? at.value
         : undefined;
-    const text = endpointText(op.element, port ?? null, op.position ?? kept);
-    const end = (at ?? arg!).end;
-    if (text !== ctx.text.slice(arg!.start, end))
-      edits.push({ start: arg!.start, end, newText: text });
-  } else if (op.port !== undefined && op.port !== "auto") {
+    edits.push(...routeEndEdits(arg, at, op.element, port, op.position ?? kept));
+  } else if (op.port !== undefined && op.port !== null && op.port !== "auto") {
     // The new port needs a route, and a route needs a named relation.
     let id = relation.id;
     if (id === null) {
@@ -294,6 +292,19 @@ export function reconnectRelation(
     const from = op.end === "from" ? pinned : `${relation.from}.auto`;
     const to = op.end === "to" ? pinned : `${relation.to}.auto`;
     edits.push(insertPlacements(ctx, [`route ${id} from ${from} to ${to}`]));
+  }
+  const previous = current === op.element ? undefined : ctx.diagram.elementsById.get(current);
+  const other = op.end === "from" ? relation.to : relation.from;
+  if (
+    previous?.implicit &&
+    current !== other &&
+    !ctx.diagram.relations.some((r) => r !== relation && (r.from === current || r.to === current))
+  ) {
+    // The old box still exists after detaching its only connector, including in a nested group.
+    const parent = previous.groupPath.at(-1);
+    const block = parent === undefined ? diagramBody(ctx) : groupBlock(ctx, parent).block;
+    edits.push(insertAfter(ctx, block, node, () => `${previous.kind} ${previous.id}`));
+    ctx.notes.push(messages().notes.keptEnds([previous.id]));
   }
   return edits;
 }
