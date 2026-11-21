@@ -728,6 +728,12 @@ const DRAG_THRESHOLD = 3;
  * whose press drags past `DRAG_THRESHOLD`.
  */
 const TAP_REACH = 8;
+/**
+ * How long the view rests before the drawing is painted again at its zoom. While it moves, the
+ * drawing is a layer of its own (`.content.moving`) that the browser scales as a picture; at rest
+ * it is drawn sharp, which a lasting `will-change` would forbid until the drawing next changes.
+ */
+const VIEW_REST_MS = 150;
 /** How long the ghost of a line just drawn takes to fade out: `--mdg-motion` in `canvas.css`. */
 const LINE_FADE_MS = 160;
 
@@ -902,6 +908,9 @@ export class CanvasApp {
     "aria-label": messages().stage.label,
   });
   private readonly content = h("div", { class: "content" });
+  /** The transform last given to `content`, and the wait for the view to rest after it changed. */
+  private shownView = "";
+  private viewRest: ReturnType<typeof setTimeout> | undefined;
   private readonly overlay = s("svg", { class: "overlay", "aria-hidden": "true" });
   /** Other people's outlines and tags: above the scene, below the overlay, never hit-tested. */
   private readonly presenceLayer = new PresenceLayer();
@@ -2959,7 +2968,17 @@ export class CanvasApp {
   private layout(): void {
     const r = this.render;
     const v = this.viewport;
-    this.content.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.zoom})`;
+    const view = `translate(${v.x}px, ${v.y}px) scale(${v.zoom})`;
+    if (view !== this.shownView) {
+      this.shownView = view;
+      this.content.style.transform = view;
+      this.content.classList.add("moving");
+      if (this.viewRest !== undefined) clearTimeout(this.viewRest);
+      this.viewRest = setTimeout(() => {
+        this.viewRest = undefined;
+        this.content.classList.remove("moving");
+      }, VIEW_REST_MS);
+    }
     // A press takes a pen within the same screen pixels of its stroke at every zoom.
     this.syncStrokeHits();
     // The workspace grid, aligned with diagram coordinates.

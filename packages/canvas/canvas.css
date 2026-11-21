@@ -493,6 +493,13 @@ body {
   left: 0;
   top: 0;
   transform-origin: 0 0;
+}
+
+/*
+ * A layer of its own only while the view moves: a lasting `will-change` keeps the drawing at the
+ * scale it was first painted at, so a zoom stays blurred until the drawing changes.
+ */
+.content.moving {
   will-change: transform;
 }
 

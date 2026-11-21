@@ -2123,6 +2123,37 @@ const tests: {
     },
   },
   {
+    name: "a zoom moves the drawing as a layer of its own, painted sharp again once the view rests",
+    async run(h) {
+      const page = h.page;
+      // A lasting will-change kept the drawing at the scale it was first painted at: blurred.
+      const hint = () => page.locator(".content").evaluate((e) => getComputedStyle(e).willChange);
+      const rested = () =>
+        page.waitForFunction(
+          () => getComputedStyle(document.querySelector(".content")!).willChange === "auto",
+          null,
+          { timeout: 2000 },
+        );
+      await rested();
+      await page.mouse.move(600, 400);
+      await page.keyboard.down("Control");
+      await page.mouse.wheel(0, -400);
+      await page.keyboard.up("Control");
+      assert.equal(await hint(), "transform", "moving: a layer the browser scales");
+      await rested();
+      // A render that leaves the view where it is does not make the drawing a layer again.
+      const transform = await page
+        .locator(".content")
+        .evaluate((e: HTMLElement) => e.style.transform);
+      await h.type(`${h.text}\n// A comment: drawn again, in the same place.\n`);
+      assert.equal(
+        await page.locator(".content").evaluate((e: HTMLElement) => e.style.transform),
+        transform,
+      );
+      assert.equal(await hint(), "auto");
+    },
+  },
+  {
     name: "creates an empty node from the palette and adds its label with a double click",
     async run(h) {
       const page = h.page;

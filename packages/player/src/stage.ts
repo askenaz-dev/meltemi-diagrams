@@ -42,6 +42,12 @@ export interface OverlayState {
 /** Badges are hidden on boxes smaller than this on screen, in either direction. */
 const BADGE_MIN_BOX = 32;
 const BADGE_RADIUS = 10;
+/**
+ * How long the view rests after it moved at once before the drawing is painted again at its zoom.
+ * While it moves, the drawing is a layer of its own (`.frame.moving`) that the browser scales as a
+ * picture; at rest it is drawn sharp, which a lasting `will-change` would forbid.
+ */
+const VIEW_REST_MS = 150;
 
 type Mode = "animate" | "slow" | "direct";
 
@@ -91,6 +97,9 @@ export class Stage {
   private pinch: { distance: number; middle: Point; origin: ViewerViewport["viewport"] } | null =
     null;
   private suppressClick = false;
+  /** The transform last given to `content`, and the wait for the view to rest after it changed. */
+  private shownView = "";
+  private viewRest: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
     private readonly root: ShadowRoot,
@@ -190,9 +199,24 @@ export class Stage {
     const v = this.viewer.viewport;
     this.frame.classList.toggle("direct", mode === "direct");
     this.frame.classList.toggle("slow", mode === "slow");
-    this.content.style.transform = `translate(${n(v.x)}px, ${n(v.y)}px) scale(${v.zoom})`;
+    const view = `translate(${n(v.x)}px, ${n(v.y)}px) scale(${v.zoom})`;
+    if (view !== this.shownView) {
+      this.shownView = view;
+      this.content.style.transform = view;
+      if (mode === "direct") this.moving();
+    }
     this.frame.classList.toggle("pannable", this.viewer.pannable);
     if (this.state) this.render(this.state);
+  }
+
+  /** Makes the drawing a layer of its own until the view has rested for `VIEW_REST_MS`. */
+  private moving(): void {
+    this.frame.classList.add("moving");
+    if (this.viewRest !== undefined) clearTimeout(this.viewRest);
+    this.viewRest = setTimeout(() => {
+      this.viewRest = undefined;
+      this.frame.classList.remove("moving");
+    }, VIEW_REST_MS);
   }
 
   /** One screen pixel in scene units, at the current camera and zoom. */
@@ -542,5 +566,6 @@ export class Stage {
   /** Stops observing the page. */
   destroy(): void {
     this.observer?.disconnect();
+    if (this.viewRest !== undefined) clearTimeout(this.viewRest);
   }
 }

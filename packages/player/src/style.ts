@@ -34,7 +34,8 @@ export const STYLE = `
   height: var(--meltemi-ch, 100%); transform-origin: 0 0;
   transition: transform var(--meltemi-motion) var(--meltemi-ease); }
 .frame.slow .content { transition-duration: var(--meltemi-motion-slow); }
-.frame.direct .content, .frame.panning .content { transition: none; will-change: transform; }
+.frame.direct .content, .frame.panning .content { transition: none; }
+.frame.moving .content { will-change: transform; }
 .picture, .picture > svg { display: block; width: 100%; height: 100%; }
 .picture [data-role="motion"] { pointer-events: none; }
 .picture [data-role="motion"] :is([data-role="element"], [data-role="relation"],
