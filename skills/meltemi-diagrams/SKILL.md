@@ -33,10 +33,12 @@ as `write_files` and `preview` act on the person's projects), follow
    a `model` with `c4` views for a C4 architecture (context, containers, components) shared by
    several pictures ([reference/c4.md](reference/c4.md)), `gantt` for a plan or a roadmap of tasks
    scheduled over dates ([reference/gantt.md](reference/gantt.md)).
-   To walk an audience through a diagram, add a `story` after it. Read the agent authoring
-   workflow for creating, timing, reordering and deleting scenes while preserving other stories;
-   MCP's `inspect_story` reports compiled timing before previewing each scene
-   ([reference/stories.md](reference/stories.md)).
+   Motion has two forms; choose by what the person asked
+   ([Motion: effects or a story](#motion-effects-or-a-story)). "Animate this arrow" or "animate
+   the diagram" is `animate` on the diagram that exists, and no story. "Show me the flow step by
+   step" is a `story` after the diagram: read the agent authoring workflow for creating, timing,
+   reordering and deleting scenes while preserving other stories; MCP's `inspect_story` reports
+   compiled timing before previewing each scene ([reference/stories.md](reference/stories.md)).
    A Mermaid or PlantUML source is imported, never retyped: `pnpm mdg import source.mmd` writes
    `source.meltemi` and reports what it approximated or dropped
    ([reference/converting.md](reference/converting.md)).
@@ -117,6 +119,53 @@ diagram checkout: flow {
   style request, persist { fill "#0B1830"; color "#FFFFFF" }
 }
 ```
+
+## Motion: effects or a story
+
+Two different things move a diagram. Choose by the words of the request and write only the one
+that was asked: no story for a request to animate, no effects for a request to walk through.
+
+| The person says                                                         | Write                                                       | Check                                        |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------- |
+| "Animate this arrow", "animate the arrows", "animate the diagram"       | `animate` on the relations of the diagram that exists       | the diagram's ordinary view, at two instants |
+| "Show me the flow step by step", "walk me through it", a talk or a demo | a `story` after the diagram, with scenes, times and actions | its compiled timeline and each scene's frame |
+
+Effects belong to the diagram and loop wherever it is shown: the canvas, the animated SVG, the
+player. An arrow needs an id to take one: name an anonymous relation with `as <id>` and change
+nothing else of it.
+
+```text
+client -> api: "HTTPS" as request
+api -> orders: "Create order" as create
+
+animate request, create { effect flow }
+```
+
+Check effects on the diagram itself, never through a story. `pnpm mdg export sheet.meltemi --at
+300ms` and again `--at 900ms` write two frames, and the particle has moved along each arrow;
+through MCP, `preview` with `at` and no `story` draws the same frames and its report's `motion`
+says where each mark is ([reference/mcp.md](reference/mcp.md#effects-in-motion)). The effects,
+their targets and properties are in [reference/language.md](reference/language.md#animate).
+
+A story is a separate block that walks an audience through the diagram on one clock, and never
+changes it:
+
+```text
+story purchase for checkout {
+  scene request "The request" {
+    trace request over 1200ms
+    hold 1s
+  }
+  scene order "The order" {
+    trace create over 1200ms
+    hold 1s
+  }
+}
+```
+
+Scenes, actions and timing are in [reference/stories.md](reference/stories.md). When the request
+does not say which ("add some motion"), effects are the smaller change: write them, and offer the
+story.
 
 ## Rules that save iterations
 

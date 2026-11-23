@@ -11,6 +11,7 @@ import {
   CACHE_ENTRIES,
   cacheKeyOf,
   failure,
+  reportMotion,
   validateRequest,
   type CatalogOutcome,
   type ValidateOutcome,
@@ -94,6 +95,7 @@ export class RendererCore {
           diagnostics: drawing.diagnostics,
           estimatedFonts: drawing.families.filter((f) => !f.measured).map((f) => f.family),
           truncated: drawing.truncated,
+          ...(drawing.motion ? { motion: reportMotion(drawing.motion) } : {}),
         },
       };
     } else {
@@ -118,6 +120,15 @@ export class RendererCore {
             .map((f) => f.family),
           truncated: drawing.truncated,
           fitted: raster.fitted,
+          // The marks in the PNG's pixels, as the report's width and height are.
+          ...(drawing.motion
+            ? {
+                motion: reportMotion(
+                  drawing.motion,
+                  drawing.width > 0 ? raster.width / drawing.width : 1,
+                ),
+              }
+            : {}),
         },
       };
     }

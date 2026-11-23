@@ -379,7 +379,7 @@ describe("delivery workflows", () => {
     const result = stepNamed(staging, "name: Staging result");
     expect(result).not.toContain("Staging not attached");
     expect(result).toContain('[ "$SUITE" = success ] && [ "$CLEANUP" = success ]');
-    expect(result).toContain("all 35 MCP acceptance steps passed");
+    expect(result).toContain("all 36 MCP acceptance steps passed");
     expect(result).toContain("production is not deployed");
   });
 });

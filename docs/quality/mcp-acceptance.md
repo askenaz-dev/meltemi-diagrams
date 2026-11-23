@@ -63,7 +63,15 @@ starts and final-state instants at matching revisions. It also proves that delet
 a remaining export is refused atomically, then removes only its own story and export. The run's
 unconditional cleanup deletes that fixture project even after an assertion fails. This journey
 also runs against a local Worker fixture in unit/integration tests; that is separate evidence
-from executing all 35 hosted steps against staging and production.
+from executing all 36 hosted steps against staging and production.
+
+The effect-frame step uses its own run-owned project. It writes a diagram with a named relation,
+`animate … { effect flow }` and no story, and asks `preview` three times: without `at`, where the
+report carries no `motion` and the picture no particle, and at `300ms` and `900ms`, where both
+reports name the effect on that relation at the revision written, the mark's `along` goes from 0.25
+to 0.75, its coordinate moves toward the relation's target and it is the particle the SVG draws.
+The journey also runs against the Worker fixture in the package tests, and folder mode has its own
+integration test with `mdg mcp --folder`.
 
 `packages/acceptance/src/mcp/run.ts` is an agent built on the official SDK's client
 (`@modelcontextprotocol/client` 2.3.1). It connects to the endpoint with the `mdg_` API tokens of
@@ -88,7 +96,7 @@ MELTEMI_ORIGIN=https://staging.diagrams.meltemi.dev pnpm acceptance:mcp
   It must be outside the uploaded results directory. Every credential in it, and every credential
   returned by refresh, is registered for redaction before assertions. A malformed or cross-origin
   manifest fails without echoing its contents.
-- `--require-complete` is the hosted delivery gate: exactly 35 passed, zero failed and zero skipped.
+- `--require-complete` is the hosted delivery gate: exactly 36 passed, zero failed and zero skipped.
   Missing account tokens or fixtures fail before running steps and leave sanitized prerequisite
   evidence. It cannot be combined with `--local` or `--probe`. Cloudflare API credentials must be
   absent from the acceptance process. Without this flag, anonymous and local diagnostics retain

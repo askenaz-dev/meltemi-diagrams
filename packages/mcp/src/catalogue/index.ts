@@ -11,7 +11,7 @@ import { SHARING_TOOLS } from "./sharing.js";
 import { STORY_TOOLS } from "./stories.js";
 
 export { FOLDER_TOOLS, folderInstructions, type FolderToolName } from "./folder.js";
-export { reportSchema } from "./preview.js";
+export { motionSchema, previewReport, reportSchema, type PreviewReport } from "./preview.js";
 export { versionSchema } from "./projects.js";
 
 /** The server's name in `initialize`, the same for both servers. */

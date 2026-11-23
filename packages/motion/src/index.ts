@@ -20,7 +20,13 @@ export {
   type MotionPlan,
   type PlanOptions,
 } from "./plan.js";
-export { sceneAt } from "./frames.js";
+export {
+  motionStateAt,
+  sceneAt,
+  type EffectState,
+  type MotionMark,
+  type MotionState,
+} from "./frames.js";
 export { animatedScene, MOTION_CLASS } from "./css.js";
 export { pointAlong, trackLength } from "./geometry.js";
 export {

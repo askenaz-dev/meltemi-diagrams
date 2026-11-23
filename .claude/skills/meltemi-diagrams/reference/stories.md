@@ -5,6 +5,11 @@ changes the diagram: scenes reveal, hide, highlight, focus, frame, trace and dra
 deterministic clock, and may switch to another view of the same system. Write the diagram first,
 then the story below it (or in another file that imports the diagram).
 
+Write a story when the person asks to be shown or walked through a flow step by step. "Animate
+this arrow" or "animate the diagram" is not a story: it is `animate` on the diagram's relations,
+an effect that loops in the diagram's ordinary view ([language.md](language.md#animate)). A
+story's `trace` plays once, inside its scene, and shows nowhere but in the story.
+
 ```text
 story purchase for checkout {
   title "A purchase"

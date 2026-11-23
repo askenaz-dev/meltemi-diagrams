@@ -14,6 +14,7 @@ import {
   GLOW,
   HALO,
   TRACE,
+  motionLoop,
   phaseAt,
   type MotionEffect,
   type MotionPlan,
@@ -58,6 +59,39 @@ export function traceState(phase: number): { grown: number; opacity: number } {
 }
 
 /**
+ * A mark an effect moves along its line: its centre in scene coordinates, and how much of the
+ * line it has travelled (0 to 1) in the direction the effect runs.
+ */
+export interface MotionMark {
+  readonly x: number;
+  readonly y: number;
+  readonly along: number;
+}
+
+/** The head of a trace at `phase`: the end of the part grown so far. */
+export function traceHead(effect: MotionEffect, phase: number): MotionMark {
+  const { grown } = traceState(phase);
+  const head = pointAlong(traceTrack(effect), grown);
+  return { x: head.x, y: head.y, along: grown };
+}
+
+/**
+ * The particles of a flow at `phase`, in the statement's order: each one `1 / particles` of the
+ * line ahead of the one before, from the line's end when the effect is reversed.
+ */
+export function flowParticles(effect: MotionEffect, phase: number): MotionMark[] {
+  const marks: MotionMark[] = [];
+  for (let i = 0; i < effect.particles; i++) {
+    // At the instant a particle reaches the end it is still there, as with CSS keyframes.
+    let along = phase + i / effect.particles;
+    if (along > 1) along -= 1;
+    const at = pointAlong(effect.track!, effect.reverse ? 1 - along : along);
+    marks.push({ x: at.x, y: at.y, along });
+  }
+  return marks;
+}
+
+/**
  * A trace at `phase`: the track drawn with one dash as long as the track, offset so that the part
  * grown so far shows, and a dot at its head; the animated profile draws the same values.
  */
@@ -65,7 +99,7 @@ export function traceAt(effect: MotionEffect, phase: number): SceneItem[] {
   const points = traceTrack(effect);
   const length = round(trackLength(points));
   const { grown, opacity } = traceState(phase);
-  const head = pointAlong(points, grown);
+  const head = traceHead(effect, phase);
   return [
     {
       kind: "polyline",
@@ -132,26 +166,82 @@ export function overlayAt(effect: MotionEffect, phase: number): SceneItem[] {
     ];
   }
   if (effect.effect === "flow") {
-    const out: SceneItem[] = [];
     const r = particleRadius(effect.width);
-    for (let i = 0; i < effect.particles; i++) {
-      // At the instant a particle reaches the end it is still there, as with CSS keyframes.
-      let fraction = phase + i / effect.particles;
-      if (fraction > 1) fraction -= 1;
-      if (effect.reverse) fraction = 1 - fraction;
-      const at = pointAlong(effect.track!, fraction);
-      out.push({
-        kind: "path",
-        d: circlePath(at.x, at.y, r),
-        fill: effect.color,
-        stroke: "none",
-        strokeWidth: 0,
-        dashed: false,
-      });
-    }
-    return out;
+    return flowParticles(effect, phase).map((at) => ({
+      kind: "path",
+      d: circlePath(at.x, at.y, r),
+      fill: effect.color,
+      stroke: "none",
+      strokeWidth: 0,
+      dashed: false,
+    }));
   }
   return [];
+}
+
+/** One effect of a plan at an instant: what it is, and where the frame at that instant draws it. */
+export interface EffectState {
+  /** The id of the group the effect runs on, and its role: the SVG's `data-id` and `data-role`. */
+  readonly target: string;
+  readonly role: MotionEffect["role"];
+  readonly effect: MotionEffect["effect"];
+  readonly durationMs: number;
+  readonly delayMs: number;
+  readonly repeat: number | "forever";
+  readonly direction: "forward" | "reverse";
+  /**
+   * How far the effect is through its current cycle, 0 to 1; null before its delay and after its
+   * last repeat, when the target is drawn without it.
+   */
+  readonly phase: number | null;
+  /** The particles of a flow and the head of a trace; none for a dash, a pulse or outside the window. */
+  readonly marks: readonly MotionMark[];
+}
+
+/** A plan at an instant. */
+export interface MotionState {
+  readonly atMs: number;
+  /** One seamless loop of every effect (`motionLoop`), or null. */
+  readonly loopMs: number | null;
+  /** Every effect of the plan, in its order. */
+  readonly effects: readonly EffectState[];
+}
+
+const share = (value: number): number => Math.round(value * 10000) / 10000;
+
+/**
+ * What `sceneAt` draws of each effect of the plan at `t` milliseconds, as numbers: the phase of
+ * its cycle and the centres of its moving marks, computed by the functions the frame draws with
+ * and rounded as the frame writes them. Pure, as `sceneAt` is.
+ */
+export function motionStateAt(plan: MotionPlan, t: number): MotionState {
+  return {
+    atMs: t,
+    loopMs: motionLoop(plan),
+    effects: plan.effects.map((effect) => {
+      const phase = phaseAt(effect, t);
+      let marks: MotionMark[] = [];
+      if (phase !== null && effect.track) {
+        if (effect.effect === "flow") marks = flowParticles(effect, phase);
+        if (effect.effect === "trace") marks = [traceHead(effect, phase)];
+      }
+      return {
+        target: effect.target,
+        role: effect.role,
+        effect: effect.effect,
+        durationMs: effect.durationMs,
+        delayMs: effect.delayMs,
+        repeat: effect.repeat,
+        direction: effect.reverse ? "reverse" : "forward",
+        phase: phase === null ? null : share(phase),
+        marks: marks.map((mark) => ({
+          x: round(mark.x),
+          y: round(mark.y),
+          along: share(mark.along),
+        })),
+      };
+    }),
+  };
 }
 
 /**

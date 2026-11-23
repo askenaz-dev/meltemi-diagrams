@@ -12,6 +12,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { readPng, writePng } from "../png.js";
 import { Agent, refusalOf } from "./agent.js";
+import { effectFramesJourney } from "./effects.js";
 import { storyAuthoringJourney } from "./stories.js";
 import { Skip, type Capabilities, type Step } from "./harness.js";
 import { ask, rpc, type Fetch, type Target } from "./host.js";
@@ -902,6 +903,19 @@ const stories: Step<SuiteState> = {
   },
 };
 
+const effects: Step<SuiteState> = {
+  name: "3 an animated arrow is checked at two instants, without a story",
+  criterion: 3,
+  after: [MAIN],
+  async run({ state, log }) {
+    const project = await createProject(state, "effects");
+    const found = await effectFramesJourney(first(state), text(project["id"]));
+    log(
+      `a diagram with animate and no story drawn still and at two instants of revision ${found.revision}; the mark went from ${found.along[0]} to ${found.along[1]} of its arrow`,
+    );
+  },
+};
+
 const retried: Step<SuiteState> = {
   name: "5 a retried creation or write with the same key makes one",
   criterion: 5,
@@ -1715,6 +1729,7 @@ export const STEPS: readonly Step<SuiteState>[] = [
   created,
   twoDiagrams,
   stories,
+  effects,
   retried,
   independent,
   toolsAlone,

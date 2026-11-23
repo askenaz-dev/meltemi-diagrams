@@ -148,10 +148,17 @@ relevante para que pueda comprobar cómo funciona tu sistema.
 | «Convierte `diagrams/billing.mmd` a Meltemi y conserva su disposición»                                      | Código editable importado desde Mermaid                                     |
 | «Actualiza el diagrama de login para los cambios de código de esta rama y conserva mis posiciones manuales» | Documentación actualizada junto con la implementación                       |
 | «Planifica el lanzamiento de `docs/plan.md` como un diagrama de Gantt»                                      | Tareas y dependencias que puedes ajustar en el lienzo                       |
+| «Anima las flechas del diagrama de inicio de sesión»                                                        | Efectos en el diagrama que ya tienes, en movimiento en su vista normal      |
+| «Muéstrame el flujo de inicio de sesión paso a paso»                                                        | Una historia con escenas que puedes reproducir, junto al diagrama           |
 
 Pídele validar el resultado, revisar la vista previa y decirte dónde abrirlo. Con la CLI, eso
 significa un archivo fuente y un SVG, con `mdg preview` cuando quieras verlo en un navegador.
 Con MCP conectado a un proyecto, pídele su URL para continuar en el mismo lienzo.
+
+Las dos últimas filas piden cosas distintas. Animar una flecha o un diagrama añade
+[efectos](language/motion.md) (`animate`) al propio diagrama: se repiten allí donde se muestre y
+no necesitan una historia. Un recorrido es una [historia](language/stories.md), un bloque aparte
+con escenas y tiempos. El skill indica al agente que escriba solo lo que pediste.
 
 ## A través del endpoint MCP
 
@@ -239,6 +246,14 @@ lee la instantánea actual, por lo que otra edición puede exigir inspeccionar d
 carpeta, la revisión identifica el contenido en disco, no una revisión de escritura en nube.
 La [guía de historias](../../skills/meltemi-diagrams/reference/stories.md) del skill cubre la
 creación, los ajustes de tiempo, el orden y el borrado conservando comentarios y otras historias.
+
+Para los efectos de un diagrama no hay historia que inspeccionar: `preview` con `at` (por ejemplo
+`300ms`) y sin `story` dibuja el diagrama con sus efectos en ese instante, y el `motion` de su
+informe lista cada efecto con su `phase` y las `marks` que se mueven por una línea, las partículas
+de un flujo y la cabeza de un trazo, con cuánto ha avanzado cada una (`along`). Dos fotogramas en
+instantes distintos muestran si una flecha está animada: la marca está más adelante en el segundo.
+Sin `at`, el diagrama se dibuja quieto, como antes. Funciona igual a través del endpoint, del
+servidor local y de `--folder`.
 
 ```bash
 npx -y @meltemi/diagrams-cli@latest mcp --folder .

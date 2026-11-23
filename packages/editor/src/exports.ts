@@ -9,11 +9,13 @@ import {
   defaultMotionDuration,
   motionLoop,
   motionOptions,
+  motionStateAt,
   planMotion,
   sceneAt,
   sceneStills,
   storyFrame,
   storySceneFrame,
+  type MotionState,
 } from "@meltemi/diagrams-motion";
 import {
   effectsDocument,
@@ -119,6 +121,11 @@ export type ExportOutput =
           views?: number;
           /** A player of several stories: the ids of the stories it holds, in order. */
           stories?: readonly string[];
+          /**
+           * The SVG of a diagram's frame at `at`: where that frame draws each effect
+           * (`motionStateAt`). A still or animated picture and a story's frame have none.
+           */
+          motion?: MotionState;
         }
       | { job: CaptureJob }
       | { video: VideoJob; document: PlayerDocument }
@@ -314,6 +321,7 @@ export function produceExport(context: ExportContext, request: ExportRequest): E
   if ((VIDEO as readonly string[]).includes(request.format)) return produceVideo(context, request);
   let scene: Scene;
   let colors: Readonly<Record<string, unknown>> | undefined;
+  let motion: MotionState | undefined;
   if (request.target.kind === "story") {
     const layouts = storyLayouts(
       context,
@@ -371,12 +379,16 @@ export function produceExport(context: ExportContext, request: ExportRequest): E
     scene = result.scene;
     if (request.motion === "animated" || request.at !== null) {
       const plan = planMotion(diagram, scene, motionOptions(result.theme));
-      scene = request.at !== null ? sceneAt(scene, plan, request.at) : animatedScene(scene, plan);
+      if (request.at !== null) {
+        scene = sceneAt(scene, plan, request.at);
+        motion = motionStateAt(plan, request.at);
+      } else scene = animatedScene(scene, plan);
     }
   }
   const decorated = decorate(scene, request, colors);
   if (request.format === "svg") {
-    return { text: renderSvg(decorated.scene, { fonts: request.fonts, provider }) };
+    const text = renderSvg(decorated.scene, { fonts: request.fonts, provider });
+    return motion ? { text, motion } : { text };
   }
   const fitted = fitPicture(captureJob(context, decorated.scene, decorated.background, request));
   return fitted.notice ? { job: fitted.job, notices: [fitted.notice] } : { job: fitted.job };

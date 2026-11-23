@@ -153,6 +153,119 @@ describe("mdg mcp --folder", () => {
     );
   });
 
+  // `mcp-previews`, "The motion of an effect frame": an agent with this server alone, no account
+  // and no story in the file, proves that the arrow it animated moves.
+  it("proves an animated arrow of a diagram without a story, with two frames and nothing else", async () => {
+    const path = "drafts/pkce.meltemi";
+    writeFileSync(
+      join(folder, path),
+      [
+        'language "0.2"',
+        "",
+        "diagram pkce: flow {",
+        "  direction LR",
+        '  app["App"]',
+        '  server["Authorization server"]',
+        '  app -> server: "code_challenge" as authorize',
+        "",
+        "  animate authorize { effect flow }",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    const frame = async (at?: string, format: "svg" | "png" = "svg") => {
+      const result = await mcp.call("preview", { path, format, ...(at ? { at } : {}) });
+      const report = ok(result);
+      return {
+        report,
+        svg: result.content.find((item) => item.type === "text" && item.text?.startsWith("<svg"))
+          ?.text,
+        motion: report["motion"] as
+          | {
+              atMs: number;
+              loopMs: number | null;
+              truncated: boolean;
+              effects: {
+                target: string;
+                role: string;
+                effect: string;
+                durationMs: number;
+                phase: number | null;
+                marks: { x: number; y: number; along: number }[];
+              }[];
+            }
+          | undefined,
+      };
+    };
+
+    // Still by default, as before: no particle, and nothing said of motion.
+    const still = await frame();
+    expect(still.motion).toBeUndefined();
+    expect(still.svg).not.toMatch(/<path d="M[\d. -]+ a4 4 /);
+
+    const first = await frame("300ms");
+    const second = await frame("900ms");
+    expect(first.report["revision"]).toBe(second.report["revision"]);
+    expect(first.motion).toMatchObject({ atMs: 300, loopMs: 1200, truncated: false });
+    expect(first.motion!.effects).toHaveLength(1);
+    expect(first.motion!.effects[0]).toMatchObject({
+      target: "authorize",
+      role: "relation",
+      effect: "flow",
+      durationMs: 1200,
+      phase: 0.25,
+    });
+    expect(second.motion!.effects[0]).toMatchObject({ target: "authorize", phase: 0.75 });
+    const from = first.motion!.effects[0]!.marks[0]!;
+    const to = second.motion!.effects[0]!.marks[0]!;
+    // The mark advanced along the arrow: further along it, and nearer its target on the right.
+    expect([from.along, to.along]).toEqual([0.25, 0.75]);
+    expect(to.x).toBeGreaterThan(from.x);
+    expect(to.y).toBe(from.y);
+    expect(second.svg).not.toBe(first.svg);
+    // The mark is the particle the picture draws in the arrow's group.
+    const group = /<g data-id="authorize" data-role="relation">[\s\S]*?<\/g>/.exec(first.svg!)![0];
+    const circle = /<path d="M(-?[\d.]+) (-?[\d.]+) a([\d.]+) /.exec(group)!;
+    expect(Number(circle[1]) + Number(circle[3])).toBeCloseTo(from.x, 2);
+    expect(Number(circle[2])).toBeCloseTo(from.y, 2);
+
+    // A PNG says the same, with the mark in its pixels.
+    const png = await frame("300ms", "png");
+    const scale = Number(png.report["width"]) / Number(first.report["width"]);
+    expect(png.motion!.effects[0]!.marks[0]!.along).toBe(0.25);
+    expect(png.motion!.effects[0]!.marks[0]!.x).toBeCloseTo(from.x * scale, 1);
+  }, 60_000);
+
+  it("says when a diagram animates nothing, and keeps a story's frame as it was", async () => {
+    const plain = ok(
+      await mcp.call("preview", { path: "drafts/edited.meltemi", at: "1s", format: "svg" }),
+    );
+    expect(plain["motion"]).toEqual({ atMs: 1000, loopMs: null, effects: [], truncated: false });
+    const story = ok(
+      await mcp.call("preview", {
+        path: "drafts/story.meltemi",
+        story: "tour",
+        at: "600ms",
+        format: "svg",
+      }),
+    );
+    expect(story["motion"]).toBeUndefined();
+    expect(refusal(await mcp.call("preview", { path: "drafts/edited.meltemi", at: "soon" }))).toBe(
+      "request.invalid",
+    );
+  }, 60_000);
+
+  it("describes effect frames in the tool an agent reads", async () => {
+    const client = await mcp.connect();
+    const preview = (await client.listTools()).tools.find((tool) => tool.name === "preview")!;
+    expect(preview.description).toContain("still or with `at` its effects (`animate`)");
+    expect(preview.description).toContain("a story is not needed for that");
+    const input = preview.inputSchema as { properties: Record<string, { description?: string }> };
+    expect(input.properties["at"]!.description).toContain("Without `story`, the diagram");
+    const output = preview.outputSchema as { properties: Record<string, unknown> };
+    expect(Object.keys(output.properties)).toContain("motion");
+  });
+
   it("refuses a width out of bounds and a file it does not hold", async () => {
     const wide = await mcp.call("preview", { path: "diagrams/payment.meltemi", width: 4096 });
     expect(refusal(wide)).toBe("request.invalid");

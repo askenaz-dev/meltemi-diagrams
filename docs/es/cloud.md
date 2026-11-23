@@ -1747,6 +1747,17 @@ objeto renderizador construya el catálogo que publica la página, lo guarda y l
 dirección pública (`HEAD`): una dirección que no responde `200` es `502 publish.unverified` con su
 `url`, y la publicación existe.
 
+`preview` dibuja un diagrama quieto salvo que reciba `at`. Con `at` y sin `story` dibuja el
+diagrama con sus efectos (`animate`) en ese instante, como `export --at`, tenga o no una historia
+el archivo, y el informe lleva `motion`: `atMs`, `loopMs` (un ciclo completo de todos los efectos,
+o `null`), `truncated` y los cincuenta primeros `effects`, cada uno con su `target` y `role` (el
+`data-id` y el `data-role` de su grupo en el SVG), `effect`, `durationMs`, `delayMs`, `repeat`,
+`direction`, `phase` (de 0 a 1 de su ciclo; `null` antes de su retardo y después de su última
+repetición) y `marks`, las partículas de un flujo y la cabeza de un trazo por su centro en las
+coordenadas de la imagen (unidades de un SVG, píxeles de un PNG) con `along`, la parte de la línea
+recorrida. Dos fotogramas en instantes distintos prueban que una flecha está animada. Una imagen
+quieta y el fotograma de una historia no llevan `motion`.
+
 `inspect_story` recibe `project`, `path` y `story`, con el mismo alcance `projects:read` y
 visibilidad del proyecto que `preview`. Informa la revisión de la instantánea actual, duración de
 la historia, escenas ordenadas y vistas activas, transiciones y el inicio/fin/duración de acciones
