@@ -1693,6 +1693,17 @@ its line at the server's UTC date. `invite` answers the invitation's link and
 it, and reads the public address back once (`HEAD`): an address that does not answer `200` is
 `502 publish.unverified` with its `url`, and the publication exists.
 
+`preview` draws a diagram still unless it is given `at`. With `at` and no `story` it draws the
+diagram with its effects (`animate`) at that instant, as `export --at` does, whether or not the
+file has a story, and the report carries `motion`: `atMs`, `loopMs` (one loop of every effect, or
+`null`), `truncated` and the first fifty `effects`, each with its `target` and `role` (the
+`data-id` and `data-role` of its group in the SVG), `effect`, `durationMs`, `delayMs`, `repeat`,
+`direction`, `phase` (0 to 1 of its cycle; `null` before its delay and after its last repeat) and
+`marks`, the particles of a flow and the head of a trace by their centre in the picture's
+coordinates (units of an SVG, pixels of a PNG) with `along`, the share of the line travelled. Two
+frames at different instants prove an arrow is animated. A still picture and a story's frame carry
+no `motion`.
+
 `inspect_story` takes `project`, `path` and `story`, with the same `projects:read` scope and
 project visibility as `preview`. It reports the current snapshot's revision, story duration,
 ordered scenes and active views, transitions and nested action start/end/duration in milliseconds,

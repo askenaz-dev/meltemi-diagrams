@@ -136,6 +136,41 @@ describe("exports that pick what nothing says", () => {
     expect(legacy.text).not.toContain('summary="false"');
   });
 
+  // `motion-clock`, "State at time t": a diagram's frame says where it drew each effect.
+  it("answers the motion of a diagram's frame beside its SVG, and of nothing else", () => {
+    const text = (output: ExportOutput) => {
+      if (!("text" in output)) throw new Error(JSON.stringify(output));
+      return output;
+    };
+    const frame = text(exportOf("checkout", "svg", { at: 300 }));
+    expect(frame.motion).toMatchObject({
+      atMs: 300,
+      effects: [
+        { target: "pay", role: "relation", effect: "flow", durationMs: 1200, phase: 0.25 },
+        { target: "api", role: "element", effect: "pulse", durationMs: 1000, phase: 0.3 },
+      ],
+    });
+    // The mark is the particle the SVG draws: `circlePath` starts a radius left of the centre.
+    const [mark] = frame.motion!.effects[0]!.marks;
+    expect(mark!.along).toBe(0.25);
+    const drawn = /<path d="M(-?[\d.]+) (-?[\d.]+) a([\d.]+) /.exec(frame.text)!;
+    expect(Number(drawn[1]) + Number(drawn[3])).toBeCloseTo(mark!.x, 2);
+    expect(Number(drawn[2])).toBeCloseTo(mark!.y, 2);
+    const later = text(exportOf("checkout", "svg", { at: 900 }));
+    expect(later.motion!.effects[0]!.marks[0]!.along).toBe(0.75);
+    expect(later.motion!.effects[0]!.marks[0]!.x).toBeGreaterThan(mark!.x);
+    expect(later.text).not.toBe(frame.text);
+
+    const still = text(exportOf("checkout", "svg"));
+    expect(still.motion).toBeUndefined();
+    expect(still.text).not.toMatch(/<path d="M[\d. -]+ a[\d.]+ /);
+    expect(text(exportOf("checkout", "svg", { motion: "animated" })).motion).toBeUndefined();
+    // A frame of a diagram that animates nothing is the still picture, and says so.
+    const plain = text(exportOf("still", "svg", { at: 300 }));
+    expect(plain.motion).toEqual({ atMs: 300, loopMs: null, effects: [] });
+    expect(plain.text).toBe(text(exportOf("still", "svg")).text);
+  });
+
   it("gives endless effects one loop of their cycles, and says so", () => {
     const gif = video(exportOf("checkout", "gif"));
     expect(gif.video.durationMs).toBe(6000);

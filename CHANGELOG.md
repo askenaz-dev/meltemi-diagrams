@@ -66,6 +66,14 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
   previews expose the same content-derived snapshot revision.
 - The agent skill documents safe story creation, timing edits, conflict recovery and preview
   inspection. A new end-to-end story journey extends the hosted acceptance gate to 35 steps.
+- The agent skill tells the two forms of motion apart by the request: "animate this arrow" or
+  "animate the diagram" is `animate` on the diagram that exists, with no story; "show me the flow
+  step by step" is a `story`. It gives a short example of each and how each is checked.
+- `preview` with `at` and no `story` draws a diagram with its effects at that instant in hosted,
+  local-account and folder MCP, and its report's `motion` gives each effect's phase and where its
+  marks are (a flow's particles, a trace's head), so two frames prove an arrow is animated with
+  the tools alone. Without `at` the picture is still, as before. An effect-frame journey extends
+  the hosted acceptance gate to 36 steps.
 
 ### Local workspace
 

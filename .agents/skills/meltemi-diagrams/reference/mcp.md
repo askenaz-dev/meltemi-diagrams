@@ -28,7 +28,8 @@ reaches an address on the internet uses the endpoint):
 - It uses the person's `mdg login`; until they sign in, each tool answers `auth.required`, and the
   next call after `mdg login` works without a restart. Never run `mdg login` for them.
 - `mdg mcp --folder <dir>` serves `validate`, `inspect_story` and `preview`, over the `.meltemi` files of a
-  folder, with no account: write the files with your own tools, then check and look at them.
+  folder, with no account: write the files with your own tools, then check and look at them,
+  effects in motion included.
 - On a machine other people use, the server may ask for `MELTEMI_MCP_KEY` as a bearer token; the
   person sets it in your client's configuration, never in a file you write.
 
@@ -51,8 +52,9 @@ runs live sessions and publishes (`access.denied`).
 - Versions: `list_versions`, `create_version` (a label of at most 80 characters),
   `restore_version`.
 - The app: `open_url` (the address that opens the project in the browser).
-- Pictures: `preview` (a diagram, or a story's frame, drawn with the command line's engine: on the
-  server through the endpoint, on the person's machine through the local server).
+- Pictures: `preview` (a diagram, still or with its effects at an instant, or a story's frame,
+  drawn with the command line's engine: on the server through the endpoint, on the person's
+  machine through the local server).
 - Story timelines: `inspect_story` (the named story's compiled scene, transition and action
   timings and active views at the current revision; read-only, with `projects:read`).
 - Sharing: `get_sharing`, `set_link_access` (`private`, `view` or `edit`), `invite`,
@@ -82,7 +84,8 @@ code. Ids are never guessed: take a project's id from `list_projects` or `create
    gives the revision drawn, the size, the elements and relations, the warnings
    (`layout.text-overflow`, `layout.overlap`, …) and the fonts the server estimated. Look at the
    picture when you can, read the report always, and fix what it shows as you would after an
-   export.
+   export. After writing `animate`, preview two instants with `at`
+   ([Effects in motion](#effects-in-motion)).
 6. Give the person `open_url`'s address. An open page shows every write at once, without a reload.
 
 A preview that fails (`request.invalid`, `rate.limited`) never undoes a write that succeeded: say
@@ -91,8 +94,71 @@ endpoint means the service cannot draw or check right now, and nothing was writt
 that the local server (`mdg mcp`) does this work on the person's machine. Thirty previews and three hundred
 calls a minute per account are allowed; `rate.limited` gives `retryAfter` in seconds.
 
+## Effects in motion
+
+"Animate this arrow" or "animate the diagram" is `animate` on the diagram's relations
+([language.md](language.md#animate)), not a story, and it is checked on the diagram: a `preview`
+without `at` is still, and does not show whether an effect runs. Give `at` and no `story`, and the
+diagram is drawn with its effects at that instant, whether or not the file has a story:
+
+```json
+{
+  "project": "<id-from-list_projects>",
+  "path": "diagrams/pkce.meltemi",
+  "at": "300ms",
+  "format": "svg"
+}
+```
+
+The report of such a frame has `motion`:
+
+```json
+{
+  "atMs": 300,
+  "loopMs": 1200,
+  "effects": [
+    {
+      "target": "authorize",
+      "role": "relation",
+      "effect": "flow",
+      "durationMs": 1200,
+      "delayMs": 0,
+      "repeat": "forever",
+      "direction": "forward",
+      "phase": 0.25,
+      "marks": [{ "x": 236.75, "y": 48, "along": 0.25 }]
+    }
+  ],
+  "truncated": false
+}
+```
+
+- One entry for each effect whose target is drawn, the first fifty. `target` and `role` are the
+  `data-id` and `data-role` of its group in the SVG.
+- `phase` is how far the effect is through its cycle, 0 to 1. `null` means the instant is before
+  its `delay` or after its last `repeat`: the target is drawn without it.
+- `marks` are what moves along a line: each particle of a `flow` and the head of a `trace`, with
+  the centre in the picture's coordinates (units of the SVG, pixels of a PNG) and `along`, the
+  share of the line travelled in the effect's direction. A `dash` and a `pulse` have no mark;
+  their `phase` is their state.
+- `loopMs` is one loop of every effect together, `null` when there is none under ten seconds.
+- A particle rides its line under the relation's label, so the picture can hide one that the
+  report still gives: trust `marks` for where it is, and the picture for how it looks.
+
+To prove an arrow is animated, ask for two frames inside one cycle, such as a quarter and three
+quarters of the effect's `durationMs` (`300ms` and `900ms` for a flow of 1200 ms), and compare
+the reports: the same `revision`, the effect listed for the arrow's id, and a larger `along` with
+the mark nearer the arrow's end in the second. An effect that is missing from `effects` is not
+drawn: its target is anonymous, hidden or in another diagram of the file (name it with
+`diagram`). An empty `effects` means the diagram animates nothing; a report without `motion` was
+asked without `at`. A story's frames are a different request: `story` with `at`, below.
+
+In folder mode omit `project`; the frames are of the files on disk at each call.
+
 ## Story timelines
 
+A story is for a walkthrough step by step, not for animating arrows
+([Effects in motion](#effects-in-motion)).
 Follow [stories.md](stories.md#authoring-and-revising-with-an-agent) to create, time, reorder and
 delete stories through small source edits. The MCP edits the same `.meltemi` text the person sees;
 it does not need a separate scene-writing language.

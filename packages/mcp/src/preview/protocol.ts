@@ -3,7 +3,7 @@
 // so a client that cannot see the picture can still judge the drawing. Nothing here touches the
 // platform: the object, the Node tests and the measurements all read these shapes.
 
-import { parseTime } from "@meltemi/diagrams-motion";
+import { parseTime, type EffectState, type MotionState } from "@meltemi/diagrams-motion";
 import { DEFAULT_PNG_WIDTH, MAX_PNG_WIDTH, MIN_PNG_WIDTH } from "./bounds.js";
 
 export { DEFAULT_PNG_WIDTH, MAX_PNG_PIXELS, MAX_PNG_WIDTH, MIN_PNG_WIDTH } from "./bounds.js";
@@ -12,6 +12,13 @@ export { DEFAULT_PNG_WIDTH, MAX_PNG_PIXELS, MAX_PNG_WIDTH, MIN_PNG_WIDTH } from 
 export const CACHE_ENTRIES = 20;
 /** The most diagnostics a report lists; `truncated` says when there were more. */
 export const MAX_REPORT_DIAGNOSTICS = 50;
+/** The most effects a report's `motion` lists; its `truncated` says when there were more. */
+export const MAX_REPORT_EFFECTS = 50;
+/**
+ * The shape of the answers the cache keeps, in every key: an answer stored with another shape (a
+ * frame's report from before it carried `motion`) is never served for a request made now.
+ */
+export const CACHE_SHAPE = 2;
 
 export type PreviewFormat = "svg" | "png";
 
@@ -32,7 +39,10 @@ export interface RenderRequest {
   readonly diagram?: string;
   /** A story of the file: its frame at `at` (its end by default) is drawn instead of a diagram. */
   readonly story?: string;
-  /** The time of the frame, as the command line's `--at` (`2.4s`, `1500ms`) or milliseconds. */
+  /**
+   * The time of the frame, as the command line's `--at` (`2.4s`, `1500ms`) or milliseconds: of the
+   * story when one is named, else of the diagram's effects, which a request without it draws still.
+   */
   readonly at?: string | number;
   readonly format: PreviewFormat;
   /** PNG only: the picture's width in pixels, 1280 when left out, at most 2048. */
@@ -49,6 +59,55 @@ export interface ReportDiagnostic {
   readonly message: string;
   readonly line: number;
   readonly column: number;
+}
+
+/**
+ * One effect of a diagram at the instant drawn (`EffectState` of `@meltemi/diagrams-motion`): its
+ * target and role (the `data-id` and `data-role` of its group in the SVG), its timing, the `phase`
+ * of its cycle (null outside its window) and its `marks`, a flow's particles and a trace's head,
+ * in the picture's coordinates with the share of the line each has travelled.
+ */
+export type ReportEffect = EffectState;
+
+/** Where a diagram's effects are in the frame drawn (`mcp-previews`, "The motion of an effect frame"). */
+export interface ReportMotion {
+  /** The instant drawn, in milliseconds. */
+  readonly atMs: number;
+  /** One seamless loop of every effect, or null (none under ten seconds, or nothing animated). */
+  readonly loopMs: number | null;
+  /** The effects whose targets are drawn, in the source's order: the first `MAX_REPORT_EFFECTS`. */
+  readonly effects: readonly ReportEffect[];
+  /** True when the effects were more than `MAX_REPORT_EFFECTS`. */
+  readonly truncated: boolean;
+}
+
+const hundredth = (value: number): number => {
+  const rounded = Math.round(value * 100) / 100;
+  return Object.is(rounded, -0) ? 0 : rounded;
+};
+
+/**
+ * A frame's motion as its report says it: the first `MAX_REPORT_EFFECTS` effects, their marks in
+ * the picture's coordinates (`scale` is the picture's width over the SVG's; 1 for an SVG).
+ */
+export function reportMotion(state: MotionState, scale = 1): ReportMotion {
+  return {
+    atMs: state.atMs,
+    loopMs: state.loopMs,
+    effects: state.effects.slice(0, MAX_REPORT_EFFECTS).map((effect) =>
+      scale === 1
+        ? effect
+        : {
+            ...effect,
+            marks: effect.marks.map((mark) => ({
+              x: hundredth(mark.x * scale),
+              y: hundredth(mark.y * scale),
+              along: mark.along,
+            })),
+          },
+    ),
+    truncated: state.effects.length > MAX_REPORT_EFFECTS,
+  };
 }
 
 /** What a preview says beside its picture. */
@@ -73,6 +132,11 @@ export interface RenderReport {
   readonly truncated: boolean;
   /** PNG only: true when the asked width would pass `MAX_PNG_PIXELS` and a narrower one was drawn. */
   readonly fitted?: boolean;
+  /**
+   * A diagram drawn with `at`: where the frame draws each of its effects. A still picture and a
+   * story's frame have none.
+   */
+  readonly motion?: ReportMotion;
 }
 
 /** A drawn preview: the bytes of the picture, its type and its report. */
@@ -202,6 +266,7 @@ export function cacheKeyOf(request: ValidRequest): string {
     request.format,
     request.width,
     request.theme,
+    CACHE_SHAPE,
   ]);
 }
 

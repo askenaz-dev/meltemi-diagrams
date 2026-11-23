@@ -5,12 +5,18 @@
  * machine"), with the same codes and sentences as the endpoint's.
  */
 
-import { Refusal, toBase64, type ToolAnswer, type ToolDiagnostic } from "@meltemi/diagrams-mcp";
+import {
+  Refusal,
+  previewReport,
+  toBase64,
+  type PreviewReport,
+  type ToolAnswer,
+  type ToolDiagnostic,
+} from "@meltemi/diagrams-mcp";
 import {
   MAX_PNG_WIDTH,
   MIN_PNG_WIDTH,
   type RenderOutcome,
-  type RenderReport,
   type ValidateOutcome,
 } from "@meltemi/diagrams-mcp/preview";
 
@@ -37,13 +43,6 @@ export function checkWidth(format: "png" | "svg", width: number | undefined): vo
   }
 }
 
-/** A preview's report as the tools answer it. */
-export type PreviewReport = Omit<RenderReport, "diagnostics" | "estimatedFonts"> & {
-  readonly diagnostics: ToolDiagnostic[];
-  readonly estimatedFonts: string[];
-  readonly cached: boolean;
-};
-
 /** The picture and its report, or the refusal of a drawing the engine would not make. */
 export function previewAnswer(outcome: RenderOutcome): ToolAnswer<PreviewReport> {
   if (!outcome.ok) {
@@ -54,12 +53,7 @@ export function previewAnswer(outcome: RenderOutcome): ToolAnswer<PreviewReport>
     );
   }
   return {
-    structured: {
-      ...outcome.report,
-      diagnostics: [...outcome.report.diagnostics],
-      estimatedFonts: [...outcome.report.estimatedFonts],
-      cached: outcome.cached,
-    },
+    structured: previewReport(outcome.report, outcome.cached),
     content:
       outcome.contentType === "image/png"
         ? [{ type: "image", data: toBase64(outcome.bytes), mimeType: "image/png" }]

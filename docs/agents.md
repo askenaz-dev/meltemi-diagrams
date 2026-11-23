@@ -140,10 +140,17 @@ existing diagram rather than asking it to guess how your system works.
 | "Convert `diagrams/billing.mmd` to Meltemi and keep its layout"                                     | Editable source imported from Mermaid                                  |
 | "Update the login diagram for the code changes in this branch, preserving my manual positions"      | Documentation updated alongside the implementation                     |
 | "Plan the launch from `docs/plan.md` as a Gantt chart"                                              | Tasks and dependencies you can adjust on the canvas                    |
+| "Animate the arrows of the sign-in diagram"                                                         | Effects on the diagram you have, moving in its ordinary view           |
+| "Show me the sign-in flow step by step"                                                             | A story with scenes you can play, beside the diagram it explains       |
 
 Ask it to validate the result, inspect the preview and tell you where to open it. With the CLI,
 that means a source file and SVG, with `mdg preview` when you want a browser preview. With a
 project MCP connection, ask it to return the project's URL so you can continue on the same canvas.
+
+The last two rows ask for different things. Animating an arrow or a diagram adds
+[effects](language/motion.md) (`animate`) to the diagram itself: they loop wherever it is shown
+and need no story. A walkthrough is a [story](language/stories.md), a separate block with scenes
+and times. The skill tells the agent to write only the one you asked for.
 
 ## Through the MCP endpoint
 
@@ -228,6 +235,13 @@ preview's revision to the inspection's: each call reads the current snapshot, so
 require another inspection. In folder mode the revision identifies disk content, not a cloud
 write revision. The skill's [story guide](../skills/meltemi-diagrams/reference/stories.md) covers
 safe creation, timing edits, reordering and deletion while preserving comments and other stories.
+
+For a diagram's effects there is no story to inspect: `preview` with `at` (such as `300ms`) and no
+`story` draws the diagram with its effects at that instant, and its report's `motion` lists each
+effect with its `phase` and the `marks` that move along a line, a flow's particles and a trace's
+head, with how far `along` it each is. Two frames at different instants show whether an arrow is
+animated: the mark is further along in the second. Without `at` the diagram is drawn still, as
+before. It works the same through the endpoint, the local server and `--folder`.
 
 ```bash
 npx -y @meltemi/diagrams-cli@latest mcp --folder .

@@ -1,11 +1,12 @@
-// The preview tool (`mcp-previews`): a diagram or a story's frame of the project as it is now, drawn by
+// The preview tool (`mcp-previews`): a diagram, still or with its effects at an instant, or a
+// story's frame of the project as it is now, drawn by
 // the project's renderer object with the command line's engine (`renderer.ts`, the core of
 // `@meltemi/diagrams-mcp/preview`), never in the Worker's request path. The Worker reads the room's
 // snapshot and the bytes of the images and fonts it uses, and hands them over; the object answers
 // the picture and its report, or says why it drew nothing. An account asks for at most thirty
 // previews a minute.
 
-import { TOOLS, toBase64 } from "@meltemi/diagrams-mcp";
+import { TOOLS, previewReport, toBase64 } from "@meltemi/diagrams-mcp";
 import { MAX_PNG_WIDTH, MIN_PNG_WIDTH } from "@meltemi/diagrams-mcp/preview";
 import { requireProjectAccess } from "../access.js";
 import { fail } from "../errors.js";
@@ -59,14 +60,8 @@ const preview = implement(TOOLS.preview, async (session, args) => {
       outcome.diagnostics ? { diagnostics: outcome.diagnostics } : undefined,
     );
   }
-  const report = {
-    ...outcome.report,
-    diagnostics: [...outcome.report.diagnostics],
-    estimatedFonts: [...outcome.report.estimatedFonts],
-    cached: outcome.cached,
-  };
   return {
-    structured: report,
+    structured: previewReport(outcome.report, outcome.cached),
     content:
       outcome.contentType === "image/png"
         ? [{ type: "image", data: toBase64(outcome.bytes), mimeType: "image/png" }]

@@ -27,6 +27,7 @@ import { FontLibrary, bundledFamily, type FontFileReader } from "@meltemi/diagra
 import { sortDiagnostics, type Diagnostic } from "@meltemi/diagrams-language";
 import type { LayoutEngine } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
+import type { MotionState } from "@meltemi/diagrams-motion";
 import { createMemoryHost, type ProjectHost, type Workspace } from "@meltemi/diagrams-project";
 import { inspectionOf, type InspectStoryRequest, type InspectStoryOutcome } from "./inspection.js";
 import {
@@ -73,6 +74,11 @@ export interface Drawing {
   readonly families: readonly { readonly family: string; readonly measured: boolean }[];
   /** The project's own fonts the library registered: their families and paths (in `binaries`). */
   readonly projectFonts: readonly { readonly family: string; readonly path: string }[];
+  /**
+   * A diagram's frame at `at`: where it draws each effect, in the SVG's units. Null for a still
+   * picture and for a story's frame.
+   */
+  readonly motion: MotionState | null;
 }
 
 /** The folder of a project's own fonts (`FONTS_FOLDER` of `@meltemi/diagrams-project`). */
@@ -156,7 +162,10 @@ export class PreviewEngine {
     );
   }
 
-  /** Draws the request's diagram or story frame as the command line's SVG, or says why it cannot. */
+  /**
+   * Draws the request's diagram (still, or with its effects at `at`) or story frame as the command
+   * line's SVG, or says why it cannot.
+   */
   draw(request: ValidRequest): Drawing | RenderFailure {
     const contents: Record<string, string | Uint8Array> = {};
     for (const [path, text] of Object.entries(request.files)) contents[`${ROOT}${path}`] = text;
@@ -291,6 +300,7 @@ export class PreviewEngine {
             path: font.source.startsWith(ROOT) ? font.source.slice(ROOT.length) : font.source,
           }))
         : [],
+      motion: output.motion ?? null,
     };
   }
   /** Project sessions over a host, with the engine's shared fonts, icons, libraries and ELK. */

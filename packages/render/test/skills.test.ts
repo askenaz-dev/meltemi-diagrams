@@ -79,6 +79,80 @@ describe("agent skills", () => {
     expect(text).not.toMatch(/pnpm mdg (login|logout|whoami|push|pull|publish|projects)\b/);
   });
 
+  // `agent-skill`, "Effects on a diagram or a story": the request's words decide between `animate`
+  // on the diagram that exists and a `story`, in the workflow and where each form is read.
+  describe("meltemi-diagrams tells effects on a diagram from a story", () => {
+    const read = (file: string) =>
+      readFileSync(join(skillsRoot, "meltemi-diagrams", file), "utf8").replace(/\s+/g, " ");
+    const skill = read("SKILL.md");
+    const section =
+      readFileSync(join(skillsRoot, "meltemi-diagrams", "SKILL.md"), "utf8")
+        .split("## Motion: effects or a story")[1]
+        ?.split("\n## ")[0] ?? "";
+
+    it("decides by the request in the workflow, before the template", () => {
+      const rule = skill.indexOf('"Animate this arrow" or "animate the diagram" is `animate`');
+      expect(rule, "the rule is in the workflow").toBeGreaterThan(0);
+      expect(rule).toBeLessThan(skill.indexOf("## Template"));
+      expect(skill).toContain("and no story");
+      expect(skill).toContain('"Show me the flow step by step" is a `story`');
+      expect(skill).toContain("[Motion: effects or a story](#motion-effects-or-a-story)");
+    });
+
+    it("gives a short example of each, and both compile together", () => {
+      const blocks = [...section.matchAll(/```text\n([\s\S]*?)```/g)].map((m) => m[1]!);
+      expect(blocks).toHaveLength(2);
+      const [effects, story] = blocks as [string, string];
+      expect(effects).toContain("animate request, create { effect flow }");
+      expect(effects).not.toContain("story");
+      expect(story.startsWith("story purchase for checkout {")).toBe(true);
+      expect(story).not.toContain("animate");
+      const compilation = compile(
+        `language "0.2"\n\ndiagram checkout: flow {\n  client["Client"]\n  api["API"]\n  orders["Orders"]\n${effects}}\n\n${story}`,
+      );
+      expect(compilation.diagnostics).toEqual([]);
+      const diagram = compilation.document.diagrams[0]!;
+      expect(diagram.animations.map((entry) => [entry.target, entry.effect])).toEqual([
+        ["request", "flow"],
+        ["create", "flow"],
+      ]);
+      expect(compilation.document.stories.map((entry) => entry.id)).toEqual(["purchase"]);
+    });
+
+    it("says how each is checked, and what to write when the request does not say", () => {
+      const text = section.replace(/\s+/g, " ");
+      for (const phrase of [
+        "write only the one that was asked",
+        "name an anonymous relation with `as <id>`",
+        "Check effects on the diagram itself, never through a story",
+        "--at 300ms",
+        "`preview` with `at` and no `story`",
+        "report's `motion`",
+        "its compiled timeline and each scene's frame",
+        "effects are the smaller change",
+      ]) {
+        expect(text, phrase).toContain(phrase);
+      }
+    });
+
+    it("states the rule where each form is read", () => {
+      const language = read("reference/language.md");
+      expect(language).toContain('"Animate this arrow" or "animate the diagram" asks for these');
+      expect(language).toContain("is [`animate`](#animate), not a story");
+      expect(language).toContain("`preview` with `at` and no `story`");
+      const stories = read("reference/stories.md");
+      expect(stories).toContain('"Animate this arrow" or "animate the diagram" is not a story');
+      expect(stories).toContain("[language.md](language.md#animate)");
+      const mcp = read("reference/mcp.md");
+      expect(mcp).toContain("## Effects in motion");
+      expect(mcp).toContain("Give `at` and no `story`");
+      for (const field of ["`motion`", "`phase`", "`marks`", "`along`", "`loopMs`"]) {
+        expect(mcp, field).toContain(field);
+      }
+      expect(mcp).toContain("A story is for a walkthrough step by step, not for animating arrows");
+    });
+  });
+
   it.each(skills)(
     "%s is copied unchanged to .claude/skills, .agents/skills and the CLI package",
     (name) => {

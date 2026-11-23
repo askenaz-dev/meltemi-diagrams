@@ -19,6 +19,7 @@ import {
   motionDuration,
   motionLoop,
   motionOptions,
+  motionStateAt,
   parseTime,
   planMotion,
   pointAlong,
@@ -357,6 +358,113 @@ describe("scene at time t", () => {
   it("is deterministic", () => {
     const { scene, plan } = straight("effect flow; particles 3");
     expect(renderSvg(sceneAt(scene, plan, 333))).toBe(renderSvg(sceneAt(scene, plan, 333)));
+  });
+});
+
+// `motion-clock`, "State at time t": what a frame draws of each effect, as numbers.
+describe("state at time t", () => {
+  const rounded = (p: Point) => ({
+    x: Math.round(p.x * 100) / 100,
+    y: Math.round(p.y * 100) / 100,
+  });
+
+  it("gives a particle's phase and its mark, the centre of the circle the frame draws", () => {
+    const { scene, plan } = straight("effect flow; duration 1s");
+    const track = plan.effects[0]!.track!;
+    const state = motionStateAt(plan, 250);
+    expect(state).toMatchObject({ atMs: 250, loopMs: 1000 });
+    expect(state.effects).toHaveLength(1);
+    const [effect] = state.effects;
+    expect(effect).toMatchObject({
+      target: "r",
+      role: "relation",
+      effect: "flow",
+      durationMs: 1000,
+      delayMs: 0,
+      repeat: "forever",
+      direction: "forward",
+      phase: 0.25,
+    });
+    expect(effect!.marks).toEqual([{ ...rounded(pointAlong(track, 0.25)), along: 0.25 }]);
+    // The report cannot disagree with the picture: the mark is where the frame draws the particle.
+    const [particle] = particleItems(sceneAt(scene, plan, 250));
+    expect(circleCentre(particle!).x).toBeCloseTo(effect!.marks[0]!.x, 2);
+    expect(circleCentre(particle!).y).toBeCloseTo(effect!.marks[0]!.y, 2);
+  });
+
+  it("advances the mark along the line as time passes", () => {
+    const { plan } = straight("effect flow; duration 1200ms");
+    const track = plan.effects[0]!.track!;
+    const marks = [300, 600, 900].map((t) => motionStateAt(plan, t).effects[0]!.marks[0]!);
+    expect(marks.map((mark) => mark.along)).toEqual([0.25, 0.5, 0.75]);
+    const fromStart = marks.map((mark) => Math.hypot(mark.x - track[0]!.x, mark.y - track[0]!.y));
+    expect(fromStart[0]!).toBeLessThan(fromStart[1]!);
+    expect(fromStart[1]!).toBeLessThan(fromStart[2]!);
+  });
+
+  it("lists every particle, from the line's end when reversed", () => {
+    const { scene, plan } = straight("effect flow; particles 2; direction reverse; duration 1s");
+    const track = plan.effects[0]!.track!;
+    const [effect] = motionStateAt(plan, 250).effects;
+    expect(effect!.direction).toBe("reverse");
+    expect(effect!.marks).toEqual([
+      { ...rounded(pointAlong(track, 0.75)), along: 0.25 },
+      { ...rounded(pointAlong(track, 0.25)), along: 0.75 },
+    ]);
+    const drawn = particleItems(sceneAt(scene, plan, 250)).map(circleCentre);
+    expect(drawn.map((p) => p.x)).toEqual(effect!.marks.map((mark) => mark.x));
+  });
+
+  it("gives a trace's head, grown over the first 80 % of its cycle", () => {
+    const { plan } = straight("effect trace; duration 1s");
+    const track = plan.effects[0]!.track!;
+    const growing = motionStateAt(plan, 400).effects[0]!;
+    expect(growing.phase).toBe(0.4);
+    expect(growing.marks).toEqual([{ ...rounded(pointAlong(track, 0.5)), along: 0.5 }]);
+    const fading = motionStateAt(plan, 900).effects[0]!;
+    expect(fading.marks).toEqual([{ ...rounded(track[track.length - 1]!), along: 1 }]);
+    const { plan: back } = straight("effect trace; duration 1s; direction reverse");
+    expect(motionStateAt(back, 0).effects[0]!.marks).toEqual([
+      { ...rounded(track[track.length - 1]!), along: 0 },
+    ]);
+  });
+
+  it("gives a dash and a pulse their phase, and no mark", () => {
+    const { plan } = draw(
+      [
+        "  node a",
+        "  node b",
+        "  a -> b as r",
+        "  animate r { effect dash; duration 1s }",
+        "  animate a { effect pulse; duration 2s }",
+        "  placement {",
+        "    place a at (100, 100)",
+        "    place b at (500, 100)",
+        "  }",
+      ].join("\n"),
+    );
+    const state = motionStateAt(plan, 500);
+    expect(state.loopMs).toBe(2000);
+    expect(state.effects.map((e) => [e.target, e.role, e.effect, e.phase, e.marks])).toEqual([
+      ["r", "relation", "dash", 0.5, []],
+      ["a", "element", "pulse", 0.25, []],
+    ]);
+  });
+
+  it("says an effect is outside its window, before its delay and after its last repeat", () => {
+    const { scene, plan } = straight("effect flow; duration 1s; delay 1s; repeat 2");
+    for (const t of [500, 3000, 4500]) {
+      const [effect] = motionStateAt(plan, t).effects;
+      expect(effect).toMatchObject({ delayMs: 1000, repeat: 2, phase: null, marks: [] });
+      expect(particleItems(sceneAt(scene, plan, t))).toEqual([]);
+    }
+    expect(motionStateAt(plan, 1500).effects[0]).toMatchObject({ phase: 0.5 });
+  });
+
+  it("is empty for a plan without effects, and the same on every run", () => {
+    expect(motionStateAt({ effects: [] }, 1000)).toEqual({ atMs: 1000, loopMs: null, effects: [] });
+    const { plan } = straight("effect flow; particles 3");
+    expect(motionStateAt(plan, 333)).toEqual(motionStateAt(plan, 333));
   });
 });
 

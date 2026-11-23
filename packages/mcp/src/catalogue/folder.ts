@@ -7,7 +7,7 @@ import * as z from "zod";
 import { MAX_PNG_WIDTH, MIN_PNG_WIDTH } from "../preview/bounds.js";
 import { define } from "../serve.js";
 import { diagnosticSchema } from "../shapes.js";
-import { reportSchema } from "./preview.js";
+import { PREVIEW_MOTION, PREVIEW_SUBJECT, pictureArgs, reportSchema } from "./preview.js";
 import { INSPECT_STORY_INPUT, storyInspectionSchema } from "./stories.js";
 
 /** A file's path from the folder's root. */
@@ -47,27 +47,12 @@ export const FOLDER_TOOLS = {
   preview: define({
     name: "preview",
     title: "Preview",
-    description: `A picture of a diagram (the file's first, or the one named) or of a story's frame (at \`at\`, its end by default) of the folder as it is on disk now, drawn on this machine with the command line's engine: a PNG ${MIN_PNG_WIDTH} to ${MAX_PNG_WIDTH} pixels wide (1280 by default), or with format svg the SVG as text. A report beside it says the content-derived snapshot revision, the size, the elements and relations drawn, the warnings and the fonts that were estimated, so the drawing can be judged without seeing it. Compare its revision with inspect_story; it is not a cloud write revision.`,
+    description: `${PREVIEW_SUBJECT} of the folder as it is on disk now, drawn on this machine with the command line's engine: a PNG ${MIN_PNG_WIDTH} to ${MAX_PNG_WIDTH} pixels wide (1280 by default), or with format svg the SVG as text. A report beside it says the content-derived snapshot revision, the size, the elements and relations drawn, the warnings and the fonts that were estimated, so the drawing can be judged without seeing it. ${PREVIEW_MOTION} Compare its revision with inspect_story; it is not a cloud write revision.`,
     scope: "projects:read",
     preview: true,
     input: z.object({
       path: folderPathArg.describe("The .meltemi file to draw."),
-      diagram: z.string().optional().describe("The diagram's id; the file's first when left out."),
-      story: z.string().optional().describe("A story's id: its frame at `at` is drawn instead."),
-      at: z
-        .string()
-        .optional()
-        .describe("The story's time, such as 2.4s or 1500ms; its end by default."),
-      format: z.enum(["png", "svg"]).optional(),
-      width: z
-        .number()
-        .int()
-        .optional()
-        .describe(`A PNG's width in pixels, ${MIN_PNG_WIDTH} to ${MAX_PNG_WIDTH}.`),
-      theme: z
-        .string()
-        .optional()
-        .describe("A theme over the diagram's own, as the command line's --theme."),
+      ...pictureArgs,
     }),
     output: reportSchema.extend({
       revision: storyInspectionSchema.shape.revision,
@@ -81,7 +66,7 @@ export type FolderToolName = keyof typeof FOLDER_TOOLS;
 /** What `initialize` answers for a folder. */
 export function folderInstructions(): string {
   return [
-    "These tools check and draw the Meltemi Diagrams files of a folder on this machine, where diagrams are `.meltemi` text files: validate reports their diagnostics, inspect_story reports a compiled timeline and preview answers a picture of a diagram or of a story's frame, read from disk at each call.",
+    "These tools check and draw the Meltemi Diagrams files of a folder on this machine, where diagrams are `.meltemi` text files: validate reports their diagnostics, inspect_story reports a compiled timeline and preview answers a picture of a diagram, still or with its effects at an instant, or of a story's frame, read from disk at each call.",
     "Write the files with your own file tools, then validate and preview to judge the drawing.",
     "The language and its rules are taught by the Meltemi Diagrams skill (https://diagrams.meltemi.dev/agent-setup).",
   ].join(" ");

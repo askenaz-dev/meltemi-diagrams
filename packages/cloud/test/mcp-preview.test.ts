@@ -3,11 +3,17 @@
 // refuses, and what a file with an error answers. The renderer's core runs in Node with the files
 // the Worker bundles (`support/renderer.ts`), one object per project as the binding gives.
 
-import { readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { run } from "@meltemi/diagrams-cli";
 import type { Client } from "@modelcontextprotocol/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  EFFECTS_PATH,
+  EFFECTS_SOURCE,
+  effectFramesJourney,
+} from "../../acceptance/src/mcp/effects.js";
 import { REPO_ROOT } from "../../../test-support/corpus.js";
 import { PREVIEWS_PER_MINUTE } from "../src/mcp/tool.js";
 import { call, mcp, ok, refused, type CallResult, type Mcp } from "./support/mcp.js";
@@ -189,6 +195,263 @@ describe("a preview", () => {
     expect(ok(second)).toMatchObject({ cached: true });
     expect((await m.renderers.stats(id)).renders).toBe(renders);
   }, 60_000);
+});
+
+// `mcp-previews`, "A preview of the current revision" (effect frames) and "The motion of an effect
+// frame": `at` without `story` draws the diagram's effects at that instant, and the report says
+// where each is, so an agent proves an animated arrow with the tools alone.
+describe("an effect frame", () => {
+  interface Mark {
+    x: number;
+    y: number;
+    along: number;
+  }
+  interface Motion {
+    atMs: number;
+    loopMs: number | null;
+    truncated: boolean;
+    effects: {
+      target: string;
+      role: string;
+      effect: string;
+      durationMs: number;
+      delayMs: number;
+      repeat: number | "forever";
+      direction: string;
+      phase: number | null;
+      marks: Mark[];
+    }[];
+  }
+  const motionOf = (result: CallResult) =>
+    ok<{ motion?: Motion; revision: number; width: number }>(result);
+  /** The centre of the particle a frame draws in a relation's group (`circlePath`). */
+  const particle = (svg: string, relation: string) => {
+    const group =
+      new RegExp(`<g data-id="${relation}" data-role="relation">[\\s\\S]*?</g>`).exec(svg)?.[0] ??
+      "";
+    const circle = /<path d="M(-?[\d.]+) (-?[\d.]+) a([\d.]+) /.exec(group);
+    return circle ? { x: Number(circle[1]) + Number(circle[3]), y: Number(circle[2]) } : undefined;
+  };
+
+  it("proves an animated arrow at two instants through the tools alone, without a story", async () => {
+    const m = await mcp();
+    const client = await m.connect(await m.token(ANA));
+    const { id } = ok<{ id: string }>(await call(client, "create_project", { name: "Effects" }));
+    try {
+      const found = await effectFramesJourney(
+        {
+          call: (name, args) => call(client, name, args),
+          ok: async (name, args = {}) => ok(await call(client, name, args)),
+        },
+        id,
+      );
+      expect(found.along).toEqual([0.25, 0.75]);
+    } finally {
+      await client.close();
+    }
+  }, 60_000);
+
+  it("is, as SVG, what export --at writes for the same file", async () => {
+    const folder = mkdtempSync(join(tmpdir(), "mdg-effect-frame-"));
+    try {
+      writeFileSync(join(folder, EFFECTS_PATH), EFFECTS_SOURCE);
+      const { client, id } = await projectOf({ [EFFECTS_PATH]: EFFECTS_SOURCE });
+      for (const at of ["300ms", "0.9s"]) {
+        const cli = await mdg(
+          "export",
+          join(folder, EFFECTS_PATH),
+          "--at",
+          at,
+          "--fonts",
+          "system",
+          "--stdout",
+        );
+        expect(cli.code, cli.stderr).toBe(0);
+        const result = await call(client, "preview", {
+          project: id,
+          path: EFFECTS_PATH,
+          at,
+          format: "svg",
+        });
+        expect(textItems(result)[0]?.text).toBe(cli.stdout);
+      }
+      // Still by default: the picture the command line exports without --at.
+      const cli = await mdg("export", join(folder, EFFECTS_PATH), "--fonts", "system", "--stdout");
+      const still = await call(client, "preview", {
+        project: id,
+        path: EFFECTS_PATH,
+        format: "svg",
+      });
+      expect(textItems(still)[0]?.text).toBe(cli.stdout);
+      expect(motionOf(still).motion).toBeUndefined();
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("gives the marks of a PNG in its pixels, and answers a frame again from the cache", async () => {
+    const { m, client, id } = await projectOf({ [EFFECTS_PATH]: EFFECTS_SOURCE });
+    const svg = motionOf(
+      await call(client, "preview", {
+        project: id,
+        path: EFFECTS_PATH,
+        at: "300ms",
+        format: "svg",
+      }),
+    );
+    const result = await call(client, "preview", { project: id, path: EFFECTS_PATH, at: "300ms" });
+    const png = motionOf(result);
+    expect(png.width).toBe(1280);
+    const scale = 1280 / svg.width;
+    const [inSvg] = svg.motion!.effects[0]!.marks;
+    const [inPng] = png.motion!.effects[0]!.marks;
+    expect(inPng!.along).toBe(0.25);
+    expect(inPng!.x).toBeCloseTo(inSvg!.x * scale, 1);
+    expect(inPng!.y).toBeCloseTo(inSvg!.y * scale, 1);
+    expect(JSON.parse(textItems(result)[0]!.text!)).toEqual(result.structuredContent);
+
+    const renders = (await m.renderers.stats(id)).renders;
+    const again = await call(client, "preview", { project: id, path: EFFECTS_PATH, at: "300ms" });
+    expect(ok(again)).toMatchObject({ cached: true, motion: png.motion });
+    expect((await m.renderers.stats(id)).renders).toBe(renders);
+    // Another instant is another picture, never the first one's from the cache.
+    const later = motionOf(
+      await call(client, "preview", { project: id, path: EFFECTS_PATH, at: "900ms" }),
+    );
+    expect(later.motion!.effects[0]!.marks[0]!.x).toBeGreaterThan(inPng!.x);
+    expect((await m.renderers.stats(id)).renders).toBe(renders + 1);
+  }, 60_000);
+
+  it("lists every kind of effect with its marks, and says when one is outside its window", async () => {
+    const { client, id } = await projectOf({
+      "kinds.meltemi": [
+        'language "0.2"',
+        "",
+        "diagram kinds: flow {",
+        "  direction LR",
+        '  a["A"]',
+        '  b["B"]',
+        '  c["C"]',
+        "  a -> b as ab",
+        "  b -> c as bc",
+        "  a -> c as ac",
+        "",
+        "  animate ab { effect flow; particles 2; duration 1s; direction reverse }",
+        "  animate bc { effect trace; duration 1s }",
+        "  animate ac { effect dash; duration 1s }",
+        "  animate b { effect pulse; duration 2s }",
+        "  animate c { effect pulse; duration 1s; delay 1s; repeat 2 }",
+        "}",
+        "",
+      ].join("\n"),
+    });
+    const frame = async (at: string) => {
+      const result = await call(client, "preview", {
+        project: id,
+        path: "kinds.meltemi",
+        at,
+        format: "svg",
+      });
+      return { svg: textItems(result)[0]!.text!, motion: motionOf(result).motion! };
+    };
+    const { svg, motion } = await frame("400ms");
+    expect(motion).toMatchObject({ atMs: 400, loopMs: 3000, truncated: false });
+    expect(
+      motion.effects.map((e) => [e.target, e.role, e.effect, e.direction, e.phase, e.marks.length]),
+    ).toEqual([
+      ["ab", "relation", "flow", "reverse", 0.4, 2],
+      ["bc", "relation", "trace", "forward", 0.4, 1],
+      ["ac", "relation", "dash", "forward", 0.4, 0],
+      ["b", "element", "pulse", "forward", 0.2, 0],
+      ["c", "element", "pulse", "forward", null, 0],
+    ]);
+    expect(motion.effects[0]!.marks.map((mark) => mark.along)).toEqual([0.4, 0.9]);
+    expect(motion.effects[1]!.marks[0]!.along).toBe(0.5);
+    expect(motion.effects[4]).toMatchObject({ delayMs: 1000, repeat: 2 });
+    // The first particle of the reversed flow is the first circle its group draws.
+    const drawn = particle(svg, "ab")!;
+    expect(drawn.x).toBeCloseTo(motion.effects[0]!.marks[0]!.x, 1);
+    expect(drawn.y).toBeCloseTo(motion.effects[0]!.marks[0]!.y, 1);
+    // Inside its window the delayed pulse has a phase; after its last repeat it has none again.
+    expect((await frame("1.5s")).motion.effects[4]!.phase).toBe(0.5);
+    expect((await frame("3.5s")).motion.effects[4]!.phase).toBeNull();
+  }, 60_000);
+
+  it("says a diagram animates nothing, and keeps motion out of still pictures and story frames", async () => {
+    const stories = folderFiles(join(REPO_ROOT, "corpus", "valid", "stories"));
+    const { client, id } = await projectOf({
+      ...stories,
+      "plain.meltemi": 'language "0.2"\n\ndiagram plain: flow {\n  a -> b\n}\n',
+    });
+    const plain = await call(client, "preview", {
+      project: id,
+      path: "plain.meltemi",
+      at: "1s",
+      format: "svg",
+    });
+    expect(motionOf(plain).motion).toEqual({
+      atMs: 1000,
+      loopMs: null,
+      effects: [],
+      truncated: false,
+    });
+    const still = await call(client, "preview", {
+      project: id,
+      path: "plain.meltemi",
+      format: "svg",
+    });
+    expect(textItems(plain)[0]?.text).toBe(textItems(still)[0]?.text);
+    expect(motionOf(still).motion).toBeUndefined();
+    const story = await call(client, "preview", {
+      project: id,
+      path: "purchase.meltemi",
+      story: "purchase",
+      at: "2.4s",
+      format: "svg",
+    });
+    expect(motionOf(story).motion).toBeUndefined();
+  }, 60_000);
+
+  it("lists the first fifty effects and says there were more", async () => {
+    const nodes = Array.from({ length: 61 }, (_, i) => `  n${i}["N${i}"]`);
+    const relations = Array.from({ length: 60 }, (_, i) => `  n${i} -> n${i + 1} as r${i}`);
+    const animations = Array.from({ length: 60 }, (_, i) => `  animate r${i} { effect flow }`);
+    const { client, id } = await projectOf({
+      "many.meltemi": [
+        'language "0.2"',
+        "",
+        "diagram many: flow {",
+        ...nodes,
+        ...relations,
+        ...animations,
+        "}",
+        "",
+      ].join("\n"),
+    });
+    const { motion } = motionOf(
+      await call(client, "preview", {
+        project: id,
+        path: "many.meltemi",
+        at: "0ms",
+        format: "svg",
+      }),
+    );
+    expect(motion!.effects).toHaveLength(50);
+    expect(motion!.effects.map((effect) => effect.target)).toEqual(
+      Array.from({ length: 50 }, (_, i) => `r${i}`),
+    );
+    expect(motion!.truncated).toBe(true);
+  }, 60_000);
+
+  it("refuses a time that is not one, and draws nothing", async () => {
+    const { m, client, id } = await projectOf({ [EFFECTS_PATH]: EFFECTS_SOURCE });
+    const error = refused(
+      await call(client, "preview", { project: id, path: EFFECTS_PATH, at: "soon" }),
+    );
+    expect(error["code"]).toBe("request.invalid");
+    expect(String(error["message"])).toContain("`at`");
+    expect((await m.renderers.stats(id)).renders).toBe(0);
+  });
 });
 
 describe("the limits of previews", () => {

@@ -151,6 +151,11 @@ properties in different statements are fine.
 
 ## Animate
 
+`animate` is how an arrow or a diagram is animated: an effect that belongs to the diagram and
+loops wherever it is shown. "Animate this arrow" or "animate the diagram" asks for these
+statements on the diagram that exists, and for no story; a walkthrough step by step is a
+[story](#stories). An anonymous relation takes an id first: `a -> b as r1`.
+
 ```text
 animate r1, r2 { effect flow; particles 2 }          // particles along named relations
 animate save { effect dash; direction reverse }      // a dash moving along a line or outline
@@ -169,8 +174,17 @@ pens, boxes with an outline and notes or texts that style an outline (`fill`, `s
 `pnpm mdg export sheet.meltemi --motion animated` writes an animated SVG (CSS keyframes, static
 fallback), `--at 1.5s` the frame at that time. Use the static export for documents and slides.
 
+Check an effect on the diagram itself, at two instants of its cycle: `--at 300ms` and `--at 900ms`
+of a 1200 ms flow draw its particle a quarter and three quarters of the way along the arrow.
+Through MCP, `preview` with `at` and no `story` draws the same frames, and its report's `motion`
+gives each effect's `phase` and where its marks are, so two calls prove the mark advanced
+([mcp.md](mcp.md#effects-in-motion)). An effect whose target is not drawn (another scenario, a
+hidden layer) is in no frame.
+
 ## Stories
 
+A story answers "show me the flow step by step"; a request to animate an arrow or the diagram is
+[`animate`](#animate), not a story.
 `story <id> for <diagram> { scene ... }` walks through a diagram: `reveal`, `hide`, `highlight`,
 `focus`, `camera`, `trace`, `draw` (pens, lines and relations drawn again) and `hold` on one
 clock, `parallel` blocks, and `view` with a `transition` to change diagram.
