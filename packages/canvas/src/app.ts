@@ -10561,9 +10561,9 @@ export class CanvasApp {
     // The old text stays hidden until the drawing of the new one arrives, which says the selection
     // again with it.
     const changed = value !== current && this.act({ kind: "setLabel", id, label: value });
-    if (changed) this.relabelled = id;
     this.closeInline(changed);
     this.stage.focus({ preventScroll: true });
+    if (changed) this.relabelled = id;
   }
 
   private cancelInline(): void {
