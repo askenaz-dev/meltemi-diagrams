@@ -61,7 +61,19 @@
 - `openspec validate effect-frame-previews --strict` passes.
 - Hosted staging and production were not run: the 36-step gate is implemented, not exercised.
 
-## Workflow follow-up
+## Integration recorded (2026-11-23)
 
-- Sync the deltas and archive through the OpenSpec CLI once the change is merged.
-- Live hosted acceptance and release/deployment remain within `delivery`.
+- PR #36 at `8689ab6`, CI run `45288156232`: 7/7 checks green. Node 22 on windows-latest failed
+  the first attempt with `spawnSync powershell.exe ETIMEDOUT` (its 15 s limit) in
+  `packages/acceptance/test/oauth-fixtures-private-file.test.ts`, which this change does not touch
+  and which passes 3/3 locally; that job alone was re-run on the same commit, with no change of
+  code or deadline, and passed (attempt 2, 12 min 23 s). Node 24 on windows-latest passed the
+  first time.
+- Squash-merged as `3998e2d` at 23:59:26Z with `--match-head-commit`; its tree (`dab4d0a`) equals
+  the tested commit's, on base `56b2823`.
+- Archived through the OpenSpec CLI after the merge, syncing the deltas into the four specs. At
+  archive time the modified requirement "A preview of the current revision" was shortened from 663
+  to 489 characters, its detail moved to the scenario "Every host", so strict validation of
+  `mcp-previews` stays clean; the other strict warnings of `openspec validate --all` predate it.
+- Live hosted acceptance (the 36-step gate) and the release/deployment checks remain within
+  `delivery`.
