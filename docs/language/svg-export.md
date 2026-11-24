@@ -265,6 +265,10 @@ split dense diagrams into views.
   scene plus the theme `margin` (20 px in `technical.*`), rounded up to whole pixels, then sized by
   the preset or `canvas`.
 - `<title>` and `<desc>` carry the diagram `title` and `description` when present.
+- A titled picture without links carries `role="img"` on its root, so assistive technology reads
+  it as one image named by its `<title>` and described by its `<desc>`. A picture with a link keeps
+  no role, so its links stay reachable; the canvas and the player, whose parts are selectable,
+  draw without it.
 - A background rectangle in the theme background colour, another colour, or none with
   `--background transparent` ([export.md](export.md)).
 - Elements with a `url` draw inside an `<a href>` in their group; a picture `link` wraps everything

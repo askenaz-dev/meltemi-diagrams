@@ -289,6 +289,7 @@ instrucción del elemento que aparece después:
 | `layout.connector-crossing`    | un conector atraviesa una caja de su capa que no une y que no contiene ninguno de sus extremos; una caja con forma, según su contorno                                                  |
 | `layout.label-cut`             | un texto sobresale del área de texto de su forma, del fondo de su etiqueta o del dibujo                                                                                                |
 | `layout.label-overlap`         | un texto se superpone a otro texto, a la caja de un elemento al que no pertenece o a otro conector                                                                                     |
+| `layout.low-contrast`          | el color de un texto frente al relleno pintado detrás tiene un contraste menor de 4,5 a 1 (3 a 1 para texto grande), una vez por cada par de colores                                   |
 
 `layout.connector-overlap` también mantiene el flujo principal (`->`) separado de las dependencias
 secundarias (`-->`); ELK ya traza más rectas las relaciones principales. Las notas y las marcas son
@@ -320,6 +321,13 @@ conectores dibujados, en todos los perfiles. Un texto que ya nombra otro hallazg
 desborda, cajas superpuestas, una etiqueta sobre un conector, un conector que atraviesa una caja) no
 se vuelve a informar. El corpus de aceptación mantiene todos los perfiles en cero
 (`docs/quality.md`).
+
+La comprobación de contraste (`low-contrast`) también mira el dibujo: cada texto frente al relleno
+pintado detrás de su centro (su caja, la píldora de su etiqueta, el grupo que lo rodea o el fondo),
+con la razón de WCAG 2. Un relleno translúcido, un degradado, un patrón o una imagen dejan el texto
+sin comprobar. Las clases C4 integradas toman el `ink` del tema donde su propio color de texto no
+se lee sobre su relleno; un color que escribas se conserva y se informa. Los temas integrados, el
+corpus, las plantillas, la galería y los ejemplos se mantienen en cero.
 
 `meltemi-diagrams validate` y `export` imprimen los hallazgos, tal como los muestra el editor.
 

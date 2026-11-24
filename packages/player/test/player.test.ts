@@ -178,7 +178,10 @@ describe("player documents", () => {
         const drawn = storyFrame(story.timeline, (key) => doc.views[key], t, {
           accent: doc.accent,
         })!;
-        expect(frameSvg(doc, t, { story: index })).toBe(renderSvg(drawn, { fonts: "system" }));
+        // The player makes the parts of a frame selectable: no image role over them.
+        const svg = frameSvg(doc, t, { story: index });
+        expect(svg).toBe(renderSvg(drawn, { fonts: "system", role: "none" }));
+        expect(svg).not.toContain('role="img"');
       }
     }
     expect(frameSvg(doc, 700)).toBe(frameSvg(doc, 700, { story: 0 }));

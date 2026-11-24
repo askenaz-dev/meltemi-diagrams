@@ -575,7 +575,9 @@ export class CanvasSession {
     const scenario = this.scenarioOf(view);
     const effects = view.diagram.animations.filter((a) => a.effect !== null).length;
     const playing = this.playing && effects > 0;
+    // The canvas makes every part of the drawing selectable: no image role over them.
     const rendered = renderDiagram(analysis, view.id, {
+      role: "none",
       ...(scenario ? { scenario } : {}),
       ...(playing ? { motion: "animated" as const } : {}),
     });
@@ -3560,7 +3562,10 @@ export class CanvasSession {
     const layout = layoutDiagram(compilation, copy, analysis.layoutOptions);
     // The stage's options: the effects run while it plays them.
     const playing = this.playing && copy.animations.some((a) => a.effect !== null);
-    const drawn = renderLayout(copy, layout, analysis.fonts, playing ? { motion: "animated" } : {});
+    const drawn = renderLayout(copy, layout, analysis.fonts, {
+      role: "none",
+      ...(playing ? { motion: "animated" as const } : {}),
+    });
     if (!drawn) return none;
     const { width, height, offset } = drawn.geometry;
     // The turned element's box in the drawing, which the canvas turns it and its outline about.

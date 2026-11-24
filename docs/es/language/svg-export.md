@@ -288,6 +288,10 @@ densos en vistas.
   escena más el `margin` del tema (20 px en `technical.*`), redondeado hacia arriba a píxeles
   enteros, y luego dimensionado por el preajuste o por `canvas`.
 - `<title>` y `<desc>` llevan el `title` y la `description` del diagrama cuando existen.
+- Un dibujo con título y sin enlaces lleva `role="img"` en su raíz, para que las tecnologías de
+  asistencia lo lean como una sola imagen nombrada por su `<title>` y descrita por su `<desc>`. Un
+  dibujo con un enlace no lleva rol, para que sus enlaces sigan siendo alcanzables; el lienzo y el
+  reproductor, cuyas partes se seleccionan, dibujan sin él.
 - Un rectángulo de fondo del color de fondo del tema, de otro color, o ninguno con
   `--background transparent` ([export.md](export.md)).
 - Los elementos con `url` se dibujan dentro de un `<a href>` en su grupo; un `link` para todo el

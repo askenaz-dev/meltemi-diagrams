@@ -131,7 +131,10 @@ describe("motion", () => {
         context,
         request({ kind: "diagram", diagram, owner: compiled }, t),
       );
-      expect(frameSvg(doc, t), `at ${t} ms`).toBe((exported as { text: string }).text);
+      // The same drawing; the export is one named image, the player's parts are selectable.
+      const text = (exported as { text: string }).text;
+      expect(text).toContain('<svg xmlns="http://www.w3.org/2000/svg" role="img"');
+      expect(frameSvg(doc, t), `at ${t} ms`).toBe(text.replace(' role="img"', ""));
     }
   });
 });

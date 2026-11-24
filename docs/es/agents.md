@@ -150,6 +150,8 @@ relevante para que pueda comprobar cómo funciona tu sistema.
 | «Planifica el lanzamiento de `docs/plan.md` como un diagrama de Gantt»                                      | Tareas y dependencias que puedes ajustar en el lienzo                       |
 | «Anima las flechas del diagrama de inicio de sesión»                                                        | Efectos en el diagrama que ya tienes, en movimiento en su vista normal      |
 | «Muéstrame el flujo de inicio de sesión paso a paso»                                                        | Una historia con escenas que puedes reproducir, junto al diagrama           |
+| «Dibuja los treinta y cuatro servicios de nuestra plataforma para que alguien nuevo pueda seguirla»         | Una vista general de los grupos y una hoja de detalle por grupo, enlazadas  |
+| «Haz el diagrama del pago con los colores de https://example.com»                                           | Un tema de tu marca, y qué colores y fuentes tomó o reemplazó               |
 
 Pídele validar el resultado, revisar la vista previa y decirte dónde abrirlo. Con la CLI, eso
 significa un archivo fuente y un SVG, con `mdg preview` cuando quieras verlo en un navegador.
@@ -159,6 +161,17 @@ Las dos últimas filas piden cosas distintas. Animar una flecha o un diagrama a�
 [efectos](language/motion.md) (`animate`) al propio diagrama: se repiten allí donde se muestre y
 no necesitan una historia. Un recorrido es una [historia](language/stories.md), un bloque aparte
 con escenas y tiempos. El skill indica al agente que escriba solo lo que pediste.
+
+El skill también enseña al agente a diseñar la hoja, no solo a escribir código válido. Elige el
+perfil según lo que quieres mostrar y dice su plan en una línea antes de escribir; deja el acento en
+uno o dos elementos, agrupa una hoja de más de doce cajas y divide una de más de treinta, da a los
+colores una leyenda y responde con una tabla cuando una tabla lo dice mejor. Antes de entregar,
+mira una imagen del dibujo (un PNG exportado a una carpeta temporal, o `preview` por MCP), nombra
+los defectos que encontró y corrigió, y aplica una prueba de quitar; sin navegador ni MCP dice que
+validó la hoja sin mirarla. Si le pides tu marca, escribe un bloque `theme` a partir de tu sitio
+web o tus colores con las fuentes incluidas más cercanas, lo usa en la hoja que pediste e informa
+qué tomó y qué aproximó. Los textos que no se leen sobre su relleno se informan como
+`layout.low-contrast`, con un color que sí se lee.
 
 ## A través del endpoint MCP
 

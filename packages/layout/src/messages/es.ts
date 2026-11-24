@@ -163,8 +163,18 @@ export const es: typeof en = {
       `El texto de ${code(element)} no cabe en su tarjeta de ${n(width)} × ${n(height)} px ni a ${n(fontSize)} px, y se recorta: necesita ${n(needsWidth)} × ${n(needsHeight)} px.`,
     ticksCrowded: (ticks, every) =>
       `Las etiquetas de \`ticks ${ticks}\` se superpondrían; se etiqueta una de cada ${n(every)} marcas.`,
+    lowContrast: (text, owner, color, fill, ratio, needed, others) =>
+      `El texto "${text}" ${of(owner)} es ${color} sobre ${fill}: un contraste de ${ratio.toFixed(2).replace(".", ",")} a 1, por debajo del ${n(needed)} a 1 que necesita.${
+        others === 0
+          ? ""
+          : others === 1
+            ? " Otro texto del diagrama tiene los mismos colores."
+            : ` Otros ${n(others)} textos del diagrama tienen los mismos colores.`
+      }`,
   },
   hints: {
+    lowContrast: (fill, color) =>
+      `Dale al texto un color que se lea sobre ${fill}, como \`color "${color}"\`.`,
     ticksCrowded:
       "Escribe un intervalo mayor en `ticks`, ensancha el gráfico con `dayWidth`, o quita `ticks` para que el eje elija.",
     labelCutByPicture:

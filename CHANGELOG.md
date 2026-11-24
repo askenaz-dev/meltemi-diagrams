@@ -74,6 +74,21 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
   marks are (a flow's particles, a trace's head), so two frames prove an arrow is animated with
   the tools alone. Without `at` the picture is still, as before. An effect-frame journey extends
   the hosted acceptance gate to 36 steps.
+- The agent skill teaches design: a table from what the person wants to show to the profile, a
+  plan said in one line, and a new reference, `reference/design.md`, on focus, density, colour,
+  text, arrangement and a removal test. Its review step has the agent look at a picture (a PNG in a
+  temporary folder, or MCP's `preview`), name the defects it found and fixed, and say so when it
+  could not look. `reference/themes.md` makes a theme from a brand's website or colours.
+
+### Drawing and export
+
+- A new warning, `layout.low-contrast`, reports a text that cannot be read on the fill painted
+  behind it (WCAG 2: 4.5 to 1, 3 to 1 for large text), in every profile, once for each pair of
+  colours, with a colour that passes as the hint.
+- C4 persons in the light themes draw their texts in the theme's `ink`: the built-in class's white
+  on cyan measured 3.68 to 1. A colour written in a style is kept, and reported.
+- An exported SVG with a title and no link carries `role="img"`, so assistive technology names it
+  by its `<title>` and describes it by its `<desc>`. The canvas and the player draw without it.
 
 ### Local workspace
 

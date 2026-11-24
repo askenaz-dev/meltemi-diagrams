@@ -142,6 +142,8 @@ existing diagram rather than asking it to guess how your system works.
 | "Plan the launch from `docs/plan.md` as a Gantt chart"                                              | Tasks and dependencies you can adjust on the canvas                    |
 | "Animate the arrows of the sign-in diagram"                                                         | Effects on the diagram you have, moving in its ordinary view           |
 | "Show me the sign-in flow step by step"                                                             | A story with scenes you can play, beside the diagram it explains       |
+| "Draw our platform's thirty-four services so a new engineer can follow it"                          | An overview of the groups and a detail sheet for each, linked          |
+| "Make the checkout diagram in the colours of https://example.com"                                   | A theme of your brand, and which colours and fonts it took or replaced |
 
 Ask it to validate the result, inspect the preview and tell you where to open it. With the CLI,
 that means a source file and SVG, with `mdg preview` when you want a browser preview. With a
@@ -151,6 +153,17 @@ The last two rows ask for different things. Animating an arrow or a diagram adds
 [effects](language/motion.md) (`animate`) to the diagram itself: they loop wherever it is shown
 and need no story. A walkthrough is a [story](language/stories.md), a separate block with scenes
 and times. The skill tells the agent to write only the one you asked for.
+
+The skill also teaches the agent to design the sheet, not only to write valid source. It chooses
+the profile from what you want to show and says its plan in one line before writing; it keeps the
+accent on one or two elements, groups a sheet past twelve boxes and splits one past thirty, gives
+colours a legend, and answers with a table when a table says it better. Before delivering, it looks
+at a picture of the drawing (a PNG exported to a temporary folder, or MCP's `preview`), names the
+defects it found and fixed, and runs a removal test; without a browser or MCP it says that it
+validated the sheet without looking at it. Asked for your brand, it writes a `theme` block from
+your website or your colours with the nearest bundled fonts, uses it in the sheet you asked for,
+and reports what it took and what it approximated. Texts that cannot be read on their fill are
+reported as `layout.low-contrast`, with a colour that can.
 
 ## Through the MCP endpoint
 

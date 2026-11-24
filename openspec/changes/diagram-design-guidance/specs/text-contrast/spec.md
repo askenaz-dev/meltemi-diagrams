@@ -94,8 +94,30 @@ any profile, and the corpus of valid sheets, the templates, the gallery and the 
 give none. A test SHALL fail naming the sheet, the text and the ratio when one appears.
 
 #### Scenario: Every built-in theme
-- **WHEN** the gallery's sheet of each profile is laid out with each of the eight built-in themes
+- **WHEN** each sheet of the gallery, the acceptance corpus and the templates that writes no colour of its own is laid out with each of the eight built-in themes
 - **THEN** no `layout.low-contrast` is reported
+
+#### Scenario: A sheet with its own colours in another theme
+- **WHEN** the gallery's roadmap, whose cards have light fills written in the sheet, is laid out in `technical.dark`
+- **THEN** `layout.low-contrast` is reported for its cards, since the dark theme's ink is light
+
+### Requirement: Readable text in the built-in C4 classes
+An element of a C4 view whose fill and text colour both come from its built-in class SHALL be
+drawn with a text colour that can be read on that fill: the class's own when it passes, else the
+theme's `ink`, else black or white. A fill or a colour written by the person SHALL be kept as
+written.
+
+#### Scenario: A person in a light theme
+- **WHEN** a C4 container view with a person is laid out in `technical.light`, where the person's class gives white text on `#0891B2`
+- **THEN** the person's texts are drawn in `#0B1830` and no `layout.low-contrast` is reported
+
+#### Scenario: A person in a dark theme
+- **WHEN** the same view is laid out in `technical.dark`
+- **THEN** the person's texts keep the class's `tagText`, `#07111F`
+
+#### Scenario: A colour written by the person
+- **WHEN** the view writes `style customer { color "#FFFFFF" }` and is laid out in `technical.light`
+- **THEN** the person's texts are white and `layout.low-contrast` is reported on `customer`
 
 #### Scenario: A template that loses contrast
 - **WHEN** a template's style gives a label a colour with a ratio of 3.9 against its fill

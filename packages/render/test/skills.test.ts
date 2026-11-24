@@ -12,8 +12,10 @@ import {
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { BUNDLED_FAMILIES } from "@meltemi/diagrams-fonts";
 import { layoutDiagram } from "@meltemi/diagrams-layout";
-import { compile } from "@meltemi/diagrams-model";
+import { createElkEngine } from "@meltemi/diagrams-layout-elk";
+import { DIAGRAM_TYPES, THEME_TOKENS, compile } from "@meltemi/diagrams-model";
 import { REPO_ROOT } from "../../../test-support/corpus.js";
 import { renderSvg } from "../src/index.js";
 
@@ -150,6 +152,138 @@ describe("agent skills", () => {
         expect(mcp, field).toContain(field);
       }
       expect(mcp).toContain("A story is for a walkthrough step by step, not for animating arrows");
+    });
+  });
+
+  // `agent-skill`, "Choosing the profile from the request", "The design reference", "Looking at the
+  // drawing before delivering" and "A theme from a brand".
+  describe("meltemi-diagrams teaches design", () => {
+    const root = join(skillsRoot, "meltemi-diagrams");
+    const raw = (file: string) => readFileSync(join(root, file), "utf8");
+    const flat = (file: string) => raw(file).replace(/\s+/g, " ");
+    /** The fenced `text` blocks of a Markdown text. */
+    const blocks = (markdown: string) =>
+      [...markdown.matchAll(/```text\n([\s\S]*?)```/g)].map((m) => m[1]!);
+    /** The codes of the diagnostics of a sheet, compiled and laid out with ELK. */
+    const engine = createElkEngine();
+    const diagnosticsOf = (source: string) => {
+      const compilation = compile(`language "0.2"\n\n${source}`);
+      const codes = compilation.diagnostics.map((d) => d.code);
+      for (const diagram of compilation.document.diagrams) {
+        const layout = layoutDiagram(compilation, diagram, { engine });
+        codes.push(...layout.diagnostics.map((d) => d.code));
+      }
+      return codes;
+    };
+
+    it("chooses the profile from a table with a row for every profile, before the template", () => {
+      const workflow = raw("SKILL.md").split("## Template")[0]!;
+      const rows = workflow
+        .split("\n")
+        .filter((line) => /^\s*\| [a-z]/.test(line))
+        .map((line) => line.split("|").map((cell) => cell.trim()));
+      for (const profile of DIAGRAM_TYPES) {
+        const row = rows.find((cells) => cells[2]!.includes(`\`${profile}\``));
+        expect(row, `a row of the table for the ${profile} profile`).toBeDefined();
+        const links = [...row![3]!.matchAll(/\]\(([^)#]+)\)/g)].map((m) => m[1]!);
+        expect(links.length, `${profile}: a reference and an example`).toBe(2);
+        for (const path of links) {
+          expect(existsSync(join(root, path)), `${profile}: ${path}`).toBe(true);
+        }
+      }
+      const text = workflow.replace(/\s+/g, " ");
+      expect(text).toContain("Do not draw what a table or a sentence says as well");
+      expect(text).toContain("say the plan in one line");
+      expect(text).toContain("continue without waiting for an answer");
+    });
+
+    it("links the design reference, which has its sections in order", () => {
+      expect(raw("SKILL.md")).toContain("[reference/design.md](reference/design.md)");
+      const headings = raw("reference/design.md")
+        .split("\n")
+        .filter((line) => line.startsWith("## "));
+      expect(headings).toEqual([
+        "## Focus",
+        "## Density",
+        "## Colour",
+        "## Text",
+        "## Arrangement",
+        "## What to avoid",
+        "## Before you deliver",
+      ]);
+      const design = flat("reference/design.md");
+      for (const phrase of [
+        "one or two elements that carry the message",
+        "Up to twelve boxes read at a glance",
+        "Beyond thirty, split it",
+        "need a legend",
+        "Dashed means one thing in a sheet",
+        "Run the removal test",
+      ]) {
+        expect(design, phrase).toContain(phrase);
+      }
+    });
+
+    it("gives examples in the design reference that draw without a diagnostic", () => {
+      const examples = blocks(raw("reference/design.md"));
+      expect(examples.length).toBeGreaterThanOrEqual(3);
+      for (const example of examples) {
+        expect(diagnosticsOf(example), example.split("\n")[0]).toEqual([]);
+      }
+    });
+
+    it("has the agent look at a picture and name what it found before delivering", () => {
+      const review = flat("SKILL.md").split("5. Look at the drawing")[1]!.split(" 6. ")[0]!;
+      for (const phrase of [
+        "never at the text of the SVG",
+        "--format png --scale 1",
+        "call `preview`",
+        "cut or overlapping text",
+        "a label away from its arrow",
+        "an arrow through a box it does not join",
+        "uneven gaps between peers",
+        "a crowded part beside an empty one",
+        "text too small to read",
+        "in your report take them one by one",
+        "name each defect you found and how you fixed it, or say why it does not apply",
+        "stop after two rounds",
+        "say that the sheet was validated and not looked at",
+        "`pnpm preview` serves the repository",
+      ]) {
+        expect(review, phrase).toContain(phrase);
+      }
+      const mcp = flat("reference/mcp.md");
+      expect(mcp).toContain("Look at the PNG, never at the SVG's text");
+      expect(mcp).toContain("validated and not looked at");
+    });
+
+    it("makes a theme from a brand with tokens and bundled families of the language", () => {
+      const section = raw("reference/themes.md")
+        .split("## A theme from a brand")[1]
+        ?.split("\n## ")[0];
+      expect(section, "the section").toBeDefined();
+      const rows = section!
+        .split("\n")
+        .filter((line) => /^\s*\| /.test(line) && !/^\s*\| -/.test(line))
+        .map((line) => line.split("|").map((cell) => cell.trim()));
+      const tokenRows = rows.filter((cells) => cells[2]!.startsWith("`") || cells[2] === "Token");
+      const tokens = tokenRows.flatMap((cells) =>
+        [...cells[2]!.matchAll(/`([A-Za-z]+)`/g)].map((m) => m[1]!),
+      );
+      expect(tokens.length).toBeGreaterThan(8);
+      for (const token of tokens) expect(Object.keys(THEME_TOKENS), token).toContain(token);
+      const bundled = BUNDLED_FAMILIES.map((f) => f.family);
+      const families = rows
+        .filter((cells) => !tokenRows.includes(cells) && cells[2] !== "Bundled family")
+        .flatMap((cells) => cells[2]!.split(/, or |, /).map((name) => name.trim()));
+      expect(families.length).toBeGreaterThan(8);
+      for (const family of families) expect(bundled, family).toContain(family);
+      const [theme] = blocks(section!);
+      const sheet = `${theme}\ndiagram d: flow {\n  theme "brand"\n  a["API"]\n  tag t "Tag"\n}\n`;
+      expect(diagnosticsOf(sheet)).toEqual([]);
+      const text = section!.replace(/\s+/g, " ");
+      expect(text).toContain("keep the brand's colour as the fill and change the text");
+      expect(text).toContain("only when the person asks");
     });
   });
 

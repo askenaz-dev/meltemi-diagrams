@@ -91,6 +91,71 @@ is unchanged and the same file always renders the same bytes. `sketch` is a them
 `style a { sketch rough }` is `prop.unknown`. Name relations whose wobble must not move when
 statements are reordered (anonymous keys change with the order).
 
+## A theme from a brand
+
+When the person asks for a sheet "in our colours" or "like our website", write a theme block from
+the brand and use it in that sheet.
+
+1. Read the brand with your own tools: a website's pages (its CSS custom properties, the colours
+   of the page, its text, its cards, its buttons and links, and its font families), a tokens file
+   (design tokens JSON, CSS variables, a Tailwind configuration), or the colours the person gives.
+   Ask for nothing you can read; a page you cannot reach is a blocker to report.
+2. Map each value to a token:
+
+   | From the brand                     | Token                                   |
+   | ---------------------------------- | --------------------------------------- |
+   | page background                    | `background`                            |
+   | card or panel background           | `surface`, `band`                       |
+   | body text                          | `ink`                                   |
+   | secondary text, captions           | `muted`, `connector`                    |
+   | main brand colour (buttons, links) | `accent`, `tag`, `bandLine`             |
+   | text on the main brand colour      | `tagText`                               |
+   | body and heading font              | `font`, with the nearest bundled family |
+   | code font                          | `mono`, with the nearest bundled family |
+
+3. Extend `editorial.light` when the background is light and `editorial.dark` when it is dark;
+   extend `technical.*` instead when the person wants the Meltemi frame.
+4. Name a bundled family, never the brand's own when it is not bundled:
+
+   | The brand's font is like                      | Bundled family                  |
+   | --------------------------------------------- | ------------------------------- |
+   | Helvetica, Arial, SF Pro, a neutral grotesque | Inter, or Roboto                |
+   | Segoe, Frutiger, Source Sans, a humanist sans | Open Sans, or Lato              |
+   | Futura, Avenir, Circular, a geometric sans    | Montserrat, or Poppins          |
+   | a rounded sans                                | Nunito                          |
+   | IBM Plex                                      | IBM Plex Sans                   |
+   | Georgia, Times, a text serif                  | Merriweather, or Lora           |
+   | a display serif                               | Playfair Display                |
+   | a monospace                                   | Source Code Pro, or Roboto Mono |
+   | handwriting                                   | Caveat, or Patrick Hand         |
+
+5. Put the block where the project keeps its themes (an imported file such as
+   `themes/brand.meltemi`), or in the sheet's own file when it is the only sheet; write
+   `theme "brand"` in the sheet you were asked for. Change `project.json`'s `theme`, and so every
+   sheet, only when the person asks.
+6. Validate. For each `layout.low-contrast`, keep the brand's colour as the fill and change the
+   text: `tagText`, `ink` or the `color` the hint gives.
+7. Report each value with where it came from, and each one you approximated: "`accent` #6A4FD0
+   from the buttons of the home page; Graphik drawn with Inter".
+
+```text
+theme brand {
+  extends "editorial.light"
+  background "#FFFFFF"
+  surface "#F8F7F4"
+  band "#F8F7F4"
+  ink "#1A1A2E"
+  muted "#5C5F73"
+  connector "#5C5F73"
+  accent "#6A4FD0"
+  tag "#6A4FD0"
+  tagText "#FFFFFF"
+  bandLine "#6A4FD0"
+  font "Inter"
+  mono "Source Code Pro"
+}
+```
+
 ## Classes, rules and patterns
 
 ```text

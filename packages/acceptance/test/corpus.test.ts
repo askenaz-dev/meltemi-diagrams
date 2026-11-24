@@ -1,6 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import type { GroupItem } from "@meltemi/diagrams-layout";
-import { BOX_SHAPES } from "@meltemi/diagrams-model";
+import { layoutDiagram, type GroupItem } from "@meltemi/diagrams-layout";
+import { BOX_SHAPES, BUILT_IN_THEMES } from "@meltemi/diagrams-model";
 import { renderSvg } from "@meltemi/diagrams-render";
 import { createNodeFontLibrary } from "@meltemi/diagrams-fonts/node";
 import { PROFILES, acceptanceSheets, labelTargetFiles, projectSessions } from "../src/corpus.js";
@@ -154,4 +155,49 @@ describe("label target", () => {
     expect(problems).toEqual([]);
     expect(views).toBeGreaterThan(60);
   });
+});
+
+describe("contrast target", () => {
+  it("is zero low-contrast texts over every corpus, template, example and the gallery", () => {
+    const problems: string[] = [];
+    for (const file of labelTargetFiles()) {
+      for (const d of sessions.analyze(file).diagnostics) {
+        if (d.code === "layout.low-contrast") {
+          problems.push(`${file}:${d.range.start.line}: ${d.message}`);
+        }
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it("is zero low-contrast texts in every built-in theme for the sheets drawn with tokens alone", () => {
+    const problems: string[] = [];
+    let drawn = 0;
+    // A sheet that writes its own colours is drawn for the theme it names; the others follow any.
+    const files = labelTargetFiles().filter(
+      (f) =>
+        /[\\/](gallery|acceptance|templates)[\\/]/.test(f) &&
+        !/"#[0-9a-fA-F]{3,8}"|rgb\(/.test(readFileSync(f, "utf8")),
+    );
+    for (const file of files) {
+      const analysis = sessions.analyze(file);
+      for (const view of analysis.diagrams) {
+        if (!view.layout?.scene) continue;
+        for (const theme of BUILT_IN_THEMES) {
+          const result = layoutDiagram(analysis.compilation, view.diagram, {
+            ...analysis.layoutOptions,
+            theme,
+          });
+          drawn++;
+          for (const d of result.diagnostics) {
+            if (d.code === "layout.low-contrast") {
+              problems.push(`${file} (${theme}):${d.range.start.line}: ${d.message}`);
+            }
+          }
+        }
+      }
+    }
+    expect(problems).toEqual([]);
+    expect(drawn).toBeGreaterThan(200);
+  }, 300_000);
 });

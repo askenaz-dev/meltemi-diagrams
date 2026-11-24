@@ -25,14 +25,22 @@ as `write_files` and `preview` act on the person's projects), follow
 
 1. Collect the pieces from the request or the source material: elements (boxes, data stores,
    decisions), bands (groups), arrows with their labels, annotations (notes, tags), what is
-   proposed versus in use, and the numbered steps of the main path. Choose the profile: `flow` for
-   an architecture or process that ELK can arrange, `free` for a slide or a hand-composed picture
-   with headings, icons and images, or a whiteboard with pen strokes, stickies and kanban columns
-   under `preset board` ([reference/free.md](reference/free.md)), `sequence` for an
-   interaction over time between participants ([reference/sequence.md](reference/sequence.md)),
-   a `model` with `c4` views for a C4 architecture (context, containers, components) shared by
-   several pictures ([reference/c4.md](reference/c4.md)), `gantt` for a plan or a roadmap of tasks
-   scheduled over dates ([reference/gantt.md](reference/gantt.md)).
+   proposed versus in use, and the numbered steps of the main path. Choose the profile by what the
+   person wants to show:
+
+   | The person wants to show                                                       | Profile                   | Read                                                                                  |
+   | ------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------------------------------------------------- |
+   | parts of a system and how requests or data move between them; a process        | `flow`                    | [reference/layout.md](reference/layout.md), [platform](examples/platform.meltemi)     |
+   | messages over time between participants: calls, replies, a protocol, its cases | `sequence`                | [reference/sequence.md](reference/sequence.md), [sequence](examples/sequence.meltemi) |
+   | one architecture at several levels: context, containers, components            | a `model` with `c4` views | [reference/c4.md](reference/c4.md), [architecture](examples/architecture.meltemi)     |
+   | tasks and milestones over dates: a plan, a roadmap                             | `gantt`                   | [reference/gantt.md](reference/gantt.md), [gantt](examples/gantt.meltemi)             |
+   | a slide or a picture composed by hand; a whiteboard or a kanban board          | `free`                    | [reference/free.md](reference/free.md), [slide](examples/slide.meltemi)               |
+
+   Do not draw what a table or a sentence says as well: items with attributes and no relation
+   between them are a table, a single relation is a sentence; answer with it and offer the diagram
+   of how the items relate. Before writing, say the plan in one line (profile, layout mode, theme,
+   and what you leave out to keep it readable) and continue without waiting for an answer. How
+   much a sheet holds and where colour goes are in [reference/design.md](reference/design.md).
    Motion has two forms; choose by what the person asked
    ([Motion: effects or a story](#motion-effects-or-a-story)). "Animate this arrow" or "animate
    the diagram" is `animate` on the diagram that exists, and no story. "Show me the flow step by
@@ -45,6 +53,7 @@ as `write_files` and `preview` act on the person's projects), follow
    A flow sheet becomes a slide with `pnpm mdg convert sheet.meltemi --to free`. Sequence and
    gantt diagrams have no layout modes or positions: skip step 2's layout choice and write the
    events, or the tasks with their dates, in order.
+
 2. Write the file from the template below. Pick the layout mode:
    - `layout auto` (the default) for a new sheet: write no positions; ELK arranges the boxes in the
      `direction` (`LR`, `TB`, ...). Add constraints such as `row a, b` when you need alignment.
@@ -71,12 +80,27 @@ as `write_files` and `preview` act on the person's projects), follow
    `--background transparent`) and `--format pdf` use the installed Edge or Chrome; an `export`
    block in the file makes a delivery repeatable with `--profile <id>` or `--profiles`
    ([reference/language.md](reference/language.md)).
-5. Review the SVG. When the person wants to look at it in a browser, start a server:
+5. Look at the drawing, never at the text of the SVG. Export a picture into a temporary folder,
+   outside the project, with `--format png --scale 1 --out <temporary folder>/look.png`, or
+   through MCP call `preview`. Check the picture for these six, and in your report take them one
+   by one: name each defect you found and how you fixed it, or say why it does not apply.
+   - cut or overlapping text
+   - a label away from its arrow
+   - an arrow through a box it does not join
+   - uneven gaps between peers
+   - a crowded part beside an empty one
+   - text too small to read
+
+   Fix the structure first (the direction, the groups, shorter labels, merged arrows), then
+   coordinates; stop after two rounds. With no browser and no MCP, say that the sheet was
+   validated and not looked at. Run the removal test of
+   [reference/design.md](reference/design.md#before-you-deliver) before you deliver. The export
+   prints composition warnings (`layout.overlap`, `layout.label-under-connector`,
+   `layout.container-margin`, `layout.connector-overlap`, `layout.low-contrast`); fix every one.
+   When the person wants to look at it in a browser, start a server:
    `pnpm preview` serves the repository at `http://localhost:4173` until stopped with Ctrl+C, and
-   tell them how to stop it. Check: no overlapping boxes, text fits its box, arrows leave and
-   enter the intended sides, labels are readable, a legend exists when colours carry meaning. The
-   export prints composition warnings (`layout.overlap`, `layout.label-under-connector`,
-   `layout.container-margin`, `layout.connector-overlap`); fix every one.
+   tell them how to stop it.
+
 6. Iterate with small edits. Keep ids stable and keep the author's comments. Finish with
    `pnpm mdg format path/to/sheet.meltemi` so the file has the canonical layout.
 
@@ -266,7 +290,10 @@ fontWeight 600 }`, also in classes and rules (`rule note { font "Caveat" }`); ic
 - [reference/language.md](reference/language.md): grammar, vocabulary, diagnostics and fixes.
 - [reference/layout.md](reference/layout.md): layout modes, constraints, ports, coordinates, sizes,
   anchors, routes, groups, frame.
-- [reference/themes.md](reference/themes.md): built-in themes, theme blocks, the brand frame.
+- [reference/design.md](reference/design.md): what makes a sheet read well: focus, how much it
+  holds, colour, text, arrangement, what to avoid, and the checks before delivering.
+- [reference/themes.md](reference/themes.md): built-in themes, theme blocks, the brand frame, and
+  a theme made from a brand's website or colours.
 - [reference/converting.md](reference/converting.md): importing Mermaid and PlantUML, turning any
   other diagram or a screenshot into a sheet, with the checks that prove the conversion.
 - [reference/free.md](reference/free.md): free compositions, the twenty-four shapes, icons in
