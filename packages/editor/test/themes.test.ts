@@ -119,6 +119,7 @@ describe("theme panel", () => {
       "Colours",
       "Whiteboard",
       "Fonts",
+      "Code",
       "Type",
       "Spacing",
       "Shapes and lines",

@@ -19,6 +19,7 @@ import {
   FREE_PROFILE,
   GANTT_PROFILE,
   GANTT_REFUSED_STYLE_PROPERTIES,
+  NOTE_ONLY_PROPERTIES,
   PEN_PROPERTIES,
   PEN_REFUSED_PROPERTIES,
   PEN_WIDTH_RANGE,
@@ -400,6 +401,7 @@ export function targetHint(name: string): string {
   const hints = messages().hints.values;
   if (name === "opacity") return hints.opacityTargets;
   if (TEXT_PROPERTIES.includes(name)) return hints.textTargets;
+  if (NOTE_ONLY_PROPERTIES.includes(name)) return hints.noteTargets;
   return ELEMENT_ONLY_PROPERTIES.includes(name)
     ? hints.appliesToElements(name)
     : hints.appliesToRelations(name);
@@ -559,11 +561,15 @@ function profilesOfKind(kind: string): string[] {
  */
 function ruleRefuses(kind: string): readonly string[] {
   if (kind === "relation") return ELEMENT_ONLY_PROPERTIES;
-  if (kind === "line") return [];
+  // Only notes take the properties of notes (`textFormat`).
+  const notes = kind === "note" ? [] : NOTE_ONLY_PROPERTIES;
+  if (kind === "line") return notes;
   if (kind === "pen") return PEN_REFUSED_PROPERTIES;
   if (kind === "sticky") return STICKY_REFUSED_PROPERTIES;
-  if (TEXTLESS_KINDS.includes(kind)) return [...RELATION_ONLY_PROPERTIES, ...TEXT_PROPERTIES];
-  return RELATION_ONLY_PROPERTIES;
+  if (TEXTLESS_KINDS.includes(kind)) {
+    return [...RELATION_ONLY_PROPERTIES, ...TEXT_PROPERTIES, ...notes];
+  }
+  return [...RELATION_ONLY_PROPERTIES, ...notes];
 }
 
 /** The hint of a property a `rule <kind>` refuses: what the kind takes, or where the property goes. */

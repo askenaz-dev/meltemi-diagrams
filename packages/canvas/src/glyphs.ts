@@ -28,6 +28,7 @@ export type GlyphFamily =
   | "textAlign"
   | "verticalAlign"
   | "fontWeight"
+  | "textFormat"
   | "arrow";
 
 /**
@@ -357,6 +358,8 @@ function arrowShapes(kind: string): Shape[] {
 export function glyph(family: GlyphFamily, value: string): SVGSVGElement {
   // A weight is "Aa" drawn at it, in the interface's font.
   if (family === "fontWeight") return weightGlyph(value);
+  // A format is its text drawn as it reads: "Aa" in the interface's font, or code in a monospace.
+  if (family === "textFormat") return formatGlyph(value);
   // The alignments are drawn as the alignment picker draws its cells.
   if (family === "textAlign") return alignGlyph(value);
   if (family === "verticalAlign") return alignGlyph("center", value);
@@ -406,6 +409,38 @@ const ALIGN_DOWN: Readonly<Record<string, number>> = { top: 5, middle: 8, bottom
  * A picture of a text alignment, 22 by 16: two lines of text in a box at `horizontal` across and
  * `vertical` down the box, or, without `vertical` (a free text), three lines aligned on their own.
  */
+/**
+ * A text format, 28 by 16, for the Format chips of notes (decision 0078): plain text as "Aa", code
+ * as "{ }" in a monospace font.
+ */
+export function formatGlyph(format: string): SVGSVGElement {
+  const svg = s("svg", {
+    viewBox: "0 0 28 16",
+    width: 28,
+    height: 16,
+    "aria-hidden": "true",
+    focusable: "false",
+    "data-glyph": `textFormat:${format}`,
+  });
+  const code = format === "code";
+  svg.append(
+    s(
+      "text",
+      {
+        x: 14,
+        y: 12.5,
+        "text-anchor": "middle",
+        "font-size": code ? 12 : 13,
+        "font-weight": code ? 600 : 400,
+        ...(code ? { "font-family": 'ui-monospace, "Cascadia Mono", Consolas, monospace' } : {}),
+        fill: "currentColor",
+      },
+      document.createTextNode(code ? "{ }" : "Aa"),
+    ),
+  );
+  return svg;
+}
+
 /** "Aa" at a weight, 28 by 16, for the weight chips of the strip's Text group. */
 export function weightGlyph(weight: string): SVGSVGElement {
   const svg = s("svg", {
@@ -554,13 +589,15 @@ export function glyphName(value: string, family?: GlyphFamily): string {
   const names: Readonly<Record<string, string>> =
     family === "fontWeight"
       ? words.inspector.weights
-      : family === "shape"
-        ? words.shapes
-        : family === "arrow"
-          ? words.arrowKinds
-          : family !== undefined &&
-              (narrow(family) || family === "textAlign" || family === "verticalAlign")
-            ? words.positions
-            : words.glyphs;
+      : family === "textFormat"
+        ? words.inspector.formats
+        : family === "shape"
+          ? words.shapes
+          : family === "arrow"
+            ? words.arrowKinds
+            : family !== undefined &&
+                (narrow(family) || family === "textAlign" || family === "verticalAlign")
+              ? words.positions
+              : words.glyphs;
   return Object.hasOwn(names, value) ? names[value]! : value;
 }

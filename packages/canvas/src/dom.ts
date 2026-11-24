@@ -67,6 +67,9 @@ export const ICONS = {
   decision: "M8 2.5l5.5 5.5L8 13.5 2.5 8z",
   data: "M3 4.5c0-1.1 2.2-2 5-2s5 .9 5 2v7c0 1.1-2.2 2-5 2s-5-.9-5-2z|M3 4.5c0 1.1 2.2 2 5 2s5-.9 5-2",
   note: "M3 4h10|M3 7h10|M3 10h7",
+  /** A code block: braces around a line of code (decision 0078). */
+  codeBlock:
+    "M5.5 3.5c-1.5 0-2 .7-2 2v1.3c0 .8-.4 1.2-1.2 1.2.8 0 1.2.4 1.2 1.2v1.3c0 1.3.5 2 2 2|M10.5 3.5c1.5 0 2 .7 2 2v1.3c0 .8.4 1.2 1.2 1.2-.8 0-1.2.4-1.2 1.2v1.3c0 1.3-.5 2-2 2|M6.5 8h3",
   tag: "M3.5 5.5h9a2.5 2.5 0 0 1 0 5h-9a2.5 2.5 0 0 1 0-5z",
   group: "M2 3.5h12v9H2z|M2 6h12",
   /** A section of a gantt chart: a band of rows with its title in a column at the left. */

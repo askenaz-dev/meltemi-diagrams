@@ -5,6 +5,7 @@ export {
   escapeXml,
   fontFaceRule,
   fontFaceRules,
+  keepsSpaces,
   renderSvg,
   type EmbeddableFace,
   type FontPolicy,

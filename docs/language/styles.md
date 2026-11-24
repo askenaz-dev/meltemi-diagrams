@@ -48,6 +48,7 @@ A theme without `extends` extends `technical.light`. Themes are imported like an
 | Colours    | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd` | quoted colour                                                  | see [svg-export.md](svg-export.md#themes)                                         |
 | Signals    | `success`, `warning`, `danger`, `info`                                                                                    | quoted colour                                                  | `#15803D`, `#B45309`, `#B91C1C`, `#0369A1` on light                               |
 | Whiteboard | `highlight` (highlighter strokes), `sticky` (the card of stickies), `stickyText` (their text)                             | quoted colour                                                  | `#ffe600`, `#fff59d`, `#1f2328` on light; `#ffd600`, `#f3e37c`, `#1f2328` on dark |
+| Code       | `code` (the panel of code notes), `codeText` (their text)                                                                 | quoted colour                                                  | `#f3f5f8`, `#1f2328` on light; `#131c2b`, `#e6edf3` on dark                       |
 | Fonts      | `font`, `mono`                                                                                                            | quoted CSS font stack                                          | Inter, Cascadia Mono                                                              |
 | Type       | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                 | number, 6 to 48                                                | 13, 11, 13, 11, 10.5, 11, 12                                                      |
 |            | `labelWeight`                                                                                                             | 400, 500, 600 or 700                                           | 600                                                                               |
@@ -70,6 +71,11 @@ by the themes that extend them: `stroke highlight` colours a highlighter stroke,
 `sticky` and `stickyText` unless styled ([free.md](free.md#stickies)). `stickyText` is near-black
 in the dark themes too, since a sticky is paper. Pens take `ink` ([free.md](free.md#pen-strokes)).
 The theme panel shows the three in a Whiteboard group.
+
+The code tokens colour code notes (`textFormat code`) unless styled: their panel takes `code`, its
+outline `line` and their text `codeText`, in the `mono` font ([free.md](free.md#code-notes)). Every
+built-in theme sets the two and themes that extend one inherit them; the theme panel shows them in
+a Code group.
 
 `sketch` paints every stroke as if drawn by hand: outlines, connectors, heads, label pills, group
 bands and the frame are drawn twice over a clean fill, each pass wobbling a little (`light`) or
@@ -133,6 +139,7 @@ diagram checkout: flow {
 | `fontSize`, `fontWeight` | the text's size, 6 to 160, and weight, 400, 500, 600 or 700 ([fonts.md](fonts.md#the-font-size-and-weight-of-a-text))         | everything that draws text            |
 | `textAlign`              | `left`, `center` or `right`: where the text sits across its box                                                               | free boxes, texts and stickies        |
 | `verticalAlign`          | `top`, `middle` or `bottom`: where the text sits down its shape                                                               | free boxes and stickies               |
+| `textFormat`             | `plain` or `code`: a note drawn as text, or as a code block ([free.md](free.md#code-notes))                                   | notes                                 |
 | `class`                  | one or more class ids, in `style` statements and declaration blocks                                                           | elements and relations                |
 
 - A colour token name (`danger`, `accent`, `muted`, …) follows the theme: `stroke danger` is red in
@@ -148,8 +155,9 @@ diagram checkout: flow {
   `stroke`, `width`, `line`, `opacity`, `arrowhead` and `arrowtail` and refuses the others
   ([free.md](free.md#pen-strokes)). `font`, `fontSize` and `fontWeight` apply in every profile to
   what draws text, and icons, images and pens refuse them; `textAlign`, `verticalAlign` and
-  `opacity` are free-only: flow diagrams refuse them. A class may hold them all; each target takes
-  what applies to it.
+  `opacity` are free-only: flow diagrams refuse them. `textFormat` applies to notes only, in every
+  profile that has notes, and everything else refuses it with a hint that names notes. A class may
+  hold them all; each target takes what applies to it.
 - `width` is an outline's, a connector's or a pen stroke's width, from 0 to 64; a pen is drawn at
   least 1 px wide, so `width 0` on a pen is `prop.invalid-value`. `width 20` draws a highlighter
   stroke.

@@ -34,6 +34,7 @@ import { messages as words } from "./messages/index.js";
 import type { BoxShape } from "./shapes.js";
 import {
   strokeDash,
+  type FontRole,
   type GroupItem,
   type SceneBounds,
   type SceneGradient,
@@ -1053,11 +1054,16 @@ interface SequenceLabelText extends SequenceText {
   readonly height: number;
 }
 
-function sequenceText(style: ResolvedStyle, size: number, weight: number): SequenceText {
+function sequenceText(
+  style: ResolvedStyle,
+  size: number,
+  weight: number,
+  role: FontRole = "body",
+): SequenceText {
   return {
     size: style.fontSize ?? size,
     weight: style.fontWeight ?? weight,
-    font: textFont(style.font),
+    font: textFont(style.font, role),
   };
 }
 
@@ -1066,14 +1072,19 @@ function labelText(text: SequenceText): SequenceLabelText {
   return { ...text, step: text.size * 1.25, height: Math.round((text.size * 18) / 11) };
 }
 
-/** A note's text: the theme's note size at 400 or its style's, its lines the note scale's ratio. */
+/**
+ * A note's text: the theme's note size at 400 or its style's, its lines the note scale's ratio; a
+ * code note's (`textFormat code`, decision 0078) in the theme's `mono` font unless written.
+ */
 function noteText(
   styles: StyleResolver,
   scale: TypeScale,
   note: { readonly id: string | null; readonly key: string },
-): SequenceText & { readonly line: number } {
-  const text = sequenceText(styles.event(note.id ?? note.key, "note"), scale.note, 400);
-  return { ...text, line: Math.round((text.size * scale.noteLine) / scale.note) };
+): SequenceText & { readonly line: number; readonly code: boolean } {
+  const style = styles.event(note.id ?? note.key, "note");
+  const code = style.textFormat === "code";
+  const text = sequenceText(style, scale.note, 400, code ? "mono" : "body");
+  return { ...text, line: Math.round((text.size * scale.noteLine) / scale.note), code };
 }
 
 /** A fragment's text: its operator's size (the relation label size) and font. */
@@ -1498,16 +1509,18 @@ class SequenceEmitter {
     const s = this.box(b);
     const n = (v: number) => String(round2(v));
     const d = `M${n(s.x)} ${n(s.y)} L${n(s.x + s.width - fold)} ${n(s.y)} L${n(s.x + s.width)} ${n(s.y + fold)} L${n(s.x + s.width)} ${n(s.y + s.height)} L${n(s.x)} ${n(s.y + s.height)} Z`;
+    const text = noteText(this.styles, scale, { id: note.event.id, key: note.key });
+    // A code note keeps its folded corner, on the theme's code panel colours.
     const items: SceneItem[] = [
       this.path(
         d,
-        style.fill ?? theme.surface,
+        style.fill ?? (text.code ? theme.code : theme.surface),
         style.stroke ?? theme.muted,
         style.width ?? theme.strokeWidth,
         strokeDash(style.line),
       ),
     ];
-    const text = noteText(this.styles, scale, { id: note.event.id, key: note.key });
+    const ink = style.color ?? (text.code ? theme.codeText : theme.ink);
     splitLines(note.event.text).forEach((line, i) => {
       items.push(
         this.text(
@@ -1516,7 +1529,7 @@ class SequenceEmitter {
           line,
           text.size,
           text.weight,
-          style.color ?? theme.ink,
+          ink,
           "start",
           text.font,
         ),

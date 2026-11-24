@@ -29,6 +29,9 @@ export default defineConfig({
       "@meltemi/diagrams-layout/viewport": fileURLToPath(
         new URL("./packages/layout/src/viewport.ts", import.meta.url),
       ),
+      "@meltemi/diagrams-layout/text": fileURLToPath(
+        new URL("./packages/layout/src/text.ts", import.meta.url),
+      ),
       "@meltemi/diagrams-layout": pkg("layout"),
       "@meltemi/diagrams-render": pkg("render"),
       "@meltemi/diagrams-cli": pkg("cli"),

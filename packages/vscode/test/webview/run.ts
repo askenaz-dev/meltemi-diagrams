@@ -115,6 +115,32 @@ const FREE = `diagram s: free {
 }
 `;
 
+/** Code notes (decision 0078): a code note indented with a tab, and a plain note. */
+const CODE_NOTES = `diagram s: free {
+  layout manual
+  box api "API"
+  note snippet "if (a) {\\n\\treturn;\\n}"
+  note legend "Plain words"
+  placement {
+    place api at (140, 100)
+    place snippet at (420, 100)
+    place legend at (420, 300)
+  }
+  style snippet { textFormat code }
+}
+`;
+
+/** The request's fragment, as pasted from an editor. */
+const FRAGMENT = [
+  "exports.onExecutePostLogin = async (event, api) => {",
+  '  if (event.client.client_id !== "CLIENT_ID_WEB") {',
+  "    return;",
+  "  }",
+  "",
+  "  // Aplicar lógica específica de la app web.",
+  "};",
+].join("\n");
+
 /** Two boxes in a row and one far below, with room for lines between them (y 168 to 440). */
 const LINES = `diagram s: free {
   title "Lines"
@@ -2526,8 +2552,8 @@ const tests: {
       const strip = page.getByRole("region", { name: "Style" });
       assert.equal(await strip.isVisible(), true);
       const fill = page.getByRole("radiogroup", { name: "Fill" });
-      // Theme, then the nineteen colour tokens (the whiteboard's highlight, sticky and stickyText too).
-      assert.equal(await fill.getByRole("radio").count(), 20);
+      // Theme, then the twenty-one colour tokens (the whiteboard's and the code notes' too).
+      assert.equal(await fill.getByRole("radio").count(), 22);
       await fill.getByRole("radio", { name: /^accent / }).click();
       await h.settled();
       assert.match(h.text, /style api \{ fill accent \}/);
@@ -2643,10 +2669,10 @@ const tests: {
       assert.equal(await dashCard.getAttribute("data-open"), "false");
       assert.equal(await page.locator("#mdg-field-effect-dash-duration").isVisible(), true);
       assert.equal(await page.locator("#mdg-field-effect-dash-delay").isVisible(), false);
-      // The trace colour is a row of chips: Theme, the nineteen tokens and the picker, with the
+      // The trace colour is a row of chips: Theme, the twenty-one tokens and the picker, with the
       // accent as what applies.
       const colour = traceCard.locator('[data-field="effect.trace.color"]');
-      assert.equal(await colour.getByRole("radio").count(), 20);
+      assert.equal(await colour.getByRole("radio").count(), 22);
       assert.equal(await colour.locator(".row-label > span").first().textContent(), "colour");
       assert.equal(
         await colour.getByRole("radiogroup").getAttribute("aria-label"),
@@ -6459,9 +6485,9 @@ const tests: {
     readOnly: true,
     async run(h) {
       const page = h.page;
-      // The box's, the node's (shown on flow diagrams only), the sticky note's, the group's, the
-      // pen's and the relation tool's.
-      assert.equal(await page.locator(".toolbar .split-arrow").count(), 6);
+      // The box's, the node's (shown on flow diagrams only), the note's, the sticky note's, the
+      // group's, the pen's and the relation tool's.
+      assert.equal(await page.locator(".toolbar .split-arrow").count(), 7);
       for (const arrow of await page.locator(".toolbar .split-arrow").all()) {
         assert.equal(await arrow.isVisible(), false);
       }
@@ -10758,8 +10784,8 @@ const tests: {
         .evaluateAll((radios) =>
           radios.map((r) => [r.getAttribute("aria-label") ?? "", r.getAttribute("title") ?? ""]),
         );
-      // The theme's, the six colours of paper by name, then the nineteen colours of the theme.
-      assert.equal(chips.length, 1 + 6 + 19, JSON.stringify(chips));
+      // The theme's, the six colours of paper by name, then the twenty-one colours of the theme.
+      assert.equal(chips.length, 1 + 6 + 21, JSON.stringify(chips));
       assert.deepEqual(chips.slice(1, 7), [
         ["Yellow #fff59d", "Yellow · #fff59d"],
         ["Pink #f8bbd0", "Pink · #f8bbd0"],
@@ -13439,6 +13465,210 @@ diagram d: flow {
       await page.mouse.click(...(await middleOf2(h, "sdlc1")));
       await h.settled();
       assert.match(h.text, /task sdlc1 "[^"]+" from 2026-08-03 after tec0 for 5d/);
+    },
+  },
+  {
+    name: "code notes: Code block from the note tool's menu, its editor open on the word, one undo step",
+    text: CODE_NOTES,
+    async run(h) {
+      const page = h.page;
+      const sent = actions(h);
+      const arrow = page.locator('.toolbar [data-split="note"] button[data-note-kinds]');
+      await arrow.click();
+      const menu = page.getByRole("menu");
+      await menu.waitFor();
+      assert.equal(await menu.getByRole("menuitem").count(), 2);
+      assert.equal(await menu.getByRole("menuitem", { name: "Note" }).count(), 1);
+      await menu.getByRole("menuitem", { name: "Code block" }).click();
+      await h.settled();
+      assert.equal(actions(h), sent + 1, "one edit");
+      assert.match(h.text, /\n {2}note note1 "Code"\n/);
+      assert.match(h.text, /style note1 \{ textFormat code \}/);
+      const inline = page.locator("textarea.inline");
+      assert.equal(await inline.inputValue(), "Code");
+      // The word is selected, so a paste replaces it.
+      assert.deepEqual(
+        await inline.evaluate((area: HTMLTextAreaElement) => [
+          area.selectionStart,
+          area.selectionEnd,
+        ]),
+        [0, 4],
+      );
+      await page.keyboard.press("Escape");
+      await page.locator(".main").screenshot({ path: join(output, "code-block-created.png") });
+    },
+  },
+  {
+    name: "code notes: a fragment pasted and typed keeps its indentation, Enter and Tab type code",
+    text: CODE_NOTES,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.dblclick(
+        ...(Object.values(await bodyCentre(h, "snippet")) as [number, number]),
+      );
+      const inline = page.locator("textarea.inline");
+      await inline.waitFor();
+      assert.match((await inline.getAttribute("aria-description")) ?? "", /Tab and Shift\+Tab/);
+      assert.equal(
+        await inline.evaluate((area: HTMLTextAreaElement) => getComputedStyle(area).tabSize),
+        "4",
+      );
+      // Paste the request's fragment over the selected text.
+      await inline.evaluate((area: HTMLTextAreaElement, text: string) => {
+        area.setRangeText(text, 0, area.value.length, "end");
+        area.dispatchEvent(new Event("input"));
+      }, FRAGMENT);
+      // Enter keeps the last line's indentation; Tab indents with the text's own unit (two spaces).
+      await page.keyboard.press("End");
+      await page.keyboard.press("ArrowUp");
+      await page.keyboard.press("End");
+      await page.keyboard.press("Enter");
+      await page.keyboard.type("log(event);");
+      assert.match(await inline.inputValue(), /\n {2}\/\/ Aplicar[^\n]*\n {2}log\(event\);\n\};$/);
+      await page.keyboard.press("Tab");
+      assert.match(await inline.inputValue(), /\n {2}log\(event\); {2}\n\};$/);
+      await page.keyboard.press("Shift+Tab");
+      assert.match(await inline.inputValue(), /\nlog\(event\); {2}\n\};$/);
+      await page.keyboard.press("Control+Enter");
+      await h.settled();
+      assert.ok(
+        h.text.includes(
+          'note snippet "exports.onExecutePostLogin = async (event, api) => {\\n  if (event.client.client_id !== \\"CLIENT_ID_WEB\\") {\\n    return;\\n  }\\n\\n  // Aplicar lógica específica de la app web.\\nlog(event);  \\n};"',
+        ),
+        h.text,
+      );
+      await page.locator(".main").screenshot({ path: join(output, "code-block-typed.png") });
+    },
+  },
+  {
+    name: "code notes: the editor lies over the drawn first line, at 100 % and at 200 %",
+    text: CODE_NOTES,
+    async run(h) {
+      const page = h.page;
+      for (const zoom of [1, 2]) {
+        if (zoom === 2) {
+          await h.focusStage();
+          await page.keyboard.press("Control+=");
+          await h.settled();
+        }
+        const first = page
+          .locator('.content g[data-id="snippet"][data-role="element"] text')
+          .first();
+        const drawn = (await first.boundingBox())!;
+        await page.mouse.dblclick(drawn.x + drawn.width / 2, drawn.y + drawn.height / 2);
+        const editor = await editorOf(h);
+        assert.match(editor.font, /Cascadia Mono/);
+        // The first line's text starts where the drawn one does, within a pixel.
+        nearly(editor.box.x, drawn.x, 1.5, `left edge at ${zoom}x`);
+        assert.ok(editor.box.y <= drawn.y + 1, `top at ${zoom}x`);
+        await page.keyboard.press("Escape");
+        await h.settled();
+      }
+    },
+  },
+  {
+    name: "code notes: Format in the Text tab switches a note between plain text and code",
+    text: CODE_NOTES,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(Object.values(await bodyCentre(h, "legend")) as [number, number]));
+      await h.settled();
+      await propertyTab(h, "text");
+      const aside = page.locator("#mdg-inspector");
+      const format = aside.locator('[data-field="style.textFormat"]');
+      await format.waitFor();
+      // Format comes just above Font.
+      const order = await aside
+        .locator(".property-panel:not([hidden]) [data-field]")
+        .evaluateAll((fields) => fields.map((f) => f.getAttribute("data-field")));
+      assert.equal(
+        order.indexOf("style.textFormat"),
+        order.indexOf("style.font") - 1,
+        order.join(),
+      );
+      const chips = format.getByRole("radio");
+      assert.equal(await chips.count(), 2, "Plain text and Code, no default chip");
+      assert.equal(
+        await format.getByRole("radio", { name: "Plain text" }).getAttribute("aria-checked"),
+        "true",
+      );
+      const label = 'note legend "Plain words"';
+      await format.getByRole("radio", { name: "Code" }).click();
+      await h.settled();
+      assert.match(h.text, /style legend \{ textFormat code \}/);
+      assert.ok(h.text.includes(label));
+      await format.getByRole("radio", { name: "Plain text" }).click();
+      await h.settled();
+      assert.doesNotMatch(h.text, /style legend/);
+      assert.ok(h.text.includes(label));
+      await page.locator("#mdg-inspector").screenshot({ path: join(output, "code-format.png") });
+    },
+  },
+  {
+    name: "code notes: Copy code in the context menu puts the text on the clipboard, a plain note has none",
+    text: CODE_NOTES,
+    async run(h) {
+      const page = h.page;
+      const snippet = await bodyCentre(h, "snippet");
+      await page.mouse.click(snippet.x, snippet.y);
+      await h.settled();
+      await page.mouse.click(snippet.x, snippet.y, { button: "right" });
+      const menu = page.getByRole("menu");
+      await menu.waitFor();
+      await menu.getByRole("menuitem", { name: "Copy code" }).click();
+      await h.settled();
+      assert.equal(h.clipboard, "if (a) {\n\treturn;\n}");
+      const legend = await bodyCentre(h, "legend");
+      await page.mouse.click(legend.x, legend.y);
+      await h.settled();
+      await page.mouse.click(legend.x, legend.y, { button: "right" });
+      await menu.waitFor();
+      assert.equal(await menu.getByRole("menuitem", { name: "Copy code" }).count(), 0);
+    },
+  },
+  {
+    name: "code notes: read-only: Copy code is offered, the note button is hidden, nothing is written",
+    text: CODE_NOTES,
+    readOnly: true,
+    async run(h) {
+      const page = h.page;
+      const sent = actions(h);
+      assert.equal(await page.locator('.toolbar [data-split="note"]').isVisible(), false);
+      const snippet = await bodyCentre(h, "snippet");
+      await page.mouse.click(snippet.x, snippet.y);
+      await h.settled();
+      await page.mouse.click(snippet.x, snippet.y, { button: "right" });
+      const menu = page.getByRole("menu");
+      await menu.waitFor();
+      await menu.getByRole("menuitem", { name: "Copy code" }).click();
+      await h.settled();
+      assert.equal(h.clipboard, "if (a) {\n\treturn;\n}");
+      assert.equal(actions(h), sent, "no action");
+    },
+  },
+  {
+    name: "code notes: the dark theme, the note tool's menu and a code block on a dark diagram",
+    text: CODE_NOTES.replace("  layout manual", '  layout manual\n  theme "technical.dark"'),
+    theme: DARK,
+    async run(h) {
+      const page = h.page;
+      const arrow = page.locator('.toolbar [data-split="note"] button[data-note-kinds]');
+      await arrow.click();
+      const menu = page.getByRole("menu");
+      await menu.waitFor();
+      assert.equal(await arrow.getAttribute("aria-expanded"), "true");
+      await page.screenshot({ path: join(output, "code-notes-menu-dark.png") });
+      await page.keyboard.press("Escape");
+      await menu.waitFor({ state: "hidden" });
+      assert.equal(await arrow.getAttribute("aria-expanded"), "false");
+      // The block takes the dark theme's panel and text.
+      const panel = page
+        .locator('.content g[data-id="snippet"][data-role="element"] > rect')
+        .first();
+      assert.equal(await panel.getAttribute("fill"), "#131c2b");
+      const line = page.locator('.content g[data-id="snippet"][data-role="element"] text').first();
+      assert.equal(await line.getAttribute("fill"), "#e6edf3");
+      await page.locator(".main").screenshot({ path: join(output, "code-notes-dark.png") });
     },
   },
 ];

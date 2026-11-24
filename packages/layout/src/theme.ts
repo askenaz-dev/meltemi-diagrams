@@ -60,6 +60,9 @@ export interface Theme {
   /** Whiteboards: the default fill of stickies, and the colour of their text. */
   readonly sticky: string;
   readonly stickyText: string;
+  /** Code notes: the default fill of their panel, and the colour of their text (decision 0078). */
+  readonly code: string;
+  readonly codeText: string;
   /** CSS font stacks of body and monospace text. */
   readonly font: string;
   readonly mono: string;
@@ -146,6 +149,8 @@ type Palette = Pick<
   | "highlight"
   | "sticky"
   | "stickyText"
+  | "code"
+  | "codeText"
 >;
 
 /** Technical: architecture review, the Meltemi palette and a footer frame. */
@@ -256,6 +261,19 @@ const DARK_WHITEBOARD = {
   stickyText: "#1f2328",
 } as const;
 
+/**
+ * The colours of code notes: a cool grey panel under near-black text on light themes, a navy panel
+ * under near-white text on dark ones, each pair above 12:1.
+ */
+const LIGHT_CODE = {
+  code: "#f3f5f8",
+  codeText: "#1f2328",
+} as const;
+const DARK_CODE = {
+  code: "#131c2b",
+  codeText: "#e6edf3",
+} as const;
+
 /** The technical palettes, which the sketch themes share. */
 const TECHNICAL_LIGHT: Palette = {
   background: "#F7FBFF",
@@ -272,6 +290,7 @@ const TECHNICAL_LIGHT: Palette = {
   accentEnd: "#0891B2",
   ...LIGHT_SIGNALS,
   ...LIGHT_WHITEBOARD,
+  ...LIGHT_CODE,
 };
 const TECHNICAL_DARK: Palette = {
   background: "#07111F",
@@ -288,6 +307,7 @@ const TECHNICAL_DARK: Palette = {
   accentEnd: "#22D3EE",
   ...DARK_SIGNALS,
   ...DARK_WHITEBOARD,
+  ...DARK_CODE,
 };
 
 const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
@@ -311,6 +331,7 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     danger: "#A33A2B",
     info: "#2E5E8C",
     ...LIGHT_WHITEBOARD,
+    ...LIGHT_CODE,
   },
   "editorial.dark": {
     background: "#13161a",
@@ -330,6 +351,7 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     danger: "#E58A7C",
     info: "#8DB8E0",
     ...DARK_WHITEBOARD,
+    ...DARK_CODE,
   },
   "stage.light": {
     background: "#FFFFFF",
@@ -346,6 +368,7 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     accentEnd: "#0891B2",
     ...LIGHT_SIGNALS,
     ...LIGHT_WHITEBOARD,
+    ...LIGHT_CODE,
   },
   "stage.dark": {
     background: "#05080F",
@@ -362,6 +385,7 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     accentEnd: "#22D3EE",
     ...DARK_SIGNALS,
     ...DARK_WHITEBOARD,
+    ...DARK_CODE,
   },
   "sketch.light": TECHNICAL_LIGHT,
   "sketch.dark": TECHNICAL_DARK,

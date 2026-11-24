@@ -1,4 +1,4 @@
-import type { Box, Point, TextPlace } from "@meltemi/diagrams-editor/canvas";
+import { expandTabs, type Box, type Point, type TextPlace } from "@meltemi/diagrams-editor/canvas";
 import { h } from "./dom.js";
 
 /** Room for the caret after the last character. */
@@ -154,6 +154,14 @@ export function inlineValue(value: string, multiline: boolean): string {
 }
 
 /**
+ * The lines the drawing shows for a label: the label itself when it is drawn on one line, else its
+ * lines broken at `\n`, each with its tabs as the spaces that reach their tab stops, as drawn.
+ */
+export function drawnTextLines(text: string, oneLine: boolean): string[] {
+  return (oneLine ? [text] : text.split("\n")).map(expandTabs);
+}
+
+/**
  * The drawn lines of a label in the SVG of the stage: the texts of the groups of `id` and `roles`
  * that show `lines` in order (a fragment's condition in brackets). A line drawn as glyph outlines
  * is a path that carries its text; an empty one draws nothing and is passed over.
@@ -228,6 +236,111 @@ export function labelLines(svg: Element, id: string): Element[] {
   );
 }
 
+/**
+ * One change of a code note's editor (decision 0078): `text` replaces the characters from `from`
+ * to `to` of the value, and the selection is then `start` to `end`.
+ */
+export interface CodeEdit {
+  readonly from: number;
+  readonly to: number;
+  readonly text: string;
+  readonly start: number;
+  readonly end: number;
+}
+
+/** A code edit applied to a value: what the text area holds after it. */
+export function applyCodeEdit(value: string, edit: CodeEdit): string {
+  return value.slice(0, edit.from) + edit.text + value.slice(edit.to);
+}
+
+/**
+ * The indentation a code note's text uses: a tab when a line starts with one, else the fewest
+ * spaces an indented line starts with, else two spaces.
+ */
+export function indentUnit(text: string): string {
+  const lines = text.split("\n");
+  if (lines.some((line) => line.startsWith("\t"))) return "\t";
+  let fewest = Infinity;
+  for (const line of lines) {
+    const spaces = /^ +/.exec(line)?.[0].length ?? 0;
+    if (spaces > 0 && line.trim() !== "") fewest = Math.min(fewest, spaces);
+  }
+  return fewest === Infinity ? "  " : " ".repeat(fewest);
+}
+
+/** Where the line holding `offset` starts. */
+const lineStart = (value: string, offset: number) => value.lastIndexOf("\n", offset - 1) + 1;
+
+/** Where the line holding `offset` ends, before its line break. */
+const lineEnd = (value: string, offset: number) => {
+  const end = value.indexOf("\n", offset);
+  return end === -1 ? value.length : end;
+};
+
+/**
+ * Enter in a code note: a line break in place of the selection, followed by the spaces and tabs
+ * the caret's line starts with, so the new line keeps its indentation.
+ */
+export function breakLine(value: string, start: number, end: number): CodeEdit {
+  const first = lineStart(value, start);
+  const leading = /^[ \t]*/.exec(value.slice(first, start))![0];
+  const text = `\n${leading}`;
+  return { from: start, to: end, text, start: start + text.length, end: start + text.length };
+}
+
+/** The lines a selection touches: from the start of its first to the end of its last. */
+function touched(value: string, start: number, end: number) {
+  const from = lineStart(value, start);
+  // A selection that ends where a line starts leaves that line out.
+  const last = end > start && value[end - 1] === "\n" ? end - 1 : end;
+  return { from, to: lineEnd(value, last) };
+}
+
+/**
+ * Tab in a code note: `unit` at the caret, or at the start of every line a selection touches,
+ * empty lines left as they are; the selection keeps covering what it covered.
+ */
+export function indentLines(value: string, start: number, end: number, unit: string): CodeEdit {
+  if (start === end) {
+    const caret = start + unit.length;
+    return { from: start, to: end, text: unit, start: caret, end: caret };
+  }
+  const { from, to } = touched(value, start, end);
+  const lines = value.slice(from, to).split("\n");
+  const text = lines.map((line) => (line === "" ? line : unit + line)).join("\n");
+  const firstAdded = lines[0] === "" ? 0 : unit.length;
+  return { from, to, text, start: start + firstAdded, end: end + (text.length - (to - from)) };
+}
+
+/**
+ * Shift+Tab in a code note: one `unit` taken from the start of the caret's line, or of every line
+ * a selection touches: a leading tab, or up to a unit of leading spaces (four for a tab unit).
+ */
+export function outdentLines(value: string, start: number, end: number, unit: string): CodeEdit {
+  const { from, to } = touched(value, start, end);
+  const width = unit === "\t" ? 4 : unit.length;
+  let firstRemoved = 0;
+  const lines = value
+    .slice(from, to)
+    .split("\n")
+    .map((line, i) => {
+      const removed = line.startsWith("\t") ? 1 : Math.min(width, /^ */.exec(line)![0].length);
+      if (i === 0) firstRemoved = removed;
+      return line.slice(removed);
+    });
+  const text = lines.join("\n");
+  // The caret moves back by what its line lost before it, never into the line before.
+  const caret = start - Math.min(firstRemoved, start - from);
+  const removed = to - from - text.length;
+  return {
+    from,
+    to,
+    text,
+    start: caret,
+    end: start === end ? caret : Math.max(caret, end - removed),
+  };
+}
+
 /** What an inline editor edits and how it says so. */
 export interface InlineOptions {
   /** The element, relation key or event key. */
@@ -250,6 +363,12 @@ export interface InlineOptions {
    * first line goes where the first of them is drawn.
    */
   readonly drawnLines?: number;
+  /**
+   * The text of a code note (`TextPlace.format` `code`), typed as code: Enter breaks the line and
+   * keeps its indentation, Tab and Shift+Tab indent and outdent, Ctrl+Enter or a click outside
+   * commits and Escape cancels.
+   */
+  readonly code?: boolean;
   readonly label: string;
   /** The keys, said to assistive technology. */
   readonly keys: string;
@@ -301,6 +420,7 @@ export class InlineEditor {
       e.stopPropagation();
       // A character still being composed takes its Enter.
       if (e.isComposing) return;
+      if (options.code && !options.rename && this.codeKey(e)) return;
       if (e.key === "Enter" && e.shiftKey && options.multiline) {
         // The text area breaks the line itself; the editor grows on the input that follows.
         return;
@@ -325,6 +445,50 @@ export class InlineEditor {
       area.addEventListener(type, (e) => e.stopPropagation());
     }
     this.element = area;
+  }
+
+  /**
+   * The keys of a code note's editor: Enter (with Shift too) breaks the line with its indentation,
+   * Tab and Shift+Tab indent and outdent, Ctrl+Enter commits. True when the key was taken.
+   */
+  private codeKey(e: KeyboardEvent): boolean {
+    const area = this.element;
+    const { value, selectionStart: start, selectionEnd: end } = area;
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      this.finish(this.options.commit);
+      return true;
+    }
+    if (e.key === "Enter" && !e.altKey) {
+      e.preventDefault();
+      this.apply(breakLine(value, start, end));
+      return true;
+    }
+    if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      const unit = indentUnit(value);
+      this.apply(
+        e.shiftKey ? outdentLines(value, start, end, unit) : indentLines(value, start, end, unit),
+      );
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Makes a code edit as typing does, so that the browser's own undo takes it back; where the
+   * browser cannot insert text that way, by replacing the characters.
+   */
+  private apply(edit: CodeEdit): void {
+    const area = this.element;
+    const expected = applyCodeEdit(area.value, edit);
+    area.setSelectionRange(edit.from, edit.to);
+    const typed =
+      typeof document.execCommand === "function" &&
+      document.execCommand("insertText", false, edit.text);
+    if (!typed || area.value !== expected) area.value = expected;
+    area.setSelectionRange(edit.start, edit.end);
+    this.fit();
   }
 
   /** The text to write, line breaks cleaned up. */

@@ -48,6 +48,7 @@ Un tema sin `extends` extiende `technical.light`. Los temas se importan como cua
 | Colores    | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd`              | color entre comillas                                                  | consulta [svg-export.md](svg-export.md#temas)                                                 |
 | Señales    | `success`, `warning`, `danger`, `info`                                                                                                 | color entre comillas                                                  | `#15803D`, `#B45309`, `#B91C1C`, `#0369A1` en el tema claro                                   |
 | Pizarra    | `highlight` (los trazos de marcador), `sticky` (la tarjeta de las notas adhesivas), `stickyText` (su texto)                            | color entre comillas                                                  | `#ffe600`, `#fff59d`, `#1f2328` en los claros; `#ffd600`, `#f3e37c`, `#1f2328` en los oscuros |
+| Código     | `code` (el panel de las notas de código), `codeText` (su texto)                                                                        | color entre comillas                                                  | `#f3f5f8`, `#1f2328` en los claros; `#131c2b`, `#e6edf3` en los oscuros                       |
 | Fuentes    | `font`, `mono`                                                                                                                         | lista de fuentes CSS entre comillas                                   | Inter, Cascadia Mono                                                                          |
 | Tipografía | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                              | número, de 6 a 48                                                     | 13; 11; 13; 11; 10,5; 11; 12                                                                  |
 |            | `labelWeight`                                                                                                                          | 400, 500, 600 o 700                                                   | 600                                                                                           |
@@ -72,6 +73,11 @@ las notas adhesivas toman `sticky` y `stickyText` salvo que se les dé estilo
 ([free.md](free.md#notas-adhesivas)). `stickyText` es casi negro también en los temas oscuros,
 porque una nota adhesiva es papel. Los lápices toman `ink` ([free.md](free.md#trazos-de-lápiz)). El
 panel de temas muestra los tres en un grupo Pizarra.
+
+Los tokens de código colorean las notas de código (`textFormat code`) salvo que tengan estilo: su
+panel toma `code`, su contorno `line` y su texto `codeText`, en la fuente `mono`
+([free.md](free.md#notas-de-código)). Todos los temas incluidos los fijan y los temas que extienden
+uno los heredan; el panel de temas los muestra en un grupo Código.
 
 `sketch` pinta cada trazo como si estuviera dibujado a mano: los contornos, los conectores, las
 puntas, las píldoras de las etiquetas, las bandas de los grupos y el marco se dibujan dos veces
@@ -138,6 +144,7 @@ diagram checkout: flow {
 | `fontSize`, `fontWeight` | el tamaño del texto, de 6 a 160, y su grosor, 400, 500, 600 o 700 ([fonts.md](fonts.md#la-fuente-el-tamaño-y-el-peso-de-un-texto))                | todo lo que dibuja texto                     |
 | `textAlign`              | `left`, `center` o `right`: dónde va el texto a lo ancho de su caja                                                                               | cajas, textos y notas adhesivas libres       |
 | `verticalAlign`          | `top`, `middle` o `bottom`: dónde va el texto a lo alto de su forma                                                                               | cajas libres y notas adhesivas               |
+| `textFormat`             | `plain` o `code`: una nota dibujada como texto o como bloque de código ([free.md](free.md#notas-de-código))                                       | notas                                        |
 | `class`                  | uno o más ids de clase, en instrucciones `style` y en bloques de declaración                                                                      | elementos y relaciones                       |
 
 - Un nombre de token de color (`danger`, `accent`, `muted`, …) sigue al tema: `stroke danger` es rojo
@@ -155,8 +162,9 @@ diagram checkout: flow {
   `arrowtail` y rechaza las demás ([free.md](free.md#trazos-de-lápiz)). `font`, `fontSize` y
   `fontWeight` se aplican en todos los perfiles a lo que dibuja texto, y los iconos, las imágenes y
   los lápices las rechazan; `textAlign`, `verticalAlign` y `opacity` son solo de las composiciones
-  libres: los diagramas de flujo las rechazan. Una clase puede contenerlos todos; cada destino toma
-  lo que se le aplica.
+  libres: los diagramas de flujo las rechazan. `textFormat` solo se aplica a las notas, en todo
+  perfil con notas, y lo demás lo rechaza con una pista que nombra las notas. Una clase puede
+  contenerlos todos; cada destino toma lo que se le aplica.
 - `width` es el ancho de un contorno, de un conector o del trazo de un lápiz, de 0 a 64; un lápiz
   se dibuja con al menos 1 px de ancho, así que `width 0` en un lápiz es `prop.invalid-value`.
   `width 20` dibuja un trazo de marcador.

@@ -72,16 +72,16 @@ Relation label pills are as wide as their measured text plus 12 px.
 
 ## Shapes and text
 
-| Kind       | Drawing (sizes of `technical.*`)                                                                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `node`     | rounded rectangle (`radius` 8, or its own `radius`); label `labelSize` 13 px at `labelWeight` 600; description lines 11 px; with `shape`, that shape, with the text in its text area |
-| `data`     | cylinder (body and top ellipse); text as a node, shifted down by half the ellipse height                                                                                             |
-| `decision` | diamond; text as a node, inside the diamond                                                                                                                                          |
-| `group`    | rounded band (`groupRadius` 14, or its own `radius`) with the title (`groupTitleSize` 13 px) at the top-left, description under it; an untitled group draws its outline only         |
-| `note`     | left-aligned `noteSize` 11 px muted text, 18 px per line, no border unless `fill`, `stroke` or `pattern` is set                                                                      |
-| `tag`      | pill with `tagSize` 10.5 px mono text; `tag` fill and `tagText` text by default                                                                                                      |
-| `sticky`   | a soft shadow 3 px under a card of `radius` 2 in the theme's `sticky` colour, its text wrapped and shrunk to fit, 15.6 px at most, in `stickyText`, centred                          |
-| `pen`      | one path through the midpoints of its points, round caps and joins, no fill, 3 px in the theme's `ink` by default                                                                    |
+| Kind       | Drawing (sizes of `technical.*`)                                                                                                                                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `node`     | rounded rectangle (`radius` 8, or its own `radius`); label `labelSize` 13 px at `labelWeight` 600; description lines 11 px; with `shape`, that shape, with the text in its text area                                                                                                        |
+| `data`     | cylinder (body and top ellipse); text as a node, shifted down by half the ellipse height                                                                                                                                                                                                    |
+| `decision` | diamond; text as a node, inside the diamond                                                                                                                                                                                                                                                 |
+| `group`    | rounded band (`groupRadius` 14, or its own `radius`) with the title (`groupTitleSize` 13 px) at the top-left, description under it; an untitled group draws its outline only                                                                                                                |
+| `note`     | left-aligned `noteSize` 11 px muted text, 18 px per line, no border unless `fill`, `stroke` or `pattern` is set; with `textFormat code`, a code block: the `mono` font in `codeText` on a `code` panel outlined in `line`, inset 12 px across and 8 px down ([free.md](free.md#code-notes)) |
+| `tag`      | pill with `tagSize` 10.5 px mono text; `tag` fill and `tagText` text by default                                                                                                                                                                                                             |
+| `sticky`   | a soft shadow 3 px under a card of `radius` 2 in the theme's `sticky` colour, its text wrapped and shrunk to fit, 15.6 px at most, in `stickyText`, centred                                                                                                                                 |
+| `pen`      | one path through the midpoints of its points, round caps and joins, no fill, 3 px in the theme's `ink` by default                                                                                                                                                                           |
 
 The twenty-four shapes that nodes and free boxes take, with their sizes, text areas and outlines,
 are listed in [free.md](free.md#text-and-shapes); `shape icon` draws the icon alone with the label
@@ -288,6 +288,11 @@ split dense diagrams into views.
   variables, no `<marker>`, no `dominant-baseline`, no external fonts.
 - Baselines come from the layout: the text centre plus half the cap height of the measured font,
   so text sits optically centred with any font.
+- Text is drawn with the spaces it holds. A `<text>` whose line starts or ends with a space or
+  holds two spaces in a row carries `xml:space="preserve"`, so an indented line of code or aligned
+  columns keep their spaces under every font policy and in PNG and PDF; text with single spaces
+  between words has no such attribute. A tab advances to the next tab stop, every four
+  characters: the layout draws it as the spaces that reach the stop, and the source keeps the tab.
 - Fonts follow the export's font policy: `embedded` (default for `meltemi-diagrams export`: the
   bundled subset files as data URIs), `outlined` (text as paths with `aria-label`), or `system`
   (font names only; the first installed font is used). See [fonts.md](fonts.md).

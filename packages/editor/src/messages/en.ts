@@ -73,6 +73,7 @@ export const en = {
     fontWeight: "Text weight",
     textAlign: "Text alignment",
     verticalAlign: "Vertical alignment",
+    textFormat: "Format",
     opacity: "Opacity",
   },
 
@@ -176,6 +177,8 @@ export const en = {
       /** The highlighter's colour and the stickies' fill and text. */
       whiteboard: "Whiteboard",
       fonts: "Fonts",
+      /** The panel and text colours of code notes. */
+      code: "Code",
       type: "Type",
       spacing: "Spacing",
       shapes: "Shapes and lines",
@@ -347,6 +350,8 @@ export const en = {
       "No diagram to draw: add `diagram <id>: flow { }`, `diagram <id>: free { }`, `diagram <id>: sequence { }` or `diagram <id>: gantt { }` to the file.",
     cannotDraw: "The diagram cannot be drawn.",
     copied: "Copied.",
+    /** A code note's text, put on the clipboard as it is written. */
+    codeCopied: "Copied the code.",
     invalidId: (id: string) => `${code(id)} is not a valid id.`,
     noteAttached: (target: string) => `Created a note attached to ${code(target)}.`,
     /** A head dragged sideways wrote the gap before it. */

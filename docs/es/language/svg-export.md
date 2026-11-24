@@ -77,16 +77,16 @@ Las píldoras de las etiquetas de relación son tan anchas como su texto medido 
 
 ## Formas y texto
 
-| Tipo       | Dibujo (tamaños de `technical.*`)                                                                                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `node`     | rectángulo redondeado (`radius` 8, o su propio `radius`); etiqueta de `labelSize` 13 px con `labelWeight` 600; líneas de descripción de 11 px; con `shape`, esa forma, con el texto en su área de texto |
-| `data`     | cilindro (cuerpo y elipse superior); texto como en un nodo, desplazado hacia abajo la mitad de la altura de la elipse                                                                                   |
-| `decision` | rombo; texto como en un nodo, dentro del rombo                                                                                                                                                          |
-| `group`    | banda redondeada (`groupRadius` 14, o su propio `radius`) con el título (`groupTitleSize` 13 px) arriba a la izquierda y la descripción debajo; un grupo sin título dibuja solo su contorno             |
-| `note`     | texto atenuado alineado a la izquierda de `noteSize` 11 px, 18 px por línea, sin borde salvo que se fije `fill`, `stroke` o `pattern`                                                                   |
-| `tag`      | píldora con texto monoespaciado de `tagSize` 10,5 px; de forma predeterminada, relleno `tag` y texto `tagText`                                                                                          |
-| `sticky`   | una sombra suave 3 px bajo una tarjeta de `radius` 2 con el color `sticky` del tema, con su texto repartido en líneas y encogido hasta caber, de 15,6 px como mucho, en `stickyText`, centrado          |
-| `pen`      | un solo trazado por los puntos medios de sus puntos, con extremos y uniones redondeados, sin relleno, de 3 px con el `ink` del tema de forma predeterminada                                             |
+| Tipo       | Dibujo (tamaños de `technical.*`)                                                                                                                                                                                                                                                                                                       |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `node`     | rectángulo redondeado (`radius` 8, o su propio `radius`); etiqueta de `labelSize` 13 px con `labelWeight` 600; líneas de descripción de 11 px; con `shape`, esa forma, con el texto en su área de texto                                                                                                                                 |
+| `data`     | cilindro (cuerpo y elipse superior); texto como en un nodo, desplazado hacia abajo la mitad de la altura de la elipse                                                                                                                                                                                                                   |
+| `decision` | rombo; texto como en un nodo, dentro del rombo                                                                                                                                                                                                                                                                                          |
+| `group`    | banda redondeada (`groupRadius` 14, o su propio `radius`) con el título (`groupTitleSize` 13 px) arriba a la izquierda y la descripción debajo; un grupo sin título dibuja solo su contorno                                                                                                                                             |
+| `note`     | texto atenuado alineado a la izquierda de `noteSize` 11 px, 18 px por línea, sin borde salvo que se fije `fill`, `stroke` o `pattern`; con `textFormat code`, un bloque de código: la fuente `mono` en `codeText` sobre un panel `code` con contorno `line`, a 12 px de los lados y 8 px de arriba ([free.md](free.md#notas-de-código)) |
+| `tag`      | píldora con texto monoespaciado de `tagSize` 10,5 px; de forma predeterminada, relleno `tag` y texto `tagText`                                                                                                                                                                                                                          |
+| `sticky`   | una sombra suave 3 px bajo una tarjeta de `radius` 2 con el color `sticky` del tema, con su texto repartido en líneas y encogido hasta caber, de 15,6 px como mucho, en `stickyText`, centrado                                                                                                                                          |
+| `pen`      | un solo trazado por los puntos medios de sus puntos, con extremos y uniones redondeados, sin relleno, de 3 px con el `ink` del tema de forma predeterminada                                                                                                                                                                             |
 
 Las veinticuatro formas que admiten los nodos y las cajas libres, con sus tamaños, sus áreas de
 texto y sus contornos, se enumeran en [free.md](free.md#texto-y-formas); `shape icon` dibuja solo
@@ -314,6 +314,12 @@ densos en vistas.
   `dominant-baseline`, sin fuentes externas.
 - Las líneas base salen de la disposición: el centro del texto más la mitad de la altura de las
   mayúsculas de la fuente medida, así que el texto queda centrado ópticamente con cualquier fuente.
+- El texto se dibuja con los espacios que tiene. Un `<text>` cuya línea empieza o termina con un
+  espacio, o tiene dos espacios seguidos, lleva `xml:space="preserve"`, así que una línea de código
+  sangrada o unas columnas alineadas conservan sus espacios con toda política de fuentes y en PNG y
+  PDF; el texto con un solo espacio entre palabras no lleva ese atributo. Una tabulación avanza a la
+  siguiente parada, cada cuatro caracteres: la disposición la dibuja como los espacios que llegan a
+  la parada, y el código fuente conserva la tabulación.
 - Las fuentes siguen la política de fuentes de la exportación: `embedded` (predeterminada en
   `meltemi-diagrams export`: los archivos de subconjuntos incluidos como URI de datos), `outlined`
   (el texto como trazados con `aria-label`) o `system` (solo los nombres de las fuentes; se usa la

@@ -102,26 +102,27 @@ style r1, r2 { fill "#0B1830"; color "#FFFFFF" }      // dark label pills
 style legendBox { fill "none" }
 ```
 
-| Property        | Element                                                                        | Relation                                   |
-| --------------- | ------------------------------------------------------------------------------ | ------------------------------------------ |
-| `fill`          | background (`"none"` for no fill)                                              | label pill background                      |
-| `stroke`        | outline colour                                                                 | connector and arrowhead colour             |
-| `color`         | label and description text                                                     | label pill text                            |
-| `line`          | `solid`, `dashed` or `dotted` outline                                          | overrides the arrow style                  |
-| `width`         | outline width (0 to 64; a pen's stroke 1 to 64)                                | connector width                            |
-| `radius`        | corner radius (0 to 64) of boxes, groups                                       | not allowed                                |
-| `shape`         | `node` only: `hexagon`, `icon`… (free.md)                                      | not allowed                                |
-| `pattern`       | `hatch`, `dots`, `cross` or `none`                                             | not allowed                                |
-| `arrowhead`     | not allowed                                                                    | head at the target (below)                 |
-| `arrowtail`     | not allowed                                                                    | head at the source (below)                 |
-| `routing`       | not allowed                                                                    | `auto`, `orthogonal`, `polyline`, `bezier` |
-| `corners`       | not allowed                                                                    | `sharp` or `rounded` bends                 |
-| `class`         | apply classes                                                                  | apply classes                              |
-| `icon`          | `"pack:name"`, placed by `iconPosition`                                        | inside the label pill                      |
-| `iconColor`     | colour of a monochrome icon                                                    | same                                       |
-| `iconPosition`  | `left`, `right`, `top`, `bottom`, `center`                                     | not allowed                                |
-| `labelPosition` | label edge of a centred icon or `shape icon`: `top`, `bottom`, `left`, `right` | not allowed                                |
-| `iconSize`      | `auto` or 8 to 128: the icon's side                                            | not allowed                                |
+| Property        | Element                                                                          | Relation                                   |
+| --------------- | -------------------------------------------------------------------------------- | ------------------------------------------ |
+| `fill`          | background (`"none"` for no fill)                                                | label pill background                      |
+| `stroke`        | outline colour                                                                   | connector and arrowhead colour             |
+| `color`         | label and description text                                                       | label pill text                            |
+| `line`          | `solid`, `dashed` or `dotted` outline                                            | overrides the arrow style                  |
+| `width`         | outline width (0 to 64; a pen's stroke 1 to 64)                                  | connector width                            |
+| `radius`        | corner radius (0 to 64) of boxes, groups                                         | not allowed                                |
+| `shape`         | `node` only: `hexagon`, `icon`… (free.md)                                        | not allowed                                |
+| `pattern`       | `hatch`, `dots`, `cross` or `none`                                               | not allowed                                |
+| `arrowhead`     | not allowed                                                                      | head at the target (below)                 |
+| `arrowtail`     | not allowed                                                                      | head at the source (below)                 |
+| `routing`       | not allowed                                                                      | `auto`, `orthogonal`, `polyline`, `bezier` |
+| `corners`       | not allowed                                                                      | `sharp` or `rounded` bends                 |
+| `class`         | apply classes                                                                    | apply classes                              |
+| `icon`          | `"pack:name"`, placed by `iconPosition`                                          | inside the label pill                      |
+| `iconColor`     | colour of a monochrome icon                                                      | same                                       |
+| `iconPosition`  | `left`, `right`, `top`, `bottom`, `center`                                       | not allowed                                |
+| `labelPosition` | label edge of a centred icon or `shape icon`: `top`, `bottom`, `left`, `right`   | not allowed                                |
+| `iconSize`      | `auto` or 8 to 128: the icon's side                                              | not allowed                                |
+| `textFormat`    | notes only: `code` draws the note as a code block (free.md), `plain` the default | not allowed                                |
 
 Colours are quoted (`"#6a4fd0"`) or colour token names that follow the theme (`danger`, `accent`,
 `muted`, `success`, `warning`, `info`, …).

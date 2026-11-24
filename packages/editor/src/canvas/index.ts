@@ -26,3 +26,5 @@ export {
   type ShapeOutline,
   type ShapeSize,
 } from "@meltemi/diagrams-layout/shapes";
+// Tab stops, from the layout's pure text module, so an editor finds the lines the drawing shows.
+export { expandTabs, TAB_STOP } from "@meltemi/diagrams-layout/text";

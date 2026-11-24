@@ -107,9 +107,55 @@ export interface PanelContent {
   readonly type: string | null;
   readonly facts: readonly PanelFact[];
   readonly description: string | null;
+  /**
+   * A code note's text (decision 0078), shown preformatted under a Copy code button that puts it
+   * on the clipboard, or selects it where the page may not write there; `announce` says which.
+   */
+  readonly code?: {
+    readonly text: string;
+    readonly copy: string;
+    readonly copied: string;
+    readonly selected: string;
+    announce(text: string): void;
+  };
   /** The action that opens what the element holds. */
   readonly open: { readonly label: string; readonly title: string; run(): void } | null;
   readonly sections: readonly PanelSectionContent[];
+}
+
+/**
+ * A code note's text in the detail panel: a Copy code button over the text preformatted, which can
+ * be selected and scrolls sideways. The button writes the text to the clipboard; where the page may
+ * not, it selects the text for the keyboard's copy.
+ */
+function codeBlock(code: NonNullable<PanelContent["code"]>): HTMLElement[] {
+  const pre = el("pre", { class: "code", tabindex: "0" }, code.text);
+  const button = el(
+    "button",
+    { type: "button", class: "action copy-code" },
+    icon(ICONS.copy),
+    code.copy,
+  );
+  const select = () => {
+    const range = document.createRange();
+    range.selectNodeContents(pre);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    code.announce(code.selected);
+  };
+  button.addEventListener("click", () => {
+    const clipboard = navigator.clipboard as Clipboard | undefined;
+    if (!clipboard?.writeText) {
+      select();
+      return;
+    }
+    clipboard.writeText(code.text).then(
+      () => code.announce(code.copied),
+      () => select(),
+    );
+  });
+  return [button, pre];
 }
 
 /** The non-modal panel of the selected element or relation. */
@@ -183,6 +229,7 @@ export class DetailPanel {
       }
       body.push(list);
     }
+    if (content.code) body.push(...codeBlock(content.code));
     if (content.description) body.push(el("p", { class: "description" }, content.description));
     for (const section of content.sections) {
       body.push(el("h4", {}, section.heading));

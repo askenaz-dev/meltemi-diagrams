@@ -179,6 +179,9 @@ story.
   fit their text; a `shape` has its own default size ([reference/free.md](reference/free.md));
   tags and notes size themselves from their text. Use `size` only to make boxes larger or equal;
   if `layout.text-overflow` appears, use the width its hint gives.
+- A fragment of code goes in a note with `style <note> { textFormat code }`, its line breaks as
+  `\n` and its indentation as written: a code block in the monospace font. Never Markdown fences,
+  no-break spaces or a hand-set `font` ([reference/free.md](reference/free.md#code-notes)).
 - Shapes go on flow nodes and free boxes: `style api { shape hexagon }`, one of `rounded`,
   `rectangle`, `square`, `ellipse`, `circle`, `diamond`, `cylinder`, `pill`, `triangle`,
   `parallelogram`, `trapezoid`, `pentagon`, `hexagon`, `octagon`, `star`, `cloud`, `document`,

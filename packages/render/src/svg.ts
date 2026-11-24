@@ -428,10 +428,21 @@ function emit(
           : item.font === "mono"
             ? ` font-family="${escapeXml(scene.fonts.mono)}"`
             : "";
+      // Spaces a viewer would collapse are kept, as the layout measured them and outlines draw them.
+      const space = keepsSpaces(item.text) ? ' xml:space="preserve"' : "";
       out.push(
-        `${indent}<text x="${n(item.x)}" y="${n(item.baseline)}" text-anchor="${item.anchor}" font-size="${n(item.size)}" font-weight="${item.weight}"${familyAttribute} fill="${escapeXml(item.fill)}"${clipped}>${escapeXml(item.text)}</text>`,
+        `${indent}<text x="${n(item.x)}" y="${n(item.baseline)}" text-anchor="${item.anchor}" font-size="${n(item.size)}" font-weight="${item.weight}"${familyAttribute} fill="${escapeXml(item.fill)}"${clipped}${space}>${escapeXml(item.text)}</text>`,
       );
       return;
     }
   }
+}
+
+/**
+ * Whether a text holds spaces that SVG's default white-space handling would drop or merge: a
+ * leading or trailing space, or two in a row. Only such a text is written with `xml:space`, so the
+ * SVG of a drawing without one is unchanged.
+ */
+export function keepsSpaces(text: string): boolean {
+  return text.startsWith(" ") || text.endsWith(" ") || text.includes("  ");
 }

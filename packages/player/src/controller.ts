@@ -402,7 +402,10 @@ export class PlayerController {
     for (const group of sceneGroups(scene.items)) {
       const key = `${group.role}:${group.id}`;
       if (seen.has(key)) continue;
-      if (group.role === "element" && group.bounds)
+      // A code note of a sequence diagram is an event, reached as an element (decision 0078).
+      const note =
+        group.role === "event" && this.document.details[view]?.elements[group.id]?.event === true;
+      if ((group.role === "element" || note) && group.bounds)
         elements.push({ role: "element", id: group.id });
       else if (group.role === "relation" && group.track && group.track.length > 1)
         relations.push({ role: "relation", id: group.id });

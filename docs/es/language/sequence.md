@@ -186,6 +186,12 @@ Cada instrucción de abajo es un evento. Los eventos ocurren en el orden en que 
 | `delay ["Label"]`                                                   | un salto en el tiempo                                                                  |
 | `return ["Label"] [as <id>]`                                        | en el bloque de una llamada, la respuesta a quien llama                                |
 
+Una nota con id acepta un `style`, y `rule note { }` da estilo a todas las notas. `textFormat code`
+dibuja una nota como un bloque de código: su esquina doblada sobre el color `code` del tema, su texto
+en la fuente `mono` en `codeText`, con cada espacio y parada de tabulación
+([free.md](free.md#notas-de-código)): `note retry over api "retry:\n  3 times"` con
+`style retry { textFormat code }`.
+
 Una barra de activación empieza en el mensaje que lleva a su `activate` y termina en el mensaje
 anterior a su `deactivate`. Las activaciones que siguen abiertas al final llegan hasta el final de
 la línea de vida. Una llamada cuyo bloque contiene eventos dibuja la barra del receptor desde la

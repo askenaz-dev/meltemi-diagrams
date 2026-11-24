@@ -7268,6 +7268,89 @@ const tests: Test[] = [
   ...storyReorderTests({ output }),
   ...storyPlayerExportTests({ download }),
   ...storyWorkspaceTests({ output }),
+  {
+    name: "code notes: a code block takes a pasted fragment, keeps it after a reload, and Copy code gives it back",
+    async setup({ context, origin }) {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin });
+    },
+    async run({ page }) {
+      const fragment = [
+        "exports.onExecutePostLogin = async (event, api) => {",
+        '  if (event.client.client_id !== "CLIENT_ID_WEB") {',
+        "    return;",
+        "  }",
+        "",
+        "  // Aplicar lógica específica de la app web.",
+        "};",
+      ].join("\n");
+      const written =
+        'note note1 "exports.onExecutePostLogin = async (event, api) => {\\n  if (event.client.client_id !== \\"CLIENT_ID_WEB\\") {\\n    return;\\n  }\\n\\n  // Aplicar lógica específica de la app web.\\n};"';
+      await page
+        .locator(".code-input")
+        .fill(
+          'language "0.2"\n\ndiagram s: free {\n  layout manual\n  box a "A"\n  placement {\n    place a at (126, 112)\n  }\n}\n',
+        );
+      await analysed(page);
+      await page.locator('#app .content g[data-id="a"][data-role="element"]').first().waitFor();
+      // Code block from the note tool's menu: a note with its format, its editor open on the word.
+      await page.locator('#app .toolbar [data-split="note"] button[data-note-kinds]').click();
+      await page.getByRole("menuitem", { name: "Code block" }).click();
+      await until(page, "the code block written into the code", () =>
+        /\n {2}note note1 "Code"\n[\s\S]*style note1 \{ textFormat code \}/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      const inline = page.locator("#app textarea.inline");
+      await inline.waitFor();
+      assert.equal(await inline.inputValue(), "Code");
+      // A paste from an editor replaces the selected word; Ctrl+Enter keeps it.
+      await page.evaluate((text) => navigator.clipboard.writeText(text), fragment);
+      await page.keyboard.press("Control+V");
+      assert.equal(await inline.inputValue(), fragment);
+      await page.keyboard.press("Control+Enter");
+      await until(
+        page,
+        "the fragment written as the note's label",
+        (label) =>
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(label),
+        written,
+      );
+      // Saved in the browser: a reload draws the same lines, indentation kept.
+      await page.waitForTimeout(700);
+      await page.reload();
+      await ready(page);
+      assert.ok((await code(page)).includes(written), "the label after a reload");
+      const lines = page.locator('#app .content g[data-id="note1"][data-role="element"] text');
+      await until(
+        page,
+        "the block drawn",
+        () =>
+          document.querySelectorAll('#app .content g[data-id="note1"][data-role="element"] text')
+            .length === 7,
+      );
+      assert.equal(await lines.nth(2).textContent(), "    return;");
+      assert.equal(await lines.nth(2).getAttribute("xml:space"), "preserve");
+      await page
+        .locator("#app .main")
+        .screenshot({ path: join(output, "code-block-playground.png") });
+      // Copy code puts the text back on the clipboard as it was pasted.
+      await page.evaluate(() => navigator.clipboard.writeText(""));
+      const body = (await lines.first().boundingBox())!;
+      await page.mouse.click(body.x + body.width / 2, body.y + body.height / 2);
+      await page.mouse.click(body.x + body.width / 2, body.y + body.height / 2, {
+        button: "right",
+      });
+      await page.getByRole("menuitem", { name: "Copy code" }).click();
+      // The host writes the clipboard once the session has answered.
+      let copied = "";
+      for (let i = 0; i < 40 && copied === ""; i++) {
+        await page.waitForTimeout(50);
+        copied = await page.evaluate(() => navigator.clipboard.readText());
+      }
+      // The page writes line feeds; Windows keeps text on its clipboard with CR LF.
+      assert.equal(copied.replace(/\r\n/g, "\n"), fragment);
+    },
+  },
 ];
 
 /** A project somebody shared by its link (its metadata and its files, for anybody), or one that is not found. */

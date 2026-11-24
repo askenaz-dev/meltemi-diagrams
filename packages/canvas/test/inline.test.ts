@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   MIN_WRAPPED_SIZE,
   boxPlace,
+  drawnLines,
+  drawnTextLines,
   grownFrame,
   inlineFrame,
   inlineValue,
@@ -197,6 +199,46 @@ describe("the editor of a sticky note's words", () => {
       nodes.map((n) => n.textContent || n.getAttribute("aria-label"));
     expect(said(wrappedLines(svg, "s1"))).toEqual(["Cache the", "catalogue", "drawn"]);
     expect(wrappedLines(svg, "s3")).toEqual([]);
+  });
+});
+
+describe("the lines of a label with tabs", () => {
+  it("are the drawn lines, each tab at its tab stop", () => {
+    expect(drawnTextLines("if (a) {\n\treturn;\n}", false)).toEqual([
+      "if (a) {",
+      "    return;",
+      "}",
+    ]);
+    expect(drawnTextLines("a\tb", true)).toEqual(["a   b"]);
+    expect(drawnTextLines("one\ntwo", true)).toEqual(["one\ntwo"]);
+  });
+
+  it("find the drawn text of a tabbed line", () => {
+    const node = (
+      tag: string,
+      attributes: Record<string, string> = {},
+      children: unknown[] = [],
+      text = "",
+    ) => ({
+      tagName: tag.toUpperCase(),
+      children,
+      textContent: text,
+      hasAttribute: (name: string) => Object.hasOwn(attributes, name),
+      getAttribute: (name: string) => attributes[name] ?? null,
+    });
+    const group = node("g", { "data-id": "n", "data-role": "element" }, [
+      node("text", {}, [], "if (a) {"),
+      node("text", {}, [], "    return;"),
+      node("path", { "aria-label": "}" }),
+    ]);
+    const svg = { querySelectorAll: () => [group] } as unknown as Element;
+    const found = drawnLines(
+      svg,
+      "n",
+      ["element"],
+      drawnTextLines("if (a) {\n\treturn;\n}", false),
+    );
+    expect(found).toHaveLength(3);
   });
 });
 

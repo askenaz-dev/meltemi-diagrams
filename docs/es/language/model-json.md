@@ -316,14 +316,14 @@ con null en las opciones que no se escriben ([export.md](export.md)).
 
 ## Tema
 
-| Clave     | Tipo          | Significado                                                                                                                                                                                                                          |
-| --------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`      | cadena        | Id del tema.                                                                                                                                                                                                                         |
-| `extends` | cadena o null | Nombre del tema base, o null para `technical.light`.                                                                                                                                                                                 |
-| `tokens`  | objeto        | Valores de los tokens ordenados por nombre, tal como se escribieron (entre ellos `highlight`, `sticky` y `stickyText`); los tamaños y los anchos son números, y las palabras como `sketch rough`, cadenas (`{ "sketch": "rough" }`). |
-| `classes` | lista         | Entradas de clase del bloque del tema.                                                                                                                                                                                               |
-| `rules`   | lista         | Entradas de regla del bloque del tema.                                                                                                                                                                                               |
-| `range`   | rango         | El bloque `theme`.                                                                                                                                                                                                                   |
+| Clave     | Tipo          | Significado                                                                                                                                                                                                                                              |
+| --------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`      | cadena        | Id del tema.                                                                                                                                                                                                                                             |
+| `extends` | cadena o null | Nombre del tema base, o null para `technical.light`.                                                                                                                                                                                                     |
+| `tokens`  | objeto        | Valores de los tokens ordenados por nombre, tal como se escribieron (entre ellos `highlight`, `sticky`, `stickyText`, `code` y `codeText`); los tamaños y los anchos son números, y las palabras como `sketch rough`, cadenas (`{ "sketch": "rough" }`). |
+| `classes` | lista         | Entradas de clase del bloque del tema.                                                                                                                                                                                                                   |
+| `rules`   | lista         | Entradas de regla del bloque del tema.                                                                                                                                                                                                                   |
+| `range`   | rango         | El bloque `theme`.                                                                                                                                                                                                                                       |
 
 ## Diagnóstico
 

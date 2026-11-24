@@ -27,6 +27,11 @@
       "types": "./dist/shapes.d.ts",
       "default": "./dist/shapes.js"
     },
+    "./text": {
+      "@meltemi/diagrams-source": "./src/text.ts",
+      "types": "./dist/text.d.ts",
+      "default": "./dist/text.js"
+    },
     "./viewport": {
       "@meltemi/diagrams-source": "./src/viewport.ts",
       "types": "./dist/viewport.d.ts",
@@ -59,6 +64,10 @@
       "./shapes": {
         "types": "./dist/shapes.d.ts",
         "default": "./dist/shapes.js"
+      },
+      "./text": {
+        "types": "./dist/text.d.ts",
+        "default": "./dist/text.js"
       },
       "./viewport": {
         "types": "./dist/viewport.d.ts",

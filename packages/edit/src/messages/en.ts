@@ -163,6 +163,12 @@ export const en = {
       /** `edit.invalid-value`: a shape given with another kind than `box` or `node`. */
       shapeKinds: (kind: string) =>
         `A new ${kind} takes no shape; shapes are for free boxes and flow nodes.`,
+      /** `edit.invalid-value`: a text format given with another kind than `note`. */
+      textFormatKinds: (kind: string) =>
+        `A new ${kind} takes no \`textFormat\`; text formats are for notes.`,
+      /** `edit.invalid-value`: with the formats of notes. */
+      notTextFormat: (value: string, formats: readonly string[]) =>
+        `\`${value}\` is not a text format; the formats are ${formats.join(", ")}.`,
       needsSource: (kind: "icon" | "image") =>
         `A new ${kind} needs its ${kind === "icon" ? "icon" : "file path"}.`,
       /** `edit.invalid-value`. */
