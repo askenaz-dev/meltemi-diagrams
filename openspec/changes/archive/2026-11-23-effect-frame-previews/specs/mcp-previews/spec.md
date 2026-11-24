@@ -5,10 +5,8 @@
 named diagram (or the file's first), or the story's frame at `at` (its end by default), from
 the project's files at the room's current revision with the same compilation, layout and
 rendering as the command line, and SHALL answer an `image/png` item (`width` 1280 by default)
-or, with `format: "svg"`, the SVG as text. A diagram SHALL be drawn still when `at` is left out
-and, with `at` and no `story`, with its effects (`animate`) at that instant, whether or not the
-file has a story. The hosted endpoint, the local account server and folder mode SHALL answer the
-same.
+or, with `format: "svg"`, the SVG as text. With `at` and no `story` it SHALL draw the diagram's
+effects at that instant.
 
 #### Scenario: The same picture as the command line
 - **WHEN** `preview` is called for `flow.meltemi` with `format: "svg"`
@@ -29,6 +27,10 @@ same.
 #### Scenario: Still by default
 - **WHEN** the same diagram is previewed without `at`
 - **THEN** the picture has no particle and equals the picture drawn before effect frames were reported
+
+#### Scenario: Every host
+- **WHEN** the same effect frame is asked from the hosted endpoint, the local account server and folder mode
+- **THEN** each draws the diagram with its effects at that instant, whether or not the file has a story
 
 ## ADDED Requirements
 
