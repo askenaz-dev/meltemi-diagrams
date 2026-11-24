@@ -917,6 +917,7 @@ export class CanvasApp {
   private readonly banner = h("div", { class: "banner", hidden: true, role: "alert" });
   private readonly empty = h("div", { class: "empty", hidden: true });
   private readonly status = h("div", { class: "status", role: "status", "aria-live": "polite" });
+  private selectionAnnounced = false;
   private readonly minimap = h("div", {
     class: "minimap",
     "aria-label": messages().stage.minimap,
@@ -1311,6 +1312,7 @@ export class CanvasApp {
       case "stale":
         this.storyPanel.sourceChanged(message.revision, message.document ?? this.currentDocument);
         if (message.document && message.document !== this.currentDocument) {
+          this.clearSelectionAnnouncement();
           this.render = undefined;
           this.currentDocument = message.document;
           this.emptyText = messages().stage.fixIt(message.first.message, message.first.line);
@@ -1591,8 +1593,15 @@ export class CanvasApp {
   }
 
   private announce(text: string, error = false): void {
+    this.selectionAnnounced = false;
     this.status.textContent = text;
     this.status.classList.toggle("error", error);
+  }
+
+  private clearSelectionAnnouncement(): void {
+    // A pending label edit must not bring the dismissed announcement back on its next render.
+    this.relabelled = undefined;
+    if (this.selectionAnnounced) this.announce("");
   }
 
   private get showLayers(): boolean {
@@ -2261,6 +2270,13 @@ export class CanvasApp {
   // ------------------------------------------------------------------ render
 
   private applyRender(render: CanvasRender): void {
+    const previous = this.render;
+    if (
+      previous &&
+      (previous.document !== render.document || previous.diagram !== render.diagram)
+    ) {
+      this.clearSelectionAnnouncement();
+    }
     this.currentDocument = render.document;
     // A drawing that plays (or not) against the choice kept for its diagram is not shown: the
     // canvas asks for the other one, which the session answers with at once.
@@ -2272,7 +2288,6 @@ export class CanvasApp {
       this.post({ type: "playEffects", on: !render.playing });
       return;
     }
-    const previous = this.render;
     // Selection/settings replies at the old revision do not confirm a move. Keep its picture
     // and outline until a newer source revision arrives (or the host refuses the action).
     const moveStillPending =
@@ -2381,7 +2396,15 @@ export class CanvasApp {
     this.endPreview();
     // A drag that goes on keeps its elements under the pointer over the new drawing.
     if (this.drag?.kind === "move" && this.drag.moving) this.followPointer();
-    if (!moveStillPending) this.selection = [...render.selection];
+    if (!moveStillPending) {
+      if (
+        this.selection.length !== render.selection.length ||
+        this.selection.some((id, i) => id !== render.selection[i])
+      ) {
+        this.clearSelectionAnnouncement();
+      }
+      this.selection = [...render.selection];
+    }
     // The tools and the panels of this drawing take their room first (after an empty file they
     // were out of sight), so that the fit below measures the stage they leave.
     this.updateToolbar();
@@ -2612,6 +2635,7 @@ export class CanvasApp {
     this.inspector.clear();
     clear(this.map);
     // What the status line said was about the drawing.
+    this.relabelled = undefined;
     this.announce("");
     this.syncToggles();
     this.drawPresence();
@@ -6406,6 +6430,12 @@ export class CanvasApp {
 
   private listen(): void {
     const stage = this.stage;
+    stage.addEventListener("focusout", (e) => {
+      if (!(e.relatedTarget instanceof Node) || !stage.contains(e.relatedTarget)) {
+        this.clearSelectionAnnouncement();
+      }
+    });
+    window.addEventListener("blur", () => this.clearSelectionAnnouncement());
     stage.addEventListener("pointerdown", (e) => this.pointerDown(e));
     stage.addEventListener("pointermove", (e) => this.pointerMove(e));
     // Where the pointer is goes to a host that shares presence, whatever the gesture.
@@ -10203,34 +10233,40 @@ export class CanvasApp {
 
   /** Says what is selected, as the drawing shown has it: its kind, id and text. */
   private announceSelection(): void {
+    const text = this.selectionMessage();
+    this.announce(text);
+    this.selectionAnnounced = text !== "";
+  }
+
+  private selectionMessage(): string {
     const ids = this.selection;
     const last = ids[ids.length - 1];
     const element = last ? this.elements.get(last) : undefined;
     const relation = last ? this.relations.get(last) : undefined;
     const words = messages().announcements;
-    if (ids.length === 0) this.announce(words.nothingSelected);
-    else if (ids.length > 1) this.announce(words.selected(ids.length));
-    else if (element?.pen)
-      this.announce(words.selectedStroke(element.id, element.pen.points.length));
-    else if (element) {
-      this.announce(words.selectedElement(element.kind, element.id, element.label));
-    } else if (relation) {
-      this.announce(
-        words.selectedRelation(relation.from, relation.to, this.render?.profile === "sequence"),
-      );
-    } else if (last && this.events.has(last)) {
-      // A written bar is said by its participant and the messages it spans.
-      const event = this.events.get(last)!;
-      const span =
-        event.kind === "activate" && event.box
-          ? barSpan([...this.events.values()], last)
-          : undefined;
-      this.announce(
-        span
-          ? words.activation(span.participant, span.from, span.to)
-          : words.selectedEvent(event.kind, last),
+    if (ids.length === 0) return words.nothingSelected;
+    if (ids.length > 1) return words.selected(ids.length);
+    if (element?.pen) return words.selectedStroke(element.id, element.pen.points.length);
+    if (element) return words.selectedElement(element.kind, element.id, element.label);
+    if (relation) {
+      return words.selectedRelation(
+        relation.from,
+        relation.to,
+        this.render?.profile === "sequence",
       );
     }
+    const event = last ? this.events.get(last) : undefined;
+    if (event) {
+      // A written bar is said by its participant and the messages it spans.
+      const span =
+        event.kind === "activate" && event.box
+          ? barSpan([...this.events.values()], event.key)
+          : undefined;
+      return span
+        ? words.activation(span.participant, span.from, span.to)
+        : words.selectedEvent(event.kind, event.key);
+    }
+    return "";
   }
 
   // ------------------------------------------------------------------ inline editor and menu
