@@ -36,6 +36,27 @@ other, renaming the element rewrites the clause, and deleting the element leaves
 unknown target is `ref.unknown-element`; a note on itself, `prop.invalid-value`. A note with an
 outline can take `animate remark { effect dash }`; without one, only a pulse.
 
+### Code notes
+
+To show a fragment of code (a handler, a query, a config) beside what it explains, write it as a
+note and give the note `textFormat code`: it is drawn as a code block, in the theme's `mono` font
+on a panel (the `code` and `codeText` tokens), every space, tab and line break kept.
+
+```text
+note action "exports.onExecutePostLogin = async (event, api) => {\n  if (event.client.client_id !== \"CLIENT_ID_WEB\") {\n    return;\n  }\n};" on tenant
+style action { textFormat code }
+```
+
+- The label is the code on one line of source: `\n` for each line break, `\t` for a tab, `\"` for a
+  quote and `\\` for a backslash; keep the indentation's spaces as they are.
+- Never write Markdown fences (they are drawn as text), no-break spaces or a hand-set monospace
+  `font` to fake a code block: `textFormat code` is the whole of it.
+- Lines never wrap: the block is as wide as its longest line. Shorten long lines in the source
+  material, or give the note a smaller `fontSize`; a `size` too small is `layout.text-overflow`.
+- Check the block in the export, or through the MCP in the `preview` image, as for any note.
+- `rule note { textFormat code }` makes every note code; `textFormat plain` overrides it. Flow
+  notes, C4 view notes and sequence notes take it too; anything else refuses it.
+
 ## Stickies
 
 ```text
