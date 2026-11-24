@@ -803,6 +803,8 @@ export const es: typeof en = {
         "Los diagramas de flujo y de secuencia y las vistas C4 colocan el texto donde lo pone su forma; las composiciones libres eligen su alineación con `textAlign` y `verticalAlign`.",
       textTargets:
         "`font`, `fontSize` y `fontWeight` se aplican a lo que dibuja texto: cajas, nodos, grupos, notas, etiquetas, notas adhesivas, textos, participantes, entidades, relaciones y líneas, no a iconos, imágenes ni trazos de lápiz.",
+      noteTargets:
+        "`textFormat` se aplica a las notas: los elementos `note` de los diagramas de flujo, las composiciones libres y las vistas C4, y las notas de los diagramas de secuencia. `textFormat code` dibuja una nota como un bloque de código.",
       freeOpacity:
         "Los diagramas de flujo y de secuencia y las vistas C4 dibujan cada elemento opaco; las composiciones libres atenúan elementos, grupos, líneas y trazos de lápiz con `opacity`.",
       opacityTargets: "`opacity` se aplica a elementos, grupos, líneas y trazos de lápiz.",

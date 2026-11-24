@@ -1,5 +1,5 @@
 import type { Locale } from "@meltemi/diagrams-i18n";
-import { c4TypeName, type LayoutResult } from "@meltemi/diagrams-layout";
+import { StyleResolver, c4TypeName, type LayoutResult, type Theme } from "@meltemi/diagrams-layout";
 import {
   SECONDS_PER_DAY,
   dayNumber,
@@ -70,7 +70,37 @@ export interface DocumentOptions {
 
 const oneLine = (text: string) => text.replace(/\s*\n\s*/g, " ").trim();
 
-function namesOf(diagram: FlowDiagram): ViewNames {
+/**
+ * The code notes of a diagram and their text as written (decision 0078): its `note` elements and
+ * the notes of a sequence diagram, by key, that `textFormat code` draws as code blocks under
+ * `theme`. None without a theme.
+ */
+export function codeNotesOf(diagram: FlowDiagram, theme: Theme | undefined): Map<string, string> {
+  const notes = new Map<string, string>();
+  if (!theme) return notes;
+  const styles = new StyleResolver(theme, diagram);
+  for (const element of diagram.elements) {
+    if (element.kind === "note" && styles.element(element).textFormat === "code") {
+      notes.set(element.id, element.label);
+    }
+  }
+  for (const event of diagram.eventsByKey.values()) {
+    if (event.kind !== "note") continue;
+    if (styles.event(event.id ?? event.key, "note").textFormat === "code") {
+      notes.set(event.key, event.text);
+    }
+  }
+  return notes;
+}
+
+/** A code note's name: its first line that holds more than spaces. */
+const codeName = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line !== "") ?? "";
+
+function namesOf(diagram: FlowDiagram, codes: ReadonlyMap<string, string> = new Map()): ViewNames {
   const labels: Record<string, string> = {};
   for (const element of diagram.elements) labels[element.id] = oneLine(element.label || element.id);
   for (const relation of diagram.relations) {
@@ -86,6 +116,8 @@ function namesOf(diagram: FlowDiagram): ViewNames {
           : event.id;
     labels[event.id] = oneLine(text || event.id);
   }
+  // A code note is named by its first line, not its whole text on one line.
+  for (const [key, text] of codes) labels[key] = oneLine(codeName(text) || key);
   return { title: diagram.properties.title, labels };
 }
 
@@ -157,6 +189,8 @@ export function detailsOf(
   locale: Locale = "en",
   opens: Readonly<Record<string, OpenTarget>> = {},
   parent: ViewDetails["parent"] = null,
+  /** The view's code notes and their text (`codeNotesOf`). */
+  codes: ReadonlyMap<string, string> = new Map(),
 ): ViewDetails {
   const elements: Record<string, ElementDetails> = {};
   const chart = diagram.type === "gantt";
@@ -173,6 +207,23 @@ export function detailsOf(
       entity: element.entity?.path ?? linked,
       opens: opens[element.id] ?? null,
       ...(schedule ? { schedule } : {}),
+      ...(codes.has(element.id) ? { code: codes.get(element.id)! } : {}),
+    };
+  }
+  // The code notes of a sequence diagram are events: selectable for their text alone.
+  for (const [key, code] of codes) {
+    if (elements[key] || !diagram.eventsByKey.has(key)) continue;
+    elements[key] = {
+      kind: "note",
+      type: null,
+      technology: null,
+      description: null,
+      url: null,
+      external: false,
+      entity: null,
+      opens: null,
+      code,
+      event: true,
     };
   }
   const relations: Record<string, RelationDetails> = {};
@@ -262,8 +313,9 @@ export function storiesDocument(
       const name = freeKey(laid.diagram.id, views);
       keys.set(key, name);
       views[name] = data;
-      names[name] = namesOf(laid.diagram);
-      details[name] = detailsOf(laid.diagram, options.locale);
+      const codes = codeNotesOf(laid.diagram, laid.layout.theme);
+      names[name] = namesOf(laid.diagram, codes);
+      details[name] = detailsOf(laid.diagram, options.locale, {}, null, codes);
       accent ??= laid.layout.theme?.accent;
     }
     const timeline: StoryTimeline = {
@@ -332,13 +384,15 @@ export function effectsDocument(
   const views: Record<string, EffectsViewData> = {};
   const names: Record<string, ViewNames> = {};
   const diagrams = new Map<string, FlowDiagram>();
+  const codes = new Map<string, Map<string, string>>();
   for (const [host, laid] of laidOut) {
     const data = host === rootHost ? root : storyViewData(laid.diagram, laid.layout);
     if (!data) continue;
     const name = freeKey(laid.diagram.id, views);
     keys.set(host, name);
     views[name] = { ...data, durationMs: motionDuration(data.plan) };
-    names[name] = namesOf(laid.diagram);
+    codes.set(name, codeNotesOf(laid.diagram, laid.layout.theme));
+    names[name] = namesOf(laid.diagram, codes.get(name));
     diagrams.set(name, laid.diagram);
   }
   // What each element opens, by document keys; targets outside the document are dropped.
@@ -368,6 +422,7 @@ export function effectsDocument(
       options.locale,
       opens.get(name) ?? {},
       parents.get(name) ?? null,
+      codes.get(name),
     );
   }
   const key = keys.get(rootHost)!;

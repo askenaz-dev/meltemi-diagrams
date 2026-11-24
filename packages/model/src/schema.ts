@@ -404,6 +404,12 @@ export function profileTakesRotation(profile: { readonly name: string }): boolea
   return profile.name !== "sequence" && profile.name !== "c4" && profile.name !== "gantt";
 }
 export const TEXT_ALIGNS = ["left", "center", "right"] as const;
+/**
+ * How a note's text is drawn (decision 0078): `plain`, a note of its profile, or `code`, a code
+ * block in the theme's monospace font on a panel. A note without `textFormat` is `plain`.
+ */
+export const TEXT_FORMATS = ["plain", "code"] as const;
+export type TextFormat = (typeof TEXT_FORMATS)[number];
 /** Where a free box's text block sits within the shape's text band, top to bottom. */
 export const VERTICAL_ALIGNS = ["top", "middle", "bottom"] as const;
 export const FONT_WEIGHTS = [400, 500, 600, 700] as const;
@@ -432,6 +438,12 @@ export const DEFAULT_THEME = "technical.light";
  */
 export const THEME_WHITEBOARD_TOKENS = ["highlight", "sticky", "stickyText"] as const;
 
+/**
+ * The colour tokens of code notes (decision 0078): the default fill of their panel and the colour
+ * of their text. The theme panel groups them apart.
+ */
+export const THEME_CODE_TOKENS = ["code", "codeText"] as const;
+
 /** Colour tokens of a theme, in the order they are documented. */
 export const THEME_COLOR_TOKENS = [
   "background",
@@ -451,6 +463,7 @@ export const THEME_COLOR_TOKENS = [
   "danger",
   "info",
   ...THEME_WHITEBOARD_TOKENS,
+  ...THEME_CODE_TOKENS,
 ] as const;
 
 /**
@@ -582,10 +595,16 @@ export const STYLE_PROPERTIES: PropertyTable = {
   rotation: { kind: "number", ...ROTATION_RANGE },
   ...TEXT_STYLE_PROPERTIES,
   ...FREE_STYLE_PROPERTIES,
+  /** Notes only: how their text is drawn (`NOTE_ONLY_PROPERTIES`). */
+  textFormat: { kind: "enum", values: TEXT_FORMATS },
 };
+
+/** Style properties that only notes take, in every profile that has notes. */
+export const NOTE_ONLY_PROPERTIES: readonly string[] = ["textFormat"];
 
 /** Style properties that apply only to elements, and only to relations. */
 export const ELEMENT_ONLY_PROPERTIES: readonly string[] = [
+  ...NOTE_ONLY_PROPERTIES,
   "pattern",
   "iconPosition",
   "labelPosition",

@@ -6,6 +6,7 @@ export const PROPERTY_TABS = ["style", "text", "layout", "effects", "details"] a
 export type PropertyTab = (typeof PROPERTY_TABS)[number];
 
 const TEXT = new Set([
+  "textFormat",
   "color",
   "font",
   "fontSize",

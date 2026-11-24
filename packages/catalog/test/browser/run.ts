@@ -27,6 +27,8 @@ function writeFixture(folder: string, locale?: "es"): string {
   for (const sheet of [
     "c4/commerce.meltemi",
     "free/converted.meltemi",
+    // Code notes (decision 0078): their panel shows the code with Copy code.
+    "free/code-notes.meltemi",
     "sequence/payment.meltemi",
     "stories/purchase.meltemi",
   ]) {
@@ -223,6 +225,31 @@ const tests: Test[] = [
       );
       assert.equal(await heading(page), "grouped");
       await shot(page, "linked");
+    },
+  },
+  {
+    name: "shows a code note's text preformatted in its panel, with Copy code",
+    run: async (page) => {
+      await open(page, "#/diagram/free/code-notes/code_notes");
+      await drawing(page);
+      const panelBox = await page.evaluate(() => {
+        const rect = document
+          .querySelector("#drawing")!
+          .shadowRoot!.querySelector('.picture [data-id="handler"][data-role="element"] rect')!
+          .getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      });
+      await page.mouse.click(panelBox.x, panelBox.y);
+      const panel = page.locator("#drawing").getByRole("region");
+      await panel.waitFor();
+      assert.equal((await catalogState(page)).selection?.id, "handler");
+      const code = await panel.locator("pre.code").textContent();
+      assert.ok(
+        code?.startsWith('app.post("/orders", async (req, res) => {\n  const order'),
+        code ?? "",
+      );
+      assert.equal(await panel.getByRole("button", { name: "Copy code" }).count(), 1);
+      await shot(page, "code-note");
     },
   },
   {

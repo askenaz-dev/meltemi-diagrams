@@ -129,12 +129,16 @@ export function drawnText(
   diagram: FlowDiagram,
   target: TextTarget,
   resolver: StyleResolver = new StyleResolver(theme, diagram),
+  /** The styles the target's format is read from, its own statements included: `resolver`'s. */
+  formats: StyleResolver = resolver,
 ): TextFace | undefined {
   const base = themeText(theme, diagram, target);
   if (!base) return undefined;
   const style = resolvedStyle(resolver, diagram, target);
+  // A code note's text is in the theme's mono font unless a font is written (decision 0078).
+  const code = resolvedStyle(formats, diagram, target).textFormat === "code";
   return {
-    family: style.font ? firstFamily(style.font) : base.family,
+    family: style.font ? firstFamily(style.font) : code ? stackFamily(theme.mono) : base.family,
     size: style.fontSize ?? base.size,
     weight: style.fontWeight ?? base.weight,
   };

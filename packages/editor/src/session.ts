@@ -82,6 +82,7 @@ import {
 } from "./canvas/protocol.js";
 import { DEFAULT_GRID, snapValue, writtenCenter } from "./canvas/snapping.js";
 import { copyFragment, pasteOperations } from "./clipboard.js";
+import { codeNoteText } from "./code-notes.js";
 import { iconGroups, takesIcon, writtenIcon } from "./icons.js";
 import { fieldOperations, inspect, namedRelation, themeSwatches } from "./inspector.js";
 import { freshModelRelationId, freshRelationId, nameable } from "./targets.js";
@@ -1051,6 +1052,16 @@ export class CanvasSession {
         const reveal = this.rangeOf(message.id);
         return reveal ? { messages: [], reveal: { ...reveal, focus: true } } : NONE;
       }
+      case "copyText": {
+        // A code note's text as written, never another element's: what the context menu offers.
+        const text = this.diagram ? codeNoteText(analysis, this.diagram, message.id) : undefined;
+        return text === undefined
+          ? NONE
+          : {
+              messages: [{ type: "status", message: wording().session.codeCopied }],
+              clipboard: text,
+            };
+      }
       case "copy": {
         const text = this.diagram ? copyFragment(analysis, this.diagram, message.ids) : undefined;
         return text
@@ -1588,9 +1599,10 @@ export class CanvasSession {
               diagram: d,
               elementKind: "note",
               id,
-              label: "Note",
+              label: action.label ?? "Note",
               ...(placed ? { at } : {}),
               ...(action.attachedTo !== undefined ? { attachedTo: action.attachedTo } : {}),
+              ...(action.textFormat !== undefined ? { textFormat: action.textFormat } : {}),
             },
           ]);
         }
@@ -2493,6 +2505,7 @@ export class CanvasSession {
           ...(action.fill !== undefined ? { fill: action.fill } : {}),
           ...(action.layout !== undefined ? { layout: action.layout } : {}),
           ...(action.attachedTo !== undefined ? { attachedTo: action.attachedTo } : {}),
+          ...(action.textFormat !== undefined ? { textFormat: action.textFormat } : {}),
         });
         this.pendingSelection = [id];
         this.pendingEdit = id;

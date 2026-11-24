@@ -98,6 +98,79 @@ const effects = effectsDocument({
   layout: layoutDiagram(compilation, checkout, { engine }),
 })!;
 
+/** Code notes (decision 0078): a code note with a tab, one with a long line, a plain note. */
+const codeSource = compile(`language "0.2"
+diagram d: free {
+  layout manual
+  box api "API"
+  note snippet "if (a) {\\n\\treturn;\\n}" on api
+  note wide "const query = 'SELECT id, name, email, created_at, updated_at FROM users WHERE active = true ORDER BY created_at DESC LIMIT 50';"
+  note legend "Plain words"
+  placement {
+    place api at (120, 100)
+    place snippet at (420, 100)
+    place wide at (560, 260)
+    place legend at (120, 260)
+  }
+  style snippet, wide { textFormat code }
+}
+`);
+const codeDiagram = codeSource.document.diagrams[0]!;
+const codeNotes = effectsDocument({
+  diagram: codeDiagram,
+  layout: layoutDiagram(codeSource, codeDiagram, { engine }),
+})!;
+const sequenceSource = compile(`language "0.2"
+diagram s: sequence {
+  api -> db: "Query"
+  note r over api "retry:\\n  3 times"
+  note p over db "Plain"
+  style r { textFormat code }
+}
+`);
+const sequenceDiagram = sequenceSource.document.diagrams[0]!;
+const sequenceCode = effectsDocument({
+  diagram: sequenceDiagram,
+  layout: layoutDiagram(sequenceSource, sequenceDiagram, { engine }),
+})!;
+
+/** Puts a clipboard in the page that keeps what is written (`accept`) or refuses it. */
+async function stubClipboard(page: Page, mode: "accept" | "refuse"): Promise<void> {
+  // A script as text: the functions tsx compiles carry a `__name` helper the page does not have.
+  await page.evaluate(
+    `Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText(text) {
+          if (${mode === "refuse"}) return Promise.reject(new Error("refused"));
+          window.__copied = text;
+          return Promise.resolve();
+        },
+      },
+    });`,
+  );
+}
+
+/** The centre of a note's own panel in the first player, its leader left out. */
+async function panelCentre(page: Page, id: string): Promise<{ x: number; y: number }> {
+  return page.evaluate((i) => {
+    const root = document.querySelector("meltemi-player")!.shadowRoot!;
+    const box = root
+      .querySelector(`.picture [data-id="${i}"][data-role="element"] rect`)!
+      .getBoundingClientRect();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  }, id);
+}
+
+/** What the first player's live region says. */
+async function live(page: Page): Promise<string> {
+  return page.evaluate(
+    () =>
+      document.querySelector("meltemi-player")!.shadowRoot!.querySelector('[aria-live="polite"]')
+        ?.textContent ?? "",
+  );
+}
+
 /** The commerce context view with its container and component views, as the exporter bundles them. */
 function commerceDocument(locale: "en" | "es") {
   const source = compile(readFileSync(join(corpus, "valid", "c4", "commerce.meltemi"), "utf8"));
@@ -1340,6 +1413,105 @@ const tests: {
         ),
         "context",
       );
+    },
+  },
+  {
+    name: "code notes: the panel shows a code note's text preformatted, and Copy code copies it",
+    html: playerPage(codeNotes, script),
+    async run(page) {
+      await stubClipboard(page, "accept");
+      const note = await panelCentre(page, "snippet");
+      await page.mouse.click(note.x, note.y);
+      const panel = page.getByRole("region", { name: "Details of if (a) {" });
+      await panel.waitFor();
+      const pre = panel.locator("pre.code");
+      assert.equal(await pre.textContent(), "if (a) {\n\treturn;\n}");
+      assert.equal(await pre.evaluate((e) => getComputedStyle(e).whiteSpace), "pre");
+      assert.equal(await pre.evaluate((e) => getComputedStyle(e).tabSize), "4");
+      await page.screenshot({ path: join(output, "player-code-note.png") });
+      await panel.getByRole("button", { name: "Copy code" }).click();
+      await page.waitForFunction(
+        () => (window as unknown as { __copied?: string }).__copied !== undefined,
+      );
+      assert.equal(
+        await page.evaluate(() => (window as unknown as { __copied: string }).__copied),
+        "if (a) {\n\treturn;\n}",
+      );
+      assert.equal(await live(page), "Copied the code.");
+      assert.deepEqual(await selection(page), { role: "element", id: "snippet", view: "d" });
+    },
+  },
+  {
+    name: "code notes: a long line scrolls inside its block, and a plain note shows no block",
+    html: playerPage(codeNotes, script),
+    async run(page) {
+      const wide = await centre(page, "wide");
+      await page.mouse.click(wide.x, wide.y);
+      const panel = page.getByRole("region");
+      await panel.locator("pre.code").waitFor();
+      const sizes = await panel.locator("pre.code").evaluate((e) => ({
+        scroll: e.scrollWidth,
+        client: e.clientWidth,
+      }));
+      assert.ok(sizes.scroll > sizes.client, `the block scrolls: ${JSON.stringify(sizes)}`);
+      assert.ok(((await panel.boundingBox())?.width ?? 0) <= 321, "the panel keeps its width");
+      const legend = await centre(page, "legend");
+      await page.mouse.click(legend.x, legend.y);
+      await page.getByRole("region", { name: "Details of Plain words" }).waitFor();
+      assert.equal(await page.getByRole("region").locator("pre.code").count(), 0);
+      assert.equal(await page.getByRole("button", { name: "Copy code" }).count(), 0);
+    },
+  },
+  {
+    name: "code notes: where the clipboard is refused, Copy code selects the text and says so",
+    html: playerPage(codeNotes, script),
+    async run(page) {
+      await stubClipboard(page, "refuse");
+      const note = await panelCentre(page, "snippet");
+      await page.mouse.click(note.x, note.y);
+      const panel = page.getByRole("region", { name: "Details of if (a) {" });
+      await panel.getByRole("button", { name: "Copy code" }).click();
+      await page.waitForFunction(() => {
+        const root = document.querySelector("meltemi-player")!.shadowRoot!;
+        return (root.querySelector('[aria-live="polite"]')?.textContent ?? "").includes("selected");
+      });
+      assert.equal(await live(page), "The code is selected: copy it with the keyboard.");
+      const selected = await page.evaluate(() => {
+        const root = document.querySelector("meltemi-player")!.shadowRoot! as ShadowRoot & {
+          getSelection?: () => Selection | null;
+        };
+        return (root.getSelection?.() ?? window.getSelection())?.toString() ?? "";
+      });
+      assert.equal(selected, "if (a) {\n\treturn;\n}");
+    },
+  },
+  {
+    name: "code notes: a code note of a sequence diagram is selected, by a click and by the arrow keys",
+    html: playerPage(sequenceCode, script),
+    async run(page) {
+      const note = await centre(page, "r", "event");
+      await page.mouse.click(note.x, note.y);
+      const panel = page.getByRole("region", { name: "Details of retry:" });
+      await panel.waitFor();
+      assert.equal(await panel.locator("pre.code").textContent(), "retry:\n  3 times");
+      assert.deepEqual(await selection(page), { role: "element", id: "r", view: "s" });
+      // A plain note of the sequence stays out of reach.
+      const plain = await centre(page, "p", "event");
+      await page.mouse.click(plain.x, plain.y);
+      assert.notDeepEqual(await selection(page), { role: "element", id: "p", view: "s" });
+      // The arrow keys go through what can be selected, the code note among it.
+      await page.keyboard.press("Escape");
+      await page.locator(".frame").focus();
+      const said: string[] = [];
+      for (let i = 0; i < 8; i++) {
+        await page.keyboard.press("ArrowDown");
+        said.push((await page.getByRole("status").textContent()) ?? "");
+      }
+      assert.ok(
+        said.some((s) => s.includes("retry:")),
+        `the arrows reach the code note: ${said.join(" | ")}`,
+      );
+      assert.ok(!said.some((s) => s.includes("Plain")), "and not the plain note");
     },
   },
 ];

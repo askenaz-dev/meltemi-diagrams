@@ -1,0 +1,27 @@
+language "0.2"
+
+// Code notes (decision 0078): a fragment indented with spaces attached to the box it explains,
+// one indented with tabs, one with written colours and size, and a query whose columns line up.
+// Spaces, tab stops and empty lines are drawn as written.
+diagram code: free {
+  title "Code notes"
+  layout manual
+
+  box tenant "Auth0 tenant" { description "Post Login Action" }
+  note action "exports.onExecutePostLogin = async (event, api) => {\n  if (event.client.client_id !== \"CLIENT_ID_WEB\") {\n    return;\n  }\n\n  // Aplicar lógica específica de la app web.\n};" on tenant
+  note handler "func handle() {\n\tif ok {\n\t\treturn\n\t}\n}"
+  note config "retries:  3\ntimeout:  30s\nbackoff:  exponential"
+  note cut "SELECT id, name, created_at\n  FROM users\n WHERE active = true\n ORDER BY created_at DESC;"
+
+  placement {
+    place tenant at (200, 80)
+    size tenant (240, 72)
+    place action at (520, 240)
+    place handler at (140, 260)
+    place config at (140, 420)
+    place cut at (560, 440)
+  }
+
+  style action, handler, cut { textFormat code }
+  style config { textFormat code; fontSize 12; fill "#0b1830"; color "#e6edf3"; stroke "#22d3ee"; radius 4 }
+}

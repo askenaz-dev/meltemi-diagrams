@@ -236,6 +236,7 @@ const MESSAGES = {
     writes: true,
   })),
   copy: [{ message: { type: "copy", ids: ["a"] }, writes: false }],
+  copyText: [{ message: { type: "copyText", id: "a" }, writes: false }],
   focusText: [{ message: { type: "focusText", id: "a" }, writes: false }],
   export: [{ message: { type: "export" }, writes: false }],
   openModel: [{ message: { type: "openModel" }, writes: false }],

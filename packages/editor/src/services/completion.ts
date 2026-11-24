@@ -29,6 +29,7 @@ import {
   STYLE_PROPERTIES,
   THEME_COLOR_TOKENS,
   THEME_TOKENS,
+  NOTE_ONLY_PROPERTIES,
   isFreeStyleProperty,
   profileTakesRotation,
   profileTakesShape,
@@ -930,12 +931,15 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
         // participants and C4 entities draw their own, upright.
         const shapes = diagram === undefined || profileTakesShape(profile);
         const turns = diagram === undefined || profileTakesRotation(profile);
+        // `textFormat` styles notes: a class (applied anywhere), `rule note` and notes' styles.
+        const notes = stylesNotes(analysis, diagram, offset);
         const names = Object.keys(profile.styleProperties).filter(
           (p) =>
             (scope !== "class" || p !== "class") &&
             (free || !isFreeStyleProperty(p)) &&
             (shapes || p !== "shape") &&
             (turns || p !== "rotation") &&
+            (notes || !NOTE_ONLY_PROPERTIES.includes(p)) &&
             (diagram?.type !== "sequence" || p !== "radius") &&
             // A chart's bars, diamonds and lines have a fixed shape and no place of their own.
             (diagram?.type !== "gantt" || !GANTT_REFUSED_STYLE_PROPERTIES.includes(p)),
@@ -1032,6 +1036,35 @@ function freeObjectBlockAt(analysis: DocumentAnalysis, offset: number): string |
     diagramAt(analysis.compilation, offset) !== undefined
     ? owner.keyword.text
     : undefined;
+}
+
+/**
+ * Whether the block around `offset` may style notes: a class, which is applied to anything, a
+ * `rule note`, or a `style` whose targets are all notes (note elements or notes of a sequence).
+ */
+function stylesNotes(
+  analysis: DocumentAnalysis,
+  diagram: FlowDiagram | undefined,
+  offset: number,
+): boolean {
+  const owner = blockAt(analysis.compilation.parse.root, offset)?.owner;
+  if (owner?.kind !== "KeywordStatement") return true;
+  const names = owner.args.flatMap((arg) => (arg.kind === "QualifiedRef" ? [arg.text] : []));
+  switch (owner.keyword.text) {
+    case "rule":
+      return names[0] === "note";
+    case "style":
+      return (
+        names.length > 0 &&
+        names.every(
+          (name) =>
+            diagram?.elementsById.get(name)?.kind === "note" ||
+            diagram?.eventsByKey.get(name)?.kind === "note",
+        )
+      );
+    default:
+      return true;
+  }
 }
 
 /** The effect written in the `animate` block around `offset`, or null. */

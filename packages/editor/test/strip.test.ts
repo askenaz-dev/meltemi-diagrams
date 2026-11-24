@@ -98,12 +98,14 @@ describe("style strip", () => {
     const canvas = open(SHEET.replace("  layout manual", '  theme "brand"\n  layout manual'));
     canvas.send({ type: "select", ids: ["db"] });
     const fill = canvas.inspector().fields.find((f) => f.name === "style.fill")!;
-    // The sixteen colours and the three of whiteboards.
-    expect(fill.swatches).toHaveLength(19);
+    // The sixteen colours, the three of whiteboards and the two of code notes.
+    expect(fill.swatches).toHaveLength(21);
     expect(fill.swatches!.map((s) => s.token).slice(16)).toEqual([
       "highlight",
       "sticky",
       "stickyText",
+      "code",
+      "codeText",
     ]);
     expect(fill.swatches!.map((s) => s.token).slice(0, 3)).toEqual([
       "background",
@@ -655,7 +657,7 @@ describe("whiteboard objects", () => {
     // The inspector's own fields: no kind, no text, no group to pick, no ports, place or size.
     expect(fields(model)).toEqual(["id", "description", "classes", "layer", "link", "url"]);
     expect(field(model, "style.stroke")).toMatchObject({ value: null, placeholder: "ink" });
-    expect(field(model, "style.stroke")!.swatches).toHaveLength(19);
+    expect(field(model, "style.stroke")!.swatches).toHaveLength(21);
     expect(field(model, "style.width")).toMatchObject({
       label: "Stroke width",
       value: null,
@@ -738,10 +740,10 @@ describe("whiteboard objects", () => {
     );
     // Then the theme's tokens, its sticky colour among them.
     expect(fill.swatches!.slice(6).map((s) => s.token)).toContain("sticky");
-    expect(fill.swatches).toHaveLength(25);
+    expect(fill.swatches).toHaveLength(27);
     // The text's colour row has the theme's tokens only.
     expect(field(model, "style.color")).toMatchObject({ placeholder: "stickyText" });
-    expect(field(model, "style.color")!.swatches).toHaveLength(19);
+    expect(field(model, "style.color")!.swatches).toHaveLength(21);
     expect(field(model, "style.radius")).toMatchObject({ value: null, placeholder: "2" });
     expect(field(model, "style.textAlign")).toMatchObject({ placeholder: "center" });
     expect(field(model, "style.verticalAlign")).toMatchObject({ placeholder: "middle" });
@@ -782,11 +784,11 @@ describe("whiteboard objects", () => {
     canvas.send({ type: "select", ids: ["api"] });
     const box = canvas.inspector();
     expect(field(box, "style.fontSize")!.section).toBe("strip");
-    expect(field(box, "style.fill")!.swatches).toHaveLength(19);
+    expect(field(box, "style.fill")!.swatches).toHaveLength(21);
     // Two stickies share the row and the strip.
     canvas.send({ type: "select", ids: ["a", "solo"] });
     const both = canvas.inspector();
-    expect(field(both, "style.fill")!.swatches).toHaveLength(25);
+    expect(field(both, "style.fill")!.swatches).toHaveLength(27);
     expect(field(both, "style.fontSize")!.section).toBe("strip");
   });
 

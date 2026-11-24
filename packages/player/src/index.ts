@@ -4,6 +4,7 @@ export {
   PLAYER_FORMAT,
   PLAYER_VERSION,
   READABLE_VERSIONS,
+  codeNotesOf,
   detailsOf,
   effectsDocument,
   isPlayerDocument,

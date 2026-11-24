@@ -6,6 +6,19 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 
 ## Unreleased
 
+### Language and drawing
+
+- Text keeps its spaces in every output. Leading, trailing and repeated spaces are drawn under
+  the `system` and `embedded` font policies, on the canvas and in PNG and PDF, as `outlined`
+  already drew them; a tab advances to the next tab stop, every four characters, and is no longer
+  reported as an unmeasured character.
+- Code notes: `textFormat code` on a note of a flow diagram, a free composition, a C4 view or a
+  sequence diagram draws it as a code block, in the theme's `mono` font on a panel inset from its
+  text, with the new theme tokens `code` and `codeText`; lines never wrap, and a `size` too small
+  clips the code and reports `layout.text-overflow`. Without the property a note is drawn as before.
+- The MCP preview draws monospace text, tags included, in Cascadia Mono: resvg takes only the first
+  family of a list, and the themes' monospace stack starts with `ui-monospace`.
+
 ### Delivery
 
 - The installed-package release check verifies the complete folder MCP tool catalogue and
@@ -14,6 +27,13 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 
 ### Canvas
 
+- The note button has a menu with **Note** and **Code block**: a code block opens its editor on
+  a selected word, ready for a paste, and can be dragged onto the canvas. **Format** in the Text
+  tab switches a note between plain text and code without touching its text. In a code note's
+  editor Enter keeps the indentation, Tab and Shift+Tab indent and Ctrl+Enter commits. **Copy code**
+  in the context menu, read-only canvases included, copies a code note's text as written.
+- The player, the catalog and published pages show a code note's text preformatted in its panel
+  with **Copy code**, and select the code notes of sequence diagrams.
 - Stories have an explicit scene selector, separate editing/playing highlights, human-readable
   story and scene names, and a locally resizable panel. The lower delete action removes a scene;
   story deletion is available above and in the explorer. Source/revision guards prevent stale

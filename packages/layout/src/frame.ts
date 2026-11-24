@@ -1,6 +1,7 @@
 import { markGroup } from "./mark.js";
 import { fontRole, writtenStack, type TextFont, type TextMetrics } from "./measure.js";
 import type { GroupItem, SceneItem, TextItem } from "./scene.js";
+import { expandTabs } from "./text.js";
 import type { Theme } from "./theme.js";
 
 /** Rounds to two decimals, as every scene coordinate is. */
@@ -26,7 +27,7 @@ export function textItem(
     x: round2(x),
     y: round2(y),
     baseline: round2(metrics.baseline(y, font, weight, size)),
-    text,
+    text: expandTabs(text),
     size,
     weight,
     font: fontRole(font),

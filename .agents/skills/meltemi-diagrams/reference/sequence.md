@@ -23,6 +23,7 @@ activate api                           // bar from the message before; deactivat
 create order                           // the head appears at this row
 destroy order                          // the lifeline ends with a cross
 note over api, bank "Timeout 3 s"      // also: note left of api "…", note right of api "…"
+note retry over api "retries: 3\n  backoff: 2s"   // with `style retry { textFormat code }`: a code block
 divider "Fulfilment"
 delay "Two days later"
 autonumber                             // numbers every message from 1 (autonumber 10: from 10)

@@ -407,8 +407,13 @@ function rangeField(field: InspectorField, send: Send, slide: Send): HTMLElement
   );
 }
 
-/** The three fields of the strip's Text group. */
-const TEXT_FIELDS: readonly string[] = ["style.font", "style.fontSize", "style.fontWeight"];
+/** The fields of the strip's Text group: a note's format first (decision 0078), then the font. */
+const TEXT_FIELDS: readonly string[] = [
+  "style.textFormat",
+  "style.font",
+  "style.fontSize",
+  "style.fontWeight",
+];
 
 /** The bounds of a text size typed in the strip, as the language takes them. */
 const FONT_SIZE_RANGE = { min: 6, max: 160 } as const;

@@ -27,6 +27,11 @@ export interface StageHandlers {
   resized(size: Size): void;
   /** Whether an element is a container: relations crossing its box keep the pointer. */
   container(id: string): boolean;
+  /**
+   * Whether an event of the drawing (a note of a sequence diagram) is selected as an element is:
+   * a code note, whose panel shows its text (decision 0078).
+   */
+  selectable?(id: string): boolean;
 }
 
 /** What the overlay draws: on the view's scene, the rings of three states and the badges. */
@@ -250,7 +255,8 @@ export class Stage {
       const element = new Map<string, GroupItem>();
       const relation = new Map<string, GroupItem>();
       for (const g of groups) {
-        if (g.role === "element" && g.bounds && !element.has(g.id)) element.set(g.id, g);
+        const picked = g.role === "element" || (g.role === "event" && this.selectable(g.id));
+        if (picked && g.bounds && !element.has(g.id)) element.set(g.id, g);
         else if (g.role === "relation" && g.track && g.track.length > 1 && !relation.has(g.id))
           relation.set(g.id, g);
       }
@@ -383,7 +389,8 @@ export class Stage {
       if (!(node instanceof Element)) continue;
       const role = node.getAttribute("data-role");
       const id = node.getAttribute("data-id");
-      if (role === "motion" || id === null || !accepted(role)) continue;
+      if (role === "motion" || id === null) continue;
+      if (!accepted(role) && !(role === "event" && this.selectable(id))) continue;
       if (this.hidden(node)) return null;
       if (role === "relation" && this.overlay.contains(node)) {
         // A hit track crossing a box: the box under the pointer wins, unless it is a container.
@@ -393,6 +400,11 @@ export class Stage {
       return { role: role === "relation" ? "relation" : "element", id };
     }
     return null;
+  }
+
+  /** Whether an event is selected as an element is (`StageHandlers.selectable`). */
+  private selectable(id: string): boolean {
+    return this.handlers.selectable?.(id) ?? false;
   }
 
   private hidden(node: Element): boolean {
@@ -405,8 +417,11 @@ export class Stage {
   private elementUnder(x: number, y: number): string | null {
     for (const found of this.root.elementsFromPoint(x, y)) {
       if (!this.picture.contains(found)) continue;
-      const group = found.closest('[data-role="element"], [data-role="lifeline"]');
+      const group = found.closest(
+        '[data-role="element"], [data-role="lifeline"], [data-role="event"]',
+      );
       const id = group?.getAttribute("data-id");
+      if (group?.getAttribute("data-role") === "event" && (!id || !this.selectable(id))) continue;
       if (group && id && !this.hidden(group) && !this.handlers.container(id)) return id;
     }
     return null;

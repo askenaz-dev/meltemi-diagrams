@@ -19,6 +19,7 @@ describe("acceptance corpus", () => {
         profile === "free"
           ? [
               ...common,
+              "code",
               "icons",
               "kanban",
               "lines",

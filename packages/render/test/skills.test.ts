@@ -15,7 +15,13 @@ import { describe, expect, it } from "vitest";
 import { BUNDLED_FAMILIES } from "@meltemi/diagrams-fonts";
 import { layoutDiagram } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
-import { DIAGRAM_TYPES, THEME_TOKENS, compile } from "@meltemi/diagrams-model";
+import {
+  DIAGRAM_TYPES,
+  STYLE_PROPERTIES,
+  THEME_COLOR_TOKENS,
+  THEME_TOKENS,
+  compile,
+} from "@meltemi/diagrams-model";
 import { REPO_ROOT } from "../../../test-support/corpus.js";
 import { renderSvg } from "../src/index.js";
 
@@ -349,6 +355,19 @@ describe("agent skills", () => {
     expect(manifest.skills, `${agentDir}/skills/.skills-sync.json (run pnpm skills:sync)`).toEqual(
       [...skills].sort(),
     );
+  });
+
+  it("meltemi-diagrams's references name every style property and colour token", () => {
+    const references = join(skillsRoot, "meltemi-diagrams", "reference");
+    const all = readdirSync(references)
+      .filter((file) => file.endsWith(".md"))
+      .map((file) => readFileSync(join(references, file), "utf8"))
+      .join("\n");
+    const missing = Object.keys(STYLE_PROPERTIES).filter((p) => !all.includes(`\`${p}`));
+    expect(missing, "style properties no reference of the skill names").toEqual([]);
+    const themes = readFileSync(join(references, "themes.md"), "utf8");
+    const tokens = THEME_COLOR_TOKENS.filter((t) => !themes.includes(`\`${t}`));
+    expect(tokens, "colour tokens reference/themes.md does not name").toEqual([]);
   });
 
   it("sync removes skills it copied before but keeps foreign ones", () => {

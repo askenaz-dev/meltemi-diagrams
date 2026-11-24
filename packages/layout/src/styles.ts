@@ -1,6 +1,7 @@
 import {
   BUILT_IN_CLASSES,
   ELEMENT_ONLY_PROPERTIES,
+  NOTE_ONLY_PROPERTIES,
   TEXTLESS_KINDS,
   TEXT_PROPERTIES,
   LINE_REFUSED_PROPERTIES,
@@ -57,13 +58,21 @@ export interface ResolvedStyle {
   readonly verticalAlign?: "top" | "middle" | "bottom";
   /** Free elements, groups, lines and pens: how opaque their drawing is, from 0 to 1. */
   readonly opacity?: number;
+  /** Notes only: `code` draws the note as a code block (decision 0078); `plain` by default. */
+  readonly textFormat?: "plain" | "code";
 }
 
 const COLOR_PROPERTIES = new Set(["fill", "stroke", "color", "iconColor"]);
 /** What a pen's style leaves out: the properties it refuses, and `rotation`. */
 const PEN_EXCLUDED: readonly string[] = [...PEN_REFUSED_PROPERTIES, "rotation"];
 /** What an icon's or an image's style leaves out: the relation and the text properties. */
-const TEXTLESS_EXCLUDED: readonly string[] = [...RELATION_ONLY_PROPERTIES, ...TEXT_PROPERTIES];
+const TEXTLESS_EXCLUDED: readonly string[] = [
+  ...RELATION_ONLY_PROPERTIES,
+  ...TEXT_PROPERTIES,
+  ...NOTE_ONLY_PROPERTIES,
+];
+/** What the style of an element that draws text but is not a note leaves out. */
+const NOT_NOTE_EXCLUDED: readonly string[] = [...RELATION_ONLY_PROPERTIES, ...NOTE_ONLY_PROPERTIES];
 /** What a sticky's style leaves out: the properties it refuses, and `shape`. */
 const STICKY_EXCLUDED: readonly string[] = [...STICKY_REFUSED_PROPERTIES, "shape"];
 const COLOR_TOKENS: ReadonlySet<string> = new Set(THEME_COLOR_TOKENS);
@@ -142,7 +151,11 @@ export class StyleResolver {
       element.id,
       (declared ? element.typeKind : element.kind) as RuleKind,
       element.classes,
-      TEXTLESS_KINDS.includes(element.kind) ? TEXTLESS_EXCLUDED : RELATION_ONLY_PROPERTIES,
+      TEXTLESS_KINDS.includes(element.kind)
+        ? TEXTLESS_EXCLUDED
+        : element.kind === "note"
+          ? RELATION_ONLY_PROPERTIES
+          : NOT_NOTE_EXCLUDED,
       c4Class(element),
       declared?.style,
     );
@@ -161,7 +174,12 @@ export class StyleResolver {
 
   /** The style of a named note or fragment of a sequence diagram, by its key and rule kind. */
   event(key: string, kind: "note" | "fragment"): ResolvedStyle {
-    return this.resolve(key, kind, [], RELATION_ONLY_PROPERTIES);
+    return this.resolve(
+      key,
+      kind,
+      [],
+      kind === "note" ? RELATION_ONLY_PROPERTIES : NOT_NOTE_EXCLUDED,
+    );
   }
 
   private resolve(

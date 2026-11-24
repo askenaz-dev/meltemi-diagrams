@@ -265,6 +265,44 @@ y conserva las notas. En `layout auto`, y para una nota sin `place` en `layout a
 disposición mantiene la nota cerca de su elemento. Una nota con contorno acepta un trazo en movimiento
 (`animate remark { effect dash }`); una sin contorno solo acepta un pulso.
 
+### Notas de código
+
+Una nota muestra un fragmento de código como un bloque de código con `textFormat code`, en una
+instrucción `style`, una clase o `rule note { }`. La etiqueta guarda el código tal como está: `\n`
+para cada salto de línea, `\t` para una tabulación, `\"` y `\\` para las comillas y las barras
+invertidas, y cada espacio donde está. Nada del texto elige el formato: las vallas de Markdown se
+dibujan como texto.
+
+```text
+note action "exports.onExecutePostLogin = async (event, api) => {\n  if (event.client.client_id !== \"CLIENT_ID_WEB\") {\n    return;\n  }\n};" on tenant
+style action { textFormat code }
+```
+
+- **Dibujo.** Un panel con el `radius` de la nota en el color `code` del tema, con contorno `line`
+  de `strokeWidth`, y dentro las líneas en la fuente `mono` del tema al tamaño de las notas, peso
+  400, en `codeText`, alineadas a la izquierda y nunca partidas. El texto queda a tres cuartos del
+  `padding` del tema a los lados y a la mitad arriba y abajo (12 y 8 con los temas técnicos).
+  `fill`, `stroke`, `width`, `line`, `radius`, `color`, `font`, `fontSize`, `fontWeight` y
+  `textAlign` lo ajustan como ajustan una nota; un `icon` va antes de la primera línea.
+- **Espacios.** Los espacios se dibujan como están en toda exportación, y una tabulación avanza a la
+  siguiente parada, cada cuatro caracteres ([svg-export.md](svg-export.md#el-svg)); la etiqueta
+  conserva sus tabulaciones. Una línea vacía conserva su altura.
+- **Tamaño.** El bloque es tan ancho como su línea más larga más sus márgenes, y tan alto como sus
+  líneas más sus márgenes. Un `size` escrito se respeta; uno demasiado pequeño para el texto lo
+  recorta al panel e informa `layout.text-overflow` con el tamaño que necesita. Acorta las líneas
+  largas en la fuente, o dale a la nota un `fontSize` menor.
+- **Todo lo demás** es de una nota: `on`, `place`, capas, `rotation`, efectos, `link`, `url`.
+  `textFormat plain`, lo predeterminado, vuelve a dibujar el mismo texto como una nota normal y se
+  impone a una clase o a una regla. Los diagramas de flujo, las vistas C4 y los diagramas de
+  secuencia también aceptan `textFormat` en sus notas ([sequence.md](sequence.md)); cualquier otro
+  destino lo rechaza.
+
+En el lienzo, **Formato** en la categoría Texto de las propiedades cambia una nota entre **Texto
+normal** y **Código**, y el menú de la herramienta de nota añade un **Bloque de código** listo para
+pegar. En el editor de una nota de código, Entrar parte la línea y conserva su sangría, Tab y
+Mayús+Tab sangran, y Ctrl+Entrar confirma; **Copiar código** en el menú contextual copia el texto
+tal como está ([editor](../editor.md)).
+
 ### Notas adhesivas
 
 `sticky <id> "Text" [{ … }]` es una nota adhesiva: una tarjeta de papel cuadrada con unas pocas

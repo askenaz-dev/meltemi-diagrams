@@ -181,6 +181,11 @@ Every statement below is an event. Events happen in the order they are written.
 | `delay ["Label"]`                                                   | a gap in time                                             |
 | `return ["Label"] [as <id>]`                                        | in a call's block, the reply to the caller                |
 
+A note with an id takes a `style`, and `rule note { }` styles every note. `textFormat code` draws
+a note as a code block: its folded corner on the theme's `code` colour, its text in the `mono`
+font in `codeText`, with every space and tab stop kept ([free.md](free.md#code-notes)):
+`note retry over api "retry:\n  3 times"` with `style retry { textFormat code }`.
+
 An activation bar starts at the message that leads into its `activate` and ends at the message
 before its `deactivate`. Activations still open at the end reach the end of the lifeline. A call
 whose block holds events draws the receiver's bar from the call's arrow to the block's last event,

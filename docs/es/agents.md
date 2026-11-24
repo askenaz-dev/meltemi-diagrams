@@ -225,6 +225,15 @@ web o tus colores con las fuentes incluidas más cercanas, lo usa en la hoja que
 qué tomó y qué aproximó. Los textos que no se leen sobre su relleno se informan como
 `layout.low-contrast`, con un color que sí se lee.
 
+### Código en un diagrama
+
+Para mostrar un fragmento de código junto al componente que explica, pídele al agente que lo ponga
+en una nota de código. La skill le enseña a escribir el fragmento como texto de la nota, con saltos
+`\n` y su sangría tal como está, y `style <nota> { textFormat code }`; se dibuja un bloque de código
+en una fuente monoespaciada que conserva cada espacio, en el lienzo, las exportaciones y el `preview`
+del MCP. No escribe vallas de Markdown ni espacios no separables, que un diagrama dibujaría tal cual
+([free.md](language/free.md#notas-de-código)).
+
 ## A través del endpoint MCP
 
 El servicio alojado tiene un endpoint MCP, `https://diagrams.meltemi.dev/mcp`, a través del cual un

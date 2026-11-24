@@ -20,8 +20,34 @@ export function estimateTextWidth(text: string, size: number, font: FontRole): n
   return width * size;
 }
 
+/** How many characters apart tab stops are. */
+export const TAB_STOP = 4;
+
+/**
+ * A line with each tab replaced by the spaces that reach the next tab stop, every `TAB_STOP`
+ * characters of the line: what is measured and drawn for it. A line without a tab is returned as
+ * it is. The bundled fonts have no glyph for a tab, and SVG viewers would draw it as one space.
+ */
+export function expandTabs(line: string): string {
+  if (!line.includes("\t")) return line;
+  let out = "";
+  let column = 0;
+  for (const ch of line) {
+    if (ch === "\t") {
+      const spaces = TAB_STOP - (column % TAB_STOP);
+      out += " ".repeat(spaces);
+      column += spaces;
+    } else {
+      out += ch;
+      column++;
+    }
+  }
+  return out;
+}
+
+/** The lines of a text, broken at each `\n`, their tabs expanded to tab stops. */
 export function splitLines(text: string): string[] {
-  return text.split("\n");
+  return text.split("\n").map(expandTabs);
 }
 
 /** How much wider than the width a line may measure and still fit: rounding, not text. */

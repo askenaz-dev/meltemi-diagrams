@@ -108,6 +108,7 @@ export const es: typeof en = {
     fontWeight: "Grosor del texto",
     textAlign: "Alineación del texto",
     verticalAlign: "Alineación vertical",
+    textFormat: "Formato",
     opacity: "Opacidad",
   },
 
@@ -155,6 +156,7 @@ export const es: typeof en = {
       colours: "Colores",
       whiteboard: "Pizarra",
       fonts: "Fuentes",
+      code: "Código",
       type: "Tipografía",
       spacing: "Espaciado",
       shapes: "Formas y líneas",
@@ -295,6 +297,7 @@ export const es: typeof en = {
       "No hay ningún diagrama que dibujar: agrega `diagram <id>: flow { }`, `diagram <id>: free { }`, `diagram <id>: sequence { }` o `diagram <id>: gantt { }` al archivo.",
     cannotDraw: "No se puede dibujar el diagrama.",
     copied: "Copiado.",
+    codeCopied: "Se copió el código.",
     invalidId: (id) => `${code(id)} no es un id válido.`,
     noteAttached: (target) => `Se creó una nota adjunta a ${code(target)}.`,
     gapSet: (participant, amount) => `Separación antes de ${participant}: ${amount}.`,

@@ -90,6 +90,7 @@
     "@meltemi/diagrams-layout": "../layout/src/index.ts",
     "@meltemi/diagrams-layout/shapes": "../layout/src/shapes.ts",
     "@meltemi/diagrams-layout/viewport": "../layout/src/viewport.ts",
+    "@meltemi/diagrams-layout/text": "../layout/src/text.ts",
     "@meltemi/diagrams-layout-elk": "../layout-elk/src/index.ts",
     "@meltemi/diagrams-model": "../model/src/index.ts",
     "@meltemi/diagrams-mcp": "../mcp/src/index.ts",

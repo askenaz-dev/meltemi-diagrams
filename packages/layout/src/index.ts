@@ -6,7 +6,7 @@ export * from "./geometry.js";
 export * from "./markers.js";
 export { strokeDash } from "./scene.js";
 export { MELTEMI_MARK, MARK_GRADIENT_ID, markGradient, markGroup } from "./mark.js";
-export { estimateTextWidth, splitLines, wrapLines } from "./text.js";
+export { estimateTextWidth, expandTabs, splitLines, TAB_STOP, wrapLines } from "./text.js";
 export {
   MIN_TEXT_MARGIN,
   TEXT_PADDING,

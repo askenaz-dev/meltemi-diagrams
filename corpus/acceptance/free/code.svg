@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" width="686" height="524" viewBox="0 0 686 524" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Code notes</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="686" height="524" fill="#F7FBFF"/>
+  <g data-id="tenant" data-role="element">
+    <rect x="46" y="20" width="240" height="72" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="166" y="52.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Auth0 tenant</text>
+    <text x="166" y="70" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Post Login Action</text>
+  </g>
+  <g data-id="action" data-role="element">
+    <rect x="306" y="145" width="360" height="142" rx="8" fill="#f3f5f8" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="318" y="165.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328">exports.onExecutePostLogin = async (event, api) =&gt; {</text>
+    <text x="318" y="183.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve">  if (event.client.client_id !== &quot;CLIENT_ID_WEB&quot;) {</text>
+    <text x="318" y="201.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve">    return;</text>
+    <text x="318" y="219.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve">  }</text>
+    <text x="318" y="237.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328"></text>
+    <text x="318" y="255.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve">  // Aplicar lógica específica de la app web.</text>
+    <text x="318" y="273.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328">};</text>
+    <polyline points="344,145 238,92" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="0 4.5" class="leader"/>
+  </g>
+  <g data-id="handler" data-role="element">
+    <rect x="45.5" y="183" width="121" height="106" rx="8" fill="#f3f5f8" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="57.5" y="203.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328">func handle() {</text>
+    <text x="57.5" y="221.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve">    if ok {</text>
+    <text x="57.5" y="239.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve">        return</text>
+    <text x="57.5" y="257.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve">    }</text>
+    <text x="57.5" y="275.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328">}</text>
+  </g>
+  <g data-id="config" data-role="element">
+    <rect x="20" y="358" width="172" height="76" rx="4" fill="#0b1830" stroke="#22d3ee" stroke-width="1"/>
+    <text x="32" y="380.16" text-anchor="start" font-size="12" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#e6edf3" xml:space="preserve">retries:  3</text>
+    <text x="32" y="400.16" text-anchor="start" font-size="12" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#e6edf3" xml:space="preserve">timeout:  30s</text>
+    <text x="32" y="420.16" text-anchor="start" font-size="12" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#e6edf3" xml:space="preserve">backoff:  exponential</text>
+  </g>
+  <g data-id="cut" data-role="element">
+    <rect x="426.5" y="372" width="199" height="88" rx="8" fill="#f3f5f8" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="438.5" y="392.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328">SELECT id, name, created_at</text>
+    <text x="438.5" y="410.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve">  FROM users</text>
+    <text x="438.5" y="428.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve"> WHERE active = true</text>
+    <text x="438.5" y="446.81" text-anchor="start" font-size="11" font-weight="400" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1f2328" xml:space="preserve"> ORDER BY created_at DESC;</text>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,480.5 666,480.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 490) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="506.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="666" y="506" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Code notes</text>
+  </g>
+</svg>

@@ -5,7 +5,7 @@ import { createNodeFontLibrary } from "@meltemi/diagrams-fonts/node";
 import { THEMES, layoutDiagram, type Scene } from "@meltemi/diagrams-layout";
 import { compile } from "@meltemi/diagrams-model";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
-import { escapeXml, renderSvg } from "../src/index.js";
+import { escapeXml, keepsSpaces, renderSvg } from "../src/index.js";
 
 function render(text: string): string {
   const compilation = compile(text);
@@ -218,6 +218,40 @@ describe("renderSvg", () => {
 
   it("escapes the five XML characters", () => {
     expect(escapeXml(`a & b < c > "d"`)).toBe("a &amp; b &lt; c &gt; &quot;d&quot;");
+  });
+});
+
+describe("white space", () => {
+  const free = (label: string) =>
+    render(
+      `diagram f: free {\n  note n "${label}"\n  placement { place n at (100, 100) }\n  style n { font "Cascadia Mono" }\n}\n`,
+    );
+  const texts = (svg: string) => [...svg.matchAll(/<text [^>]*>[^<]*<\/text>/g)].map((m) => m[0]);
+
+  it("keeps the leading spaces of an indented line", () => {
+    const lines = texts(free(String.raw`if (a) {\n  return;\n}`));
+    expect(lines[1]).toMatch(/ xml:space="preserve"> {2}return;<\/text>$/);
+    // Lines without such spaces are written as before.
+    expect(lines[0]).not.toContain("xml:space");
+    expect(lines[2]).not.toContain("xml:space");
+  });
+
+  it("keeps runs of spaces inside a line and trailing spaces", () => {
+    const lines = texts(free(String.raw`a      = 1\nlonger = 2 `));
+    expect(lines[0]).toContain('xml:space="preserve">a      = 1<');
+    expect(lines[1]).toContain('xml:space="preserve">longer = 2 <');
+  });
+
+  it("leaves text with single spaces between words untouched", () => {
+    expect(render(sheet)).not.toContain("xml:space");
+  });
+
+  it("is decided by the text alone", () => {
+    expect(keepsSpaces("a b c")).toBe(false);
+    expect(keepsSpaces("")).toBe(false);
+    expect(keepsSpaces(" a")).toBe(true);
+    expect(keepsSpaces("a ")).toBe(true);
+    expect(keepsSpaces("a  b")).toBe(true);
   });
 });
 

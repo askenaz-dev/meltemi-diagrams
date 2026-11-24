@@ -147,6 +147,11 @@ export interface TextPlace {
    * message at its natural distance (its label pushes the pair apart) and a self-call have none.
    */
   readonly wrap?: "shrink" | "grow";
+  /**
+   * `code`: the text of a code note (decision 0078), typed with the keys of a code editor: Enter
+   * breaks the line and keeps its indentation, Tab and Shift+Tab indent, Ctrl+Enter commits.
+   */
+  readonly format?: "code";
 }
 
 /**
@@ -589,7 +594,8 @@ export type FieldGlyphs =
   | "sketch"
   | "textAlign"
   | "verticalAlign"
-  | "fontWeight";
+  | "fontWeight"
+  | "textFormat";
 
 /**
  * A family the font picker lists: its name and group, the weights it has files for, and the
@@ -1234,6 +1240,11 @@ export type CanvasAction =
        * after the selection, or at the end of the chart.
        */
       readonly schedule?: { readonly start: number; readonly end?: number };
+      /**
+       * A new note drawn as a code block (the note tool's **Code block**, decision 0078), written
+       * as `style <id> { textFormat code }` in the same edit.
+       */
+      readonly textFormat?: "code";
     }
   | {
       /**
@@ -1481,6 +1492,11 @@ export type CanvasMessage =
   | { readonly type: "select"; readonly ids: readonly string[] }
   | { readonly type: "action"; readonly revision: number; readonly action: CanvasAction }
   | { readonly type: "copy"; readonly ids: readonly string[] }
+  /**
+   * Copies the text of one code note (an element or a note of a sequence diagram) as plain text,
+   * as it is written (decision 0078); read-only canvases send it too.
+   */
+  | { readonly type: "copyText"; readonly id: string }
   | { readonly type: "focusText"; readonly id: string }
   | { readonly type: "export" }
   /** C4 views: shows the model of the view in the text. */
@@ -1776,6 +1792,8 @@ function isAction(a: unknown): a is CanvasAction {
         (a.layout === undefined ||
           (oneOf(a.layout, ["column", "row"]) && a.elementKind === "group")) &&
         (a.index === undefined || (isIndex(a.index) && isString(a.parent))) &&
+        // Only a note is a code block.
+        (a.textFormat === undefined || (a.textFormat === "code" && a.elementKind === "note")) &&
         // The dates of a bar drawn on a gantt chart: a start, and an end after it.
         (a.schedule === undefined ||
           (isObject(a.schedule) &&
@@ -2000,6 +2018,7 @@ export function isCanvasMessage(m: unknown): m is CanvasMessage {
       return typeof m.open === "boolean";
     case "themeToken":
       return isString(m.token) && (m.value === null || isString(m.value) || isNumber(m.value));
+    case "copyText":
     case "focusText":
       return isString(m.id);
     case "presencePointer":
