@@ -28,6 +28,7 @@ import {
   LIST_LAYOUTS,
   LIST_PROPERTIES,
   MAIN_LAYER,
+  NOTE_ONLY_PROPERTIES,
   PEN_PROPERTIES,
   PEN_REFUSED_PROPERTIES,
   PEN_WIDTH_RANGE,
@@ -2315,6 +2316,11 @@ export class FlowAnalyzer {
       const sticky = element?.kind === "sticky";
       // Icons and images draw no text: the text properties do not apply to them.
       const textless = element !== undefined && TEXTLESS_KINDS.includes(element.kind);
+      // Only notes take the properties of notes (`textFormat`): note elements and sequence notes.
+      const note =
+        element?.kind === "note" ||
+        (resolved.kind === "event" && this.eventsByKey.get(resolved.name)?.kind === "note");
+      const notes = note ? [] : NOTE_ONLY_PROPERTIES;
       const misfit =
         kind !== "style"
           ? []
@@ -2327,8 +2333,8 @@ export class FlowAnalyzer {
                 : sticky
                   ? STICKY_REFUSED_PROPERTIES
                   : textless
-                    ? [...RELATION_ONLY_PROPERTIES, ...TEXT_PROPERTIES]
-                    : RELATION_ONLY_PROPERTIES;
+                    ? [...RELATION_ONLY_PROPERTIES, ...TEXT_PROPERTIES, ...notes]
+                    : [...RELATION_ONLY_PROPERTIES, ...notes];
       for (const name of misfit) {
         const token = tokens[name];
         // `shape` is reported below, with the kinds that take it; a pen names what it takes.

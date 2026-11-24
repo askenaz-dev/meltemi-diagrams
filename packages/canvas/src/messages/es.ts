@@ -170,6 +170,8 @@ export const es: typeof en = {
     groupKinds: { group: "Grupo", container: "Contenedor", column: "Columna", row: "Fila" },
     penMenu: "Lápiz y marcador: grosor y color",
     stickyMenu: "Color de las notas adhesivas nuevas",
+    noteMenu: "Nota o bloque de código",
+    codeBlock: "Bloque de código",
     newDiagram: "Nuevo diagrama",
     newStory: "Nueva historia",
     newStoryTitle:
@@ -247,6 +249,7 @@ export const es: typeof en = {
       marker: "Marca",
       section: "Sección",
     },
+    codeLabel: "Código",
     hint: (name) => `${name}: haz clic en el lienzo`,
     shaped: (name, shape) =>
       `${name}, ${Object.hasOwn(SHAPE_NAMES, shape) ? SHAPE_NAMES[shape as ShapeName] : shape}: haz clic en el lienzo`,
@@ -506,6 +509,8 @@ export const es: typeof en = {
         ? "Entrar o Tab guarda el texto, Mayús+Entrar empieza una línea nueva, Esc cancela."
         : "Entrar o Tab guarda el texto, Esc cancela.",
     nextCard: "Ctrl+Entrar lo guarda y añade la tarjeta siguiente.",
+    codeKeys:
+      "Entrar empieza una línea nueva con la misma sangría, Tab y Mayús+Tab sangran y quitan sangría, Ctrl+Entrar guarda el código, Esc cancela.",
   },
 
   menu: {
@@ -520,6 +525,7 @@ export const es: typeof en = {
     dottedLine: "Línea punteada",
     cut: "Cortar",
     copy: "Copiar",
+    copyCode: "Copiar código",
     paste: "Pegar",
     duplicate: "Duplicar",
     delete: "Eliminar",
@@ -629,6 +635,7 @@ export const es: typeof en = {
       "600": "Seminegrita",
       "700": "Negrita",
     },
+    formats: { plain: "Texto normal", code: "Código" },
     clear: "Borrar",
     clearTitle: "Quitar el valor escrito: se aplica el predeterminado",
     pickDate: (label) => `${label}: elegir una fecha`,

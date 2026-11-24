@@ -65,6 +65,10 @@ export const en = {
     outgoing: "Outgoing",
     incoming: "Incoming",
     noRelations: "No relations.",
+    /** A code note's text (decision 0078): its button, and what it says once done. */
+    copyCode: "Copy code",
+    codeCopied: "Copied the code.",
+    codeSelected: "The code is selected: copy it with the keyboard.",
     from: "From",
     to: "To",
     assumption: "Assumption",

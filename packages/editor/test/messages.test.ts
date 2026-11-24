@@ -249,6 +249,7 @@ describe("a Spanish interface", () => {
       "Colores",
       "Pizarra",
       "Fuentes",
+      "Código",
       "Tipografía",
       "Espaciado",
       "Formas y líneas",

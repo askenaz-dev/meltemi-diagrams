@@ -6,6 +6,7 @@ import type {
   ListLayout,
   Point,
   StoryActionKind,
+  TextFormat,
 } from "@meltemi/diagrams-model";
 
 /**
@@ -151,6 +152,12 @@ export type EditOperation =
        * diagram, or an entity path the view draws. Only notes take it.
        */
       readonly attachedTo?: string;
+      /**
+       * A note's text format (decision 0078): `code` writes `textFormat code` in the note's style
+       * statement, with `icon`, `shape` and `fill`; `plain`, the default, writes none. Only notes
+       * take it.
+       */
+      readonly textFormat?: TextFormat;
     }
   | {
       /**

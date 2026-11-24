@@ -1207,6 +1207,8 @@ body {
   overflow: hidden;
   white-space: pre;
   overflow-wrap: normal;
+  /* A tab reaches the drawing's tab stop, every four characters. */
+  tab-size: 4;
   letter-spacing: normal;
   font-kerning: normal;
   font-style: normal;

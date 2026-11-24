@@ -6,6 +6,7 @@ import {
   PORTS,
   PROFILES,
   SHAPE_KINDS,
+  TEXT_FORMATS,
   arrowToken,
   declaredProfile,
   type DiagramType,
@@ -161,6 +162,12 @@ export function createElement(ctx: EditContext, op: OperationOf<"createElement">
   if (op.icon !== undefined && !/^[a-z0-9][a-z0-9-]*:[A-Za-z0-9_.-]+$/.test(op.icon)) {
     reject("edit.invalid-value", reasons().elements.badIcon(op.icon));
   }
+  if (op.textFormat !== undefined) {
+    if (kind !== "note") reject("edit.invalid-value", reasons().elements.textFormatKinds(kind));
+    if (!(TEXT_FORMATS as readonly string[]).includes(op.textFormat)) {
+      reject("edit.invalid-value", reasons().elements.notTextFormat(op.textFormat, TEXT_FORMATS));
+    }
+  }
   if (op.shape !== undefined) {
     if (!(SHAPE_KINDS as readonly string[]).includes(kind)) {
       reject("edit.invalid-value", reasons().elements.shapeKinds(kind));
@@ -169,13 +176,14 @@ export function createElement(ctx: EditContext, op: OperationOf<"createElement">
       reject("edit.invalid-value", reasons().elements.notShape(op.shape, BOX_SHAPES));
     }
   }
-  // The icon, the shape and the fill go in a style statement: on the next line in the diagram
-  // body, or with the diagram's style statements when the element goes into a group, which takes
-  // none. `rounded` is the shape a box has without one.
+  // The icon, the shape, the fill and a note's format go in a style statement: on the next line
+  // in the diagram body, or with the diagram's style statements when the element goes into a
+  // group, which takes none. `rounded` is the shape a box has without one, `plain` the format.
   const properties = [
     ...(op.icon !== undefined ? [`icon ${quoteString(op.icon)}`] : []),
     ...(op.shape !== undefined && op.shape !== "rounded" ? [`shape ${op.shape}`] : []),
     ...(op.fill !== undefined ? [`fill ${formatStyleValue("fill", op.fill)}`] : []),
+    ...(op.textFormat === "code" ? ["textFormat code"] : []),
   ];
   const styled = properties.length > 0 ? `style ${id} { ${properties.join("; ")} }` : undefined;
   const beside = styled !== undefined && !op.parent ? styled : undefined;
@@ -190,7 +198,7 @@ export function createElement(ctx: EditContext, op: OperationOf<"createElement">
     op.index !== undefined ? block.statements.filter(isDeclaration)[op.index] : undefined;
   const edits: TextEdit[] = [
     ctx.diagram.type === "c4"
-      ? insertViewNote(ctx, text)
+      ? insertViewNote(ctx, styled === undefined ? text : `${text}; ${styled}`)
       : before
         ? insertBeforeStatement(ctx, block, before, render)
         : op.parent

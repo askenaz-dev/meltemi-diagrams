@@ -98,6 +98,9 @@ export const en = {
     penMenu: "Pen and highlighter: width and colour",
     /** The arrow part of the sticky note button, which picks the colour of new sticky notes. */
     stickyMenu: "Colour of new sticky notes",
+    /** The note tool's arrow: a plain note or a code block (decision 0078). */
+    noteMenu: "Note or code block",
+    codeBlock: "Code block",
     /** The button beside the diagram picker that adds a diagram to the file. */
     newDiagram: "New diagram",
     /** The button beside the story picker that adds a story of the diagram shown to the file. */
@@ -195,6 +198,8 @@ export const en = {
       marker: "Marker",
       section: "Section",
     },
+    /** The word a new code block holds, selected in its editor so that a paste replaces it. */
+    codeLabel: "Code",
     /** The label of a tool: its name, then how to use it; its key is in its title. */
     hint: (name: string) => `${name}: click on the canvas`,
     /** The label of the box or node tool, with the shape it places (a value of the language). */
@@ -501,6 +506,9 @@ export const en = {
         : "Enter or Tab keeps the text, Escape cancels.",
     /** Said after the keys in the editor of a card of a list. */
     nextCard: "Ctrl+Enter keeps it and adds the next card.",
+    /** The keys of a code note's editor (decision 0078). */
+    codeKeys:
+      "Enter starts a new line with the same indentation, Tab and Shift+Tab indent and outdent, Ctrl+Enter keeps the code, Escape cancels.",
   },
 
   /** The context menus of the canvas and the toolbar's Arrange menu. */
@@ -518,6 +526,8 @@ export const en = {
     dottedLine: "Dotted line",
     cut: "Cut",
     copy: "Copy",
+    /** A code note's text, as written, as plain text (decision 0078). */
+    copyCode: "Copy code",
     paste: "Paste",
     duplicate: "Duplicate",
     delete: "Delete",
@@ -666,6 +676,8 @@ export const en = {
       "600": "Semibold",
       "700": "Bold",
     } as Readonly<Record<string, string>>,
+    /** The two text formats of notes, the chips of their Format field (decision 0078). */
+    formats: { plain: "Plain text", code: "Code" } as Readonly<Record<string, string>>,
     /** Takes a written value away, so the default applies again (the icon size). */
     clear: "Clear",
     clearTitle: "Remove the written value: the default applies",

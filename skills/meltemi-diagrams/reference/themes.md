@@ -51,6 +51,7 @@ Tokens (numbers without a unit or with `px`):
 | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd` | quoted colour                                     |
 | `success`, `warning`, `danger`, `info`                                                                                    | quoted colour (signals)                           |
 | `highlight`, `sticky`, `stickyText`                                                                                       | quoted colour (highlighter strokes, stickies)     |
+| `code`, `codeText`                                                                                                        | quoted colour (the panel and text of code notes)  |
 | `font`, `mono`                                                                                                            | quoted font stack; name a bundled family          |
 | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                 | 6 to 48 (technical: 13, 11, 13, 11, 10.5, 11, 12) |
 | `labelWeight`                                                                                                             | 400, 500, 600 or 700                              |
@@ -113,6 +114,9 @@ diagram platform: flow {
   `corners rounded` rounds its bends. `opacity 0..1` fades free elements, groups, lines and pens.
 - The whiteboard tokens: `stroke highlight` colours a highlighter stroke, and stickies take
   `sticky` and `stickyText` (`#fff59d` and `#1f2328` on light themes); pens take `ink`.
+- The code tokens: notes with `textFormat code` take `code` for their panel and `codeText` for
+  their text (`#f3f5f8` and `#1f2328` on light themes, `#131c2b` and `#e6edf3` on dark ones),
+  outlined in `line`, in the `mono` font.
 - The theme's `radius` and `groupRadius` are only defaults: `style api { radius 0 }` squares one
   node, `rule group { radius 0 }` every group, and a class may carry `radius` too. Square corners
   everywhere: `theme square { extends "technical.light"; radius 0; groupRadius 0 }`.

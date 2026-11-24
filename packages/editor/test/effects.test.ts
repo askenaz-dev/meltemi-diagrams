@@ -124,8 +124,8 @@ describe("effects in the inspector", () => {
       section: "strip",
       group: "effect.trace",
     });
-    // The sixteen colours and the three of whiteboards.
-    expect(colour.swatches).toHaveLength(19);
+    // The sixteen colours, the three of whiteboards and the two of code notes.
+    expect(colour.swatches).toHaveLength(21);
     expect(colour.swatches!.find((s) => s.token === "accent")!.color).toMatch(/^#/);
     // A chip writes the token, the picker a quoted colour, and Theme takes the colour away.
     canvas.apply({ kind: "setField", ids: ["save"], field: "effect.trace.color", value: "accent" });

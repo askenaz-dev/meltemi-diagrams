@@ -152,6 +152,14 @@ The last two rows ask for different things. Animating an arrow or a diagram adds
 and need no story. A walkthrough is a [story](language/stories.md), a separate block with scenes
 and times. The skill tells the agent to write only the one you asked for.
 
+### Code in a diagram
+
+To show a fragment of code beside the component it explains, ask the agent to put it in a code
+note. The skill teaches it to write the fragment as the note's text, with `\n` line breaks and its
+indentation as it is, and `style <note> { textFormat code }`; it draws a code block in a monospace
+font that keeps every space, in the canvas, the exports and the MCP `preview`. It writes no Markdown
+fences or no-break spaces, which a diagram would draw as they are ([free.md](language/free.md#code-notes)).
+
 ## Through the MCP endpoint
 
 The hosted service has an MCP endpoint, `https://diagrams.meltemi.dev/mcp`, through which an agent

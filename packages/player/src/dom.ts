@@ -54,6 +54,8 @@ export function urlHost(url: string): string {
 
 export const ICONS = {
   play: "M5 3.5l8 4.5-8 4.5z",
+  /** Copy code: two sheets, one over the other. */
+  copy: "M5.5 5.5h7v8h-7z|M3.5 10.5v-8h7",
   pause: "M5.5 3.5v9|M10.5 3.5v9",
   previous: "M4 3.5v9|M12.5 3.5L6.5 8l6 4.5z",
   next: "M12 3.5v9|M3.5 3.5l6 4.5-6 4.5z",

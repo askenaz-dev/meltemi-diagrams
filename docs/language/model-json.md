@@ -310,14 +310,14 @@ null for options not written ([export.md](export.md)).
 
 ## Theme
 
-| Key       | Type           | Meaning                                                                                                                                                                                    |
-| --------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`      | string         | Theme id.                                                                                                                                                                                  |
-| `extends` | string or null | Base theme name, or null for `technical.light`.                                                                                                                                            |
-| `tokens`  | object         | Token values sorted by name, as written (`highlight`, `sticky` and `stickyText` among them); sizes and widths are numbers, words such as `sketch rough` strings (`{ "sketch": "rough" }`). |
-| `classes` | array          | Class entries of the theme block.                                                                                                                                                          |
-| `rules`   | array          | Rule entries of the theme block.                                                                                                                                                           |
-| `range`   | range          | The `theme` block.                                                                                                                                                                         |
+| Key       | Type           | Meaning                                                                                                                                                                                                        |
+| --------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`      | string         | Theme id.                                                                                                                                                                                                      |
+| `extends` | string or null | Base theme name, or null for `technical.light`.                                                                                                                                                                |
+| `tokens`  | object         | Token values sorted by name, as written (`highlight`, `sticky`, `stickyText`, `code` and `codeText` among them); sizes and widths are numbers, words such as `sketch rough` strings (`{ "sketch": "rough" }`). |
+| `classes` | array          | Class entries of the theme block.                                                                                                                                                                              |
+| `rules`   | array          | Rule entries of the theme block.                                                                                                                                                                               |
+| `range`   | range          | The `theme` block.                                                                                                                                                                                             |
 
 ## Diagnostic
 

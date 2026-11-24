@@ -1,5 +1,5 @@
 import type { FontRole } from "./scene.js";
-import { estimateTextWidth } from "./text.js";
+import { estimateTextWidth, expandTabs } from "./text.js";
 import type { Theme } from "./theme.js";
 
 /**
@@ -84,8 +84,10 @@ export class TextMetrics {
 
   width(text: string, font: TextFont, weight: number, size: number): number {
     const { measurer, stack } = this.resolve(font);
-    for (const ch of measurer.uncovered?.(text, stack) ?? []) this.uncovered.add(ch);
-    return measurer.width(text, stack, weight, size);
+    // A tab is measured as the spaces it is drawn as, never as a glyph no font has.
+    const drawn = expandTabs(text);
+    for (const ch of measurer.uncovered?.(drawn, stack) ?? []) this.uncovered.add(ch);
+    return measurer.width(drawn, stack, weight, size);
   }
 
   /** The baseline of a text centred on `centreY`. */

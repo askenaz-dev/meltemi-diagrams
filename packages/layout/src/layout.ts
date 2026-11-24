@@ -141,7 +141,7 @@ import {
   type ShapeSize,
 } from "./shapes.js";
 import { StyleResolver, type PatternKind, type ResolvedStyle } from "./styles.js";
-import { splitLines, wrapLines } from "./text.js";
+import { expandTabs, splitLines, wrapLines } from "./text.js";
 import {
   DEFAULT_THEME_NAME,
   THEMES,
@@ -4043,10 +4043,10 @@ class Sizing {
       : header - this.theme.groupHeader * 0.55;
   }
 
-  /** Horizontal alignment of a box or text label. */
   /**
    * A note's font: the theme's note size at weight 400, or a free note's `fontSize` and
-   * `fontWeight`; its lines are as far apart as the note scale's ratio of line to size.
+   * `fontWeight`; its lines are as far apart as the note scale's ratio of line to size. A code
+   * note's text is in the theme's `mono` font unless its style writes a `font`.
    */
   noteFont(element: Element): LabelFont {
     const style = this.styles.element(element);
@@ -4055,10 +4055,30 @@ class Sizing {
       size,
       weight: style.fontWeight ?? 400,
       line: Math.round((size * this.scale.noteLine) / this.scale.note),
-      font: textFont(style.font),
+      font: textFont(style.font, this.codeNote(element) ? "mono" : "body"),
     };
   }
 
+  /** Whether an element is a note drawn as a code block: `textFormat code` (decision 0078). */
+  codeNote(element: Element): boolean {
+    return element.kind === "note" && this.styles.element(element).textFormat === "code";
+  }
+
+  /**
+   * How far a code note's text is inset from its panel: three quarters of the theme's `padding`
+   * on the left and on the right, half of it above and below.
+   */
+  codeInset(): { readonly x: number; readonly y: number } {
+    return { x: Math.round(this.theme.padding * 0.75), y: Math.round(this.theme.padding / 2) };
+  }
+
+  /** The height of a note's text: its lines, and a code note's insets or a plain note's 4. */
+  noteHeight(element: Element): number {
+    const lines = splitLines(element.label).length * this.noteFont(element).line;
+    return this.codeNote(element) ? lines + 2 * this.codeInset().y : lines + 4;
+  }
+
+  /** Horizontal alignment of a box or text label. */
   alignOf(element: Element): "left" | "center" | "right" {
     if (element.kind === "text" || element.kind === "note") {
       return this.styles.element(element).textAlign ?? "left";
@@ -4819,7 +4839,9 @@ class Sizing {
             width: metrics.width(line, font.font, font.weight, font.size),
           })),
         );
-        const width = Math.ceil(Math.max(best.width + beside, 1));
+        // A code note's panel holds its text inside its insets.
+        const inset = this.codeNote(element) ? 2 * this.codeInset().x : 0;
+        const width = Math.ceil(Math.max(best.width + beside + inset, 1));
         return { text: best.text, width, minimum: width };
       }
       case "group": {
@@ -4892,10 +4914,7 @@ class Sizing {
       case "tag":
         return { width: needs.width, height: this.tagText(element).scale.tagHeight };
       case "note":
-        return {
-          width: needs.width,
-          height: splitLines(element.label).length * this.noteFont(element).line + 4,
-        };
+        return { width: needs.width, height: this.noteHeight(element) };
       case "text":
         return {
           width: needs.width,
@@ -5062,10 +5081,13 @@ class Sizing {
         BOX_KINDS.has(element.kind) &&
         this.columnIcon(element) !== undefined &&
         !this.rowsFit(element, box, this.textColumn(element).slots);
-      if (size.width >= needs.minimum && !spills) return;
+      // A code note's lines are never wrapped, so it must be as tall as its lines and insets too.
+      const lines = this.codeNote(element) ? this.noteHeight(element) : 0;
+      const short = size.height < lines - ROUNDING;
+      if (size.width >= needs.minimum && !spills && !short) return;
       fit = {
         width: size.width >= needs.minimum ? size.width : needs.width,
-        height: spills ? this.heightHolding(element, size) : size.height,
+        height: spills ? this.heightHolding(element, size) : short ? lines : size.height,
       };
     }
     const withIcon = this.iconOf(element) !== undefined;
@@ -5152,7 +5174,7 @@ class Emitter {
       x: round(x),
       y: round(y),
       baseline,
-      text,
+      text: expandTabs(text),
       size,
       weight,
       font: fontRole(font),
@@ -5681,6 +5703,7 @@ class Emitter {
   }
 
   private note(element: Element, box: Box): GroupItem {
+    if (this.sizing.codeNote(element)) return this.codeNote(element, box);
     const { theme } = this;
     const style = this.styles.element(element);
     const items: SceneItem[] = [];
@@ -5729,6 +5752,83 @@ class Emitter {
       );
     });
     return { kind: "group", id: element.id, role: "element", items };
+  }
+
+  /**
+   * A code note (decision 0078): a panel with the note's `radius`, in the theme's `code` colour
+   * (or its `fill`) outlined in `line` (or its `stroke`), and its lines inside the panel's insets
+   * (`Sizing.codeInset`) in the note's font, the theme's `mono` unless written, in `codeText` (or
+   * its `color`), one line apart and never wrapped. An icon goes before the first line. A panel
+   * smaller than its text clips the text inside its insets.
+   */
+  private codeNote(element: Element, box: Box): GroupItem {
+    const { theme } = this;
+    const style = this.styles.element(element);
+    const radius = cornerRadius(style.radius ?? theme.radius, box);
+    const panel = this.rect(
+      box,
+      radius,
+      style.fill ?? theme.code,
+      style.stroke ?? theme.line,
+      style.width ?? theme.strokeWidth,
+      strokeDash(style.line),
+    );
+    const items: SceneItem[] = [panel, ...this.overlay(style, panel)];
+    const color = style.color ?? theme.codeText;
+    const font = this.sizing.noteFont(element);
+    const inset = this.sizing.codeInset();
+    const room = {
+      x: box.x + inset.x,
+      y: box.y + inset.y,
+      width: Math.max(0, box.width - 2 * inset.x),
+      height: Math.max(0, box.height - 2 * inset.y),
+    };
+    const icon = this.sizing.iconOf(element);
+    const indent = icon ? icon.size + icon.gap : 0;
+    if (icon) {
+      items.push(
+        this.icon(icon, room.x + icon.size / 2, room.y + font.line / 2, style.iconColor ?? color),
+      );
+    }
+    const align = this.sizing.alignOf(element);
+    const x =
+      align === "left"
+        ? room.x + indent
+        : align === "right"
+          ? room.x + room.width
+          : room.x + indent + (room.width - indent) / 2;
+    const anchor: TextItem["anchor"] =
+      align === "left" ? "start" : align === "right" ? "end" : "middle";
+    const lines = splitLines(element.label);
+    lines.forEach((line, i) => {
+      items.push(
+        this.text(
+          x,
+          room.y + font.line / 2 + i * font.line,
+          line,
+          font.size,
+          font.weight,
+          color,
+          anchor,
+          font.font,
+        ),
+      );
+    });
+    const group: GroupItem = { kind: "group", id: element.id, role: "element", items };
+    const needs = this.sizing.textNeeds(element);
+    const fits =
+      box.width >= needs.minimum - ROUNDING &&
+      box.height >= this.sizing.noteHeight(element) - ROUNDING;
+    if (fits) return group;
+    const clip: SceneClip = {
+      id: `clip-${xmlName(this.diagramId)}-${xmlName(element.id)}`,
+      x: round(room.x),
+      y: round(room.y),
+      width: round(room.width),
+      height: round(room.height),
+      radius: 0,
+    };
+    return { ...group, textClip: clip };
   }
 
   /**

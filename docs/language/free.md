@@ -251,6 +251,42 @@ attachments, and keeps the notes. In `layout auto` and for a note without a `pla
 assisted`, the arrangement keeps the note near its element. An outlined note takes a moving dash
 (`animate remark { effect dash }`); one without an outline takes only a pulse.
 
+### Code notes
+
+A note shows a fragment of code as a code block with `textFormat code`, in a `style` statement, a
+class or `rule note { }`. The label holds the code as written: `\n` for each line break, `\t` for
+a tab, `\"` and `\\` for quotes and backslashes, and every space where it is. Nothing in the text
+selects the format: Markdown fences are drawn as text.
+
+```text
+note action "exports.onExecutePostLogin = async (event, api) => {\n  if (event.client.client_id !== \"CLIENT_ID_WEB\") {\n    return;\n  }\n};" on tenant
+style action { textFormat code }
+```
+
+- **Drawing.** A panel with the note's `radius` in the theme's `code` colour, outlined in `line`
+  at `strokeWidth`, and the lines inside it in the theme's `mono` font at the note size, weight
+  400, in `codeText`, left-aligned and never wrapped. The text is inset three quarters of the
+  theme's `padding` across and half of it down (12 and 8 under the technical themes). `fill`,
+  `stroke`, `width`, `line`, `radius`, `color`, `font`, `fontSize`, `fontWeight` and `textAlign`
+  adjust it as they adjust a note; an `icon` goes before the first line.
+- **White space.** Spaces are drawn as written in every export, and a tab advances to the next
+  tab stop, every four characters ([svg-export.md](svg-export.md#the-svg)); the label keeps its
+  tabs. An empty line keeps its height.
+- **Size.** The block is as wide as its longest line plus its insets and as tall as its lines plus
+  its insets. A written `size` is kept; one too small for the text clips the text to the panel and
+  reports `layout.text-overflow` with the size the text needs. Shorten long lines in the source,
+  or give the note a smaller `fontSize`.
+- **Everything else** is a note's: `on`, `place`, layers, `rotation`, effects, `link`, `url`.
+  `textFormat plain`, the default, draws the same text as a plain note again, and overrides a
+  class or a rule. Flow diagrams, C4 views and sequence diagrams take `textFormat` on their notes
+  too ([sequence.md](sequence.md)); every other target refuses it.
+
+On the canvas, **Format** in the Text category of the properties switches a note between
+**Plain text** and **Code**, and the note tool's menu adds a **Code block** ready for a paste. In
+a code note's editor Enter breaks the line and keeps its indentation, Tab and Shift+Tab indent,
+and Ctrl+Enter commits; **Copy code** in the context menu copies the text as written
+([editor](../editor.md)).
+
 ### Stickies
 
 `sticky <id> "Text" [{ … }]` is a sticky note: a square paper card with a few words on it, the

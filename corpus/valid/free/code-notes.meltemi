@@ -1,0 +1,24 @@
+language "0.2"
+
+// Code notes (decision 0078): `textFormat code` from a style, from a class and overridden by
+// `plain`; spaces, a tab and an empty line kept as written.
+diagram code_notes: free {
+  title "Code notes"
+  layout manual
+
+  box api "Orders API"
+  note handler "app.post(\"/orders\", async (req, res) => {\n  const order = await save(req.body);\n\n  res.status(201).json(order);\n});" on api
+  note go "func ok() bool {\n\treturn true\n}" { class snippet }
+  note remark "Plain text again"
+
+  placement {
+    place api at (140, 80)
+    place handler at (460, 80)
+    place go at (140, 240)
+    place remark at (460, 240)
+  }
+
+  class snippet { textFormat code; fontSize 12 }
+  style handler { textFormat code }
+  style remark { textFormat plain }
+}

@@ -113,6 +113,11 @@ browser or embedding context shows a disabled button with an explanation.
   selects it), and what the host adds (the catalog's stories, entity and views). A click on an
   element with a `url` selects it; Ctrl or Cmd and a click follows the link. Escape or Close
   closes the panel.
+- **Code notes.** The panel of a code note ([free.md](language/free.md#code-notes)) shows its text
+  as written in a monospace block, its spaces, tabs and line breaks kept and long lines scrolled
+  sideways, under **Copy code**, which puts the text on the clipboard and says so. Where the page may
+  not write to the clipboard, the button selects the text so the keyboard copies it. A code note of
+  a sequence diagram is selected by a click and by the arrow keys too; a plain note is not.
 - **Gantt charts.** In a gantt chart ([gantt.md](language/gantt.md#in-the-player)) the card of a task
   shows its label, its section, its status (not when it is only planned) and "Critical", its dates
   (`8 Jun 2026 → 19 Jun 2026`) and working days, `After: …` with the tasks it follows, its

@@ -861,6 +861,33 @@ herramienta de flecha también dibuja líneas. Los botones de caja y de nodo abr
   tal como está dibujado, con un enlace de cada objeto a su origen, y muestra la copia.
 - **Copiar.** Un hijo copiado sin su grupo lleva la posición en la que está dibujado.
 
+### Notas de código
+
+Una nota muestra un fragmento de código como un bloque de código: la fuente monoespaciada del tema
+sobre un panel, con cada espacio, tabulación y salto de línea
+([free.md](language/free.md#notas-de-código)). Los diagramas de flujo, las composiciones libres y
+las vistas C4 lo tienen en la herramienta de nota, y todo perfil con notas en las propiedades.
+
+- **Bloque de código.** La flecha del botón de nota (o un clic derecho o una pulsación larga sobre
+  él) abre **Nota** y **Bloque de código**. **Bloque de código** añade `note note1 "Código"` y
+  `style note1 { textFormat code }` cerca del centro en una sola edición, y abre su editor con la
+  palabra seleccionada, así que lo que pegas desde tu editor la reemplaza. Arrastra **Bloque de
+  código** desde el menú para dejar el bloque donde lo sueltas. O y el botón de nota siguen creando
+  una nota normal.
+- **Formato.** Con notas seleccionadas, la pestaña Texto de las propiedades muestra **Formato**
+  encima de **Fuente**: **Texto normal** o **Código**. Cambiarlo nunca toca el texto de la nota;
+  **Texto normal** quita el `textFormat` escrito (o escribe `textFormat plain` sobre una clase o una
+  regla que hace la nota de código). La Fuente de una nota de código muestra la familia
+  monoespaciada del tema, y su Relleno, Trazo y Color del texto los `code`, `line` y `codeText`
+  del tema.
+- **Escribir código.** En el editor de una nota de código, Entrar empieza una línea nueva con la
+  misma sangría, Tab y Mayús+Tab sangran y quitan sangría a la línea o a cada línea seleccionada
+  (con una tabulación si el texto sangra con tabulaciones, si no con su propio número de espacios,
+  dos por defecto), Ctrl+Entrar o un clic fuera guardan el código y Esc cancela.
+- **Copiar código.** Con una nota de código seleccionada, el menú contextual ofrece **Copiar
+  código**, también en lienzos de solo lectura: pone el texto de la nota en el portapapeles tal como
+  está, listo para pegar en un editor. Ctrl+C sigue copiando la nota como un fragmento.
+
 ### Herramientas de pizarra
 
 Una composición libre es también una pizarra: trazos a mano alzada, marcas de marcador, notas

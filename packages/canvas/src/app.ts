@@ -112,7 +112,14 @@ import {
   type BarSpan,
   type RowDrop,
 } from "./gantt.js";
-import { InlineEditor, boxPlace, drawnLines, labelLines, wrappedLines } from "./inline.js";
+import {
+  InlineEditor,
+  boxPlace,
+  drawnLines,
+  drawnTextLines,
+  labelLines,
+  wrappedLines,
+} from "./inline.js";
 import { Inspector, ThemePanel } from "./inspector.js";
 import { LayersPanel } from "./layers.js";
 import { LibraryPanel } from "./library.js";
@@ -5203,6 +5210,8 @@ export class CanvasApp {
       button.addEventListener("pointerdown", (e) => this.paletteDrag(e, kind));
       if (SHAPED_TOOLS.has(kind)) return this.shapesSplit(button, kind, p.profile);
       if (kind === "group") return this.groupSplit(button);
+      // The note tool's arrow adds a code block (decision 0078).
+      if (kind === "note") return this.noteSplit(button, p.profile);
       if (p.profile) button.setAttribute("data-profile", p.profile);
       return button;
     });
@@ -5670,6 +5679,130 @@ export class CanvasApp {
       main,
       arrow,
     );
+  }
+
+  /**
+   * The note tool split in two (flow, free and C4, decision 0078): the main part arms the note tool
+   * and O creates a plain note, as before; the arrow, a right-click or a held press on the main
+   * part opens Note and Code block, each creating its note at once. Code block can also be dragged
+   * from the menu onto the canvas.
+   */
+  private noteSplit(main: HTMLButtonElement, profile: string | undefined): HTMLElement {
+    const arrow = this.splitArrow(messages().toolbar.noteMenu, undefined, undefined, (button) =>
+      this.openNoteKinds(button),
+    );
+    arrow.setAttribute("aria-haspopup", "menu");
+    arrow.setAttribute("data-note-kinds", "");
+    const open = () => this.menu.isOpen && arrow.getAttribute("aria-expanded") === "true";
+    this.holdOpens(main, () => {
+      if (!open()) this.openNoteKinds(arrow);
+      return open();
+    });
+    return h(
+      "div",
+      { class: "split", "data-split": "note", ...(profile ? { "data-profile": profile } : {}) },
+      main,
+      arrow,
+    );
+  }
+
+  /** The menu of the note tool: a plain note and a code block, each with its picture. */
+  private openNoteKinds(button: HTMLButtonElement): void {
+    if (this.readOnly || this.storyPanel.active || !this.render) return;
+    if (this.render.profile === "sequence" || this.render.profile === "gantt") return;
+    // A second press closes the kinds.
+    if (this.menu.isOpen && button.getAttribute("aria-expanded") === "true") {
+      this.menu.close();
+      return;
+    }
+    const words = messages();
+    const base = this.main.getBoundingClientRect();
+    const rect = (button.closest(".split") ?? button).getBoundingClientRect();
+    const picture = (path: string) => {
+      const drawn = icon(path);
+      drawn.setAttribute("width", "16");
+      drawn.setAttribute("height", "16");
+      return drawn;
+    };
+    button.setAttribute("aria-expanded", "true");
+    this.menu.open(
+      [
+        {
+          label: words.palette.tools.note,
+          key: "O",
+          picture: picture(ICONS.note),
+          data: { "data-note-kind": "plain" },
+          run: () => this.command("createNote"),
+        },
+        {
+          label: words.toolbar.codeBlock,
+          picture: picture(ICONS.codeBlock),
+          data: { "data-note-kind": "code" },
+          run: () => this.createCodeBlock(),
+        },
+      ],
+      { x: rect.left - base.left, y: 0 },
+      base,
+      () => button.setAttribute("aria-expanded", "false"),
+    );
+    const code = this.menu.element.querySelector<HTMLElement>('[data-note-kind="code"]');
+    code?.addEventListener("pointerdown", (e) => this.dragCodeBlock(e));
+  }
+
+  /**
+   * A code block (decision 0078): a note in the interface's word for code with `textFormat code`,
+   * near the centre or at `at`, selected with its editor open on the word, so a paste replaces it.
+   */
+  private createCodeBlock(at?: Point): void {
+    if (this.readOnly || !this.render) return;
+    this.setPointing(false);
+    const place =
+      at ??
+      freeCell(
+        [...this.elements.values()].map((e) => e.box),
+        this.diagramOf(this.centre()),
+        DEFAULT_SIZES.note,
+        this.settings.grid,
+      );
+    this.create("note", place, { label: messages().palette.codeLabel, textFormat: "code" });
+  }
+
+  /**
+   * Code block dragged from the note tool's menu: a press that moves 4 px closes the menu and
+   * carries the block, which is created where it is let go over the canvas; a press that does not
+   * move is a click, which the menu runs.
+   */
+  private dragCodeBlock(e: PointerEvent): void {
+    if (e.button !== 0) return;
+    const pointer = e.pointerId;
+    const from = { x: e.clientX, y: e.clientY };
+    let dragging = false;
+    const stop = () => {
+      document.removeEventListener("pointermove", move, true);
+      document.removeEventListener("pointerup", up, true);
+      document.removeEventListener("pointercancel", stop, true);
+    };
+    const move = (event: PointerEvent) => {
+      if (event.pointerId !== pointer || dragging) return;
+      if (Math.hypot(event.clientX - from.x, event.clientY - from.y) < 4) return;
+      dragging = true;
+      this.menu.close();
+    };
+    const up = (event: PointerEvent) => {
+      if (event.pointerId !== pointer) return;
+      stop();
+      if (!dragging) return;
+      const rect = this.stage.getBoundingClientRect();
+      const inside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (inside) this.createCodeBlock(this.snapPoint(this.diagramOf(this.pointOf(event))));
+    };
+    document.addEventListener("pointermove", move, true);
+    document.addEventListener("pointerup", up, true);
+    document.addEventListener("pointercancel", stop, true);
   }
 
   /** The menu of the kinds of group, each with its picture, the current one checked. */
@@ -9840,6 +9973,8 @@ export class CanvasApp {
       readonly index?: number;
       /** A chart: the dates of a bar drawn, or the date of a diamond or a line placed. */
       readonly schedule?: { readonly start: number; readonly end?: number };
+      /** A note drawn as a code block (the note tool's Code block). */
+      readonly textFormat?: "code";
     } = {},
   ): boolean {
     if (this.readOnly) return false;
@@ -9885,6 +10020,7 @@ export class CanvasApp {
       ...(kind === "group" && layout !== undefined ? { layout } : {}),
       ...(index !== undefined && parent ? { index } : {}),
       ...(extra.schedule ? { schedule: extra.schedule } : {}),
+      ...(extra.textFormat ? { textFormat: extra.textFormat } : {}),
     });
     if (!sent) return false;
     const words = messages().announcements;
@@ -10377,6 +10513,9 @@ export class CanvasApp {
     const parent = target.kind === "element" ? this.elements.get(target.id)?.parent : undefined;
     const inList = !target.rename && parent ? this.elements.get(parent)?.list : undefined;
     const keys = messages().inline;
+    // A code note's text is typed as code (decision 0078); its id is renamed as any id is.
+    const code = !target.rename && place.format === "code";
+    const said = code ? keys.codeKeys : keys.keys(multiline);
     const editor = new InlineEditor({
       id: target.id,
       rename: target.rename,
@@ -10384,11 +10523,12 @@ export class CanvasApp {
       multiline,
       ...(wrap ? { wrap } : {}),
       ...(drawnLines !== undefined ? { drawnLines } : {}),
+      ...(code ? { code } : {}),
       label,
-      keys: inList ? `${keys.keys(multiline)} ${keys.nextCard}` : keys.keys(multiline),
+      keys: inList && !code ? `${said} ${keys.nextCard}` : said,
       commit: () => this.commitInline(),
       cancel: () => this.cancelInline(),
-      ...(inList
+      ...(inList && !code
         ? {
             next: () => {
               this.commitInline();
@@ -10472,7 +10612,7 @@ export class CanvasApp {
         : this.events.get(target.id)?.label) ??
       "";
     if (target.kind === "event" && text === "") return ["⋯"];
-    return element?.text?.lines === false ? [text] : text.split("\n");
+    return drawnTextLines(text, element?.text?.lines === false);
   }
 
   /** Shows the drawn text the editor hid. */
@@ -10547,6 +10687,7 @@ export class CanvasApp {
         disabled: elementIds.length === 0,
         run: () => this.command("copy"),
       },
+      ...this.codeItems(),
       {
         label: words.showInText,
         disabled: !primary,
@@ -10606,6 +10747,25 @@ export class CanvasApp {
           run: () => this.act({ kind: "setField", ids, field: f.name, value: on ? null : "on" }),
         };
       });
+  }
+
+  /**
+   * **Copy code** for exactly one selected code note, an element or a note of a sequence diagram
+   * (decision 0078): its text as written, put on the clipboard by the host. Read-only canvases
+   * offer it too; nothing in the document changes.
+   */
+  private codeItems(): MenuItem[] {
+    if (this.selection.length !== 1) return [];
+    const id = this.selection[0]!;
+    const place = this.elements.get(id)?.text ?? this.events.get(id)?.text;
+    if (place?.format !== "code") return [];
+    return [
+      {
+        label: messages().menu.copyCode,
+        data: { "data-menu": "copy-code" },
+        run: () => this.post({ type: "copyText", id }),
+      },
+    ];
   }
 
   /** The effect items after `items`, in a group of their own. */
@@ -10712,6 +10872,7 @@ export class CanvasApp {
         run: run("reverseDirection"),
       });
     }
+    items.push(...this.codeItems());
     this.withEffects(items);
     if (items.length > 0) items.push("-");
     items.push(
@@ -10874,6 +11035,7 @@ export class CanvasApp {
     }
     if (!relation) items.push(...this.belowItems(at));
     // A view's relations come from the model: they take effects, and are reversed there.
+    items.push(...this.codeItems());
     this.withEffects(items);
     if (items.length > 0) items.push("-");
     items.push(
@@ -10935,6 +11097,7 @@ export class CanvasApp {
         items.push({ label: words.putInSection, key: "Alt+G", run: run("group") });
       }
     }
+    items.push(...this.codeItems());
     this.withEffects(items);
     if (element || relation) items.push("-");
     items.push(
@@ -11104,6 +11267,7 @@ export class CanvasApp {
         run: run("reverseDirection"),
       });
     }
+    items.push(...this.codeItems());
     this.withEffects(items);
     if (items.length > 0) items.push("-");
     items.push(

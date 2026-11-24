@@ -791,6 +791,30 @@ at 30%`). The strip shows a relation's rows: stroke, line, width, both heads wit
   from each object to its source, and shows the copy.
 - **Copying.** A child copied without its group carries the position it is drawn at.
 
+### Code notes
+
+A note shows a fragment of code as a code block: the theme's monospace font on a panel, every space,
+tab and line break kept ([free.md](language/free.md#code-notes)). Flow diagrams, free compositions
+and C4 views have it in the note tool, and every profile with notes in the properties.
+
+- **Code block.** The arrow of the note button (or a right-click or a held press on it) opens
+  **Note** and **Code block**. **Code block** adds `note note1 "Code"` and
+  `style note1 { textFormat code }` near the centre in one edit, and opens its editor with the word
+  selected, so a paste from your editor replaces it. Drag **Code block** from the menu to put the
+  block where you let go. O and the note button still make a plain note.
+- **Format.** With notes selected, the Text tab of the properties shows **Format** above **Font**:
+  **Plain text** or **Code**. Changing it never touches the note's text; **Plain text** takes the
+  written `textFormat` away (or writes `textFormat plain` over a class or a rule that makes the
+  note code). A code note's Font shows the theme's monospace family, and its Fill, Stroke and Text
+  colour the theme's `code`, `line` and `codeText`.
+- **Typing code.** In a code note's editor, Enter starts a new line with the same indentation, Tab
+  and Shift+Tab indent and outdent the line or every selected line (with a tab when the text
+  indents with tabs, else with its own number of spaces, two by default), Ctrl+Enter or a click
+  outside keeps the code and Escape cancels.
+- **Copy code.** With one code note selected, the context menu offers **Copy code**, on read-only
+  canvases too: it puts the note's text on the clipboard as written, ready to paste into an editor.
+  Ctrl+C still copies the note itself as a fragment.
+
 ### Whiteboard tools
 
 A free composition is also a whiteboard: freehand strokes, highlighter marks, sticky notes and lists

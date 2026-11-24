@@ -227,6 +227,8 @@ export function mountPlayer(
         const kind = data.details[controller.view]?.elements[id]?.kind;
         return kind === "group" || kind === "section";
       },
+      // A code note of a sequence diagram is selected for its text (decision 0078).
+      selectable: (id) => data.details[controller.view]?.elements[id]?.event === true,
     },
     options.details !== false,
   );
@@ -472,7 +474,7 @@ export function mountPlayer(
     if (!content || controller.drill) return;
     const group =
       item.role === "element"
-        ? stage.picture.querySelector(`[data-id=${quote(item.id)}][data-role="element"]`)
+        ? stage.picture.querySelector(`[data-id=${quote(item.id)}][data-role="${drawnRole(item)}"]`)
         : null;
     card.show(content, group?.getBoundingClientRect() ?? null, pointer);
   };
@@ -549,6 +551,17 @@ export function mountPlayer(
         type: type || null,
         facts,
         description: e.description,
+        ...(e.code !== undefined
+          ? {
+              code: {
+                text: e.code,
+                copy: t.details.copyCode,
+                copied: t.details.codeCopied,
+                selected: t.details.codeSelected,
+                announce,
+              },
+            }
+          : {}),
         open:
           openName === null
             ? null
@@ -820,6 +833,15 @@ export function mountPlayer(
       y: content.y + content.height / 2,
     });
   };
+  /**
+   * The role an item's group has in the drawing: its own, but `event` for a code note of a
+   * sequence diagram, which is selected as an element (decision 0078).
+   */
+  const drawnRole = (item: ItemRef): string =>
+    item.role === "element" && details(controller.view)?.elements[item.id]?.event === true
+      ? "event"
+      : item.role;
+
   const boxOf = (item: ItemRef) => {
     const scene = viewData(controller.view)?.scene;
     if (!scene) return null;
@@ -827,7 +849,7 @@ export function mountPlayer(
     while (stack.length > 0) {
       const g = stack.shift()!;
       if (g.kind !== "group") continue;
-      if (g.id === item.id && g.role === item.role) {
+      if (g.id === item.id && g.role === drawnRole(item)) {
         if (g.bounds) return g.bounds;
         if (g.track && g.track.length > 0) {
           const xs = g.track.map((p) => p.x);
@@ -1119,7 +1141,9 @@ export function mountPlayer(
   /** The keyboard walk: focus the next item shown, reveal it and say what it is. */
   const walk = (step: 1 | -1) => {
     const item = controller.moveFocus(step, (i) => {
-      const group = stage.picture.querySelector(`[data-id=${quote(i.id)}][data-role="${i.role}"]`);
+      const group = stage.picture.querySelector(
+        `[data-id=${quote(i.id)}][data-role="${drawnRole(i)}"]`,
+      );
       if (!group) return false;
       for (let at: Element | null = group; at && at !== stage.picture; at = at.parentElement) {
         if (at.getAttribute("opacity") === "0") return false;

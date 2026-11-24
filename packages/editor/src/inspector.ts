@@ -8,6 +8,7 @@ import {
   DEFAULT_THEME,
   FONT_WEIGHTS,
   TEXT_ALIGNS,
+  TEXT_FORMATS,
   VERTICAL_ALIGNS,
   DIRECTIONS,
   ELEMENT_ONLY_PROPERTIES,
@@ -19,6 +20,7 @@ import {
   LIST_ALIGNS,
   LIST_LAYOUTS,
   LIST_SPACING_RANGE,
+  NOTE_ONLY_PROPERTIES,
   PATTERNS,
   PEN_PROPERTIES,
   PEN_WIDTH_RANGE,
@@ -253,6 +255,8 @@ const STYLE_FIELDS: readonly StyleField[] = [
  * takes them; icons, images and pens do not (`takesField`).
  */
 const TEXT_STYLE_FIELDS: readonly StyleField[] = [
+  // Notes only (decision 0078): plain text or a code block, as two chips above the font.
+  { name: "textFormat", type: "enum", options: TEXT_FORMATS, glyphs: "textFormat" },
   { name: "font", type: "font" },
   { name: "fontSize", type: "number" },
   { name: "fontWeight", type: "enum", options: FONT_WEIGHTS.map(String), glyphs: "fontWeight" },
@@ -303,6 +307,11 @@ function takesField(diagram: FlowDiagram, target: StyleTarget, field: StyleField
   if (diagram.type === "gantt") {
     const element = target.kind === "element" ? diagram.elementsById.get(target.id) : undefined;
     return element !== undefined && ganttTakesStyle(element.kind, field.name);
+  }
+  // A note's format goes on notes alone: note elements and the notes of sequence diagrams.
+  if (NOTE_ONLY_PROPERTIES.includes(field.name)) {
+    if (target.kind === "event") return diagram.eventsByKey.get(target.id)?.kind === "note";
+    return target.kind === "element" && diagram.elementsById.get(target.id)?.kind === "note";
   }
   // The text fields go wherever text is drawn: every element but icons, images and pens, the
   // relations and free lines, and the notes and fragments of sequence diagrams.
@@ -384,13 +393,15 @@ function withTextDefaults(
     ...diagram,
     styles: diagram.styles.filter((entry) => !ids.includes(entry.target)),
   });
+  // With them: a note's own `textFormat code` draws it in the mono font.
+  const drawn = new StyleResolver(theme, diagram);
   const faces = ids.map((id) => {
     const kind = diagram.elementsById.has(id)
       ? "element"
       : diagram.relationsByKey.has(id)
         ? "relation"
         : "event";
-    return drawnText(theme, diagram, { id, kind }, inherited);
+    return drawnText(theme, diagram, { id, kind }, inherited, drawn);
   });
   const shared = <T>(values: readonly (T | undefined)[]): T | undefined =>
     values.length > 0 && values.every((v) => v !== undefined && v === values[0])
@@ -412,6 +423,55 @@ function withTextDefaults(
         : { ...field, ...listed, placeholder };
     }),
   };
+}
+
+/** The text format each target is drawn with: its own, its classes' and rules', else `plain`. */
+function drawnFormats(
+  styles: StyleResolver,
+  diagram: FlowDiagram,
+  ids: readonly string[],
+): ("plain" | "code")[] {
+  return ids.map((id) => {
+    const element = diagram.elementsById.get(id);
+    const style = element ? styles.element(element) : styles.event(id, "note");
+    return style.textFormat ?? "plain";
+  });
+}
+
+/**
+ * The resolver of the styles the targets would take without the `textFormat` their own `style`
+ * statements write: what their classes and rules give.
+ */
+function withoutOwnFormat(theme: Theme, diagram: FlowDiagram, ids: readonly string[]) {
+  return new StyleResolver(theme, {
+    ...diagram,
+    styles: diagram.styles.map((entry) => {
+      if (!ids.includes(entry.target) || !("textFormat" in entry.properties)) return entry;
+      const { textFormat: _written, ...properties } = entry.properties;
+      return { ...entry, properties };
+    }),
+  });
+}
+
+/**
+ * The Format field of notes as two choices, Plain text and Code, the one the notes are drawn with
+ * marked whether it is written or comes from a class or a rule: no "default" chip, unless the notes
+ * differ, when it is a way back to each one's own.
+ */
+function withFormat(model: InspectorModel, view: DiagramView, theme: Theme): InspectorModel {
+  const field = model.fields.find((f) => f.name === "style.textFormat");
+  if (!field) return model;
+  const formats = drawnFormats(
+    new StyleResolver(theme, view.diagram),
+    view.diagram,
+    model.target.ids,
+  );
+  const same = formats.every((format) => format === formats[0]);
+  const { fromTheme: _theme, placeholder: _placeholder, mixed: _mixed, ...rest } = field;
+  const shown: InspectorField = same
+    ? { ...rest, value: formats[0] ?? "plain" }
+    : { ...rest, value: null, mixed: true };
+  return { ...model, fields: model.fields.map((f) => (f === field ? shown : f)) };
 }
 
 /**
@@ -500,6 +560,15 @@ function withElementDefaults(
       ? {
           "style.fill": shared(elements.map((e) => inherited.element(e).fill ?? "sticky")),
           "style.color": shared(elements.map((e) => inherited.element(e).color ?? "stickyText")),
+        }
+      : {}),
+    // Code notes: the theme's code panel, outlined in its line, under its code text (0078).
+    ...(elements.length > 0 &&
+    elements.every((e) => e.kind === "note" && styles.element(e).textFormat === "code")
+      ? {
+          "style.fill": shared(elements.map((e) => inherited.element(e).fill ?? "code")),
+          "style.stroke": shared(elements.map((e) => inherited.element(e).stroke ?? "line")),
+          "style.color": shared(elements.map((e) => inherited.element(e).color ?? "codeText")),
         }
       : {}),
     // Opaque unless a rule or a class fades them.
@@ -1243,7 +1312,11 @@ export function inspect(
   const elements = model.target.ids.flatMap((id) => view.diagram.elementsById.get(id) ?? []);
   const some = elements.length > 0;
   const families = embeddableFamilies(analysis);
-  const texts = withTextDefaults(withIcons(model, view, analysis.icons), view, theme, families);
+  const texts = withFormat(
+    withTextDefaults(withIcons(model, view, analysis.icons), view, theme, families),
+    view,
+    theme,
+  );
   return withStrip(texts, theme, themes, {
     iconed: some && elements.every((e) => styles.element(e).icon !== undefined),
     stickies: some && elements.every((e) => e.kind === "sticky"),
@@ -1317,6 +1390,8 @@ const STRIP = [
   "style.verticalAlign",
   // For elements with an icon only.
   "style.iconPosition",
+  // Notes: their format, above the font (decision 0078).
+  "style.textFormat",
   // Everything that draws text: the Text group, its font, size and weight (decision 0067).
   "style.font",
   "style.fontSize",
@@ -1687,14 +1762,25 @@ export function fieldOperations(
     const resolved = styleTargets(diagram, ids);
     if (!resolved.ok) return resolved;
     ops.push(...resolved.operations);
-    for (const { target, targetKind } of resolved.targets) {
+    // Plain text takes a note's written format away, and writes `plain` only over a class or a
+    // rule that makes the note code.
+    const names = resolved.targets.map((t) => t.target);
+    const inheritedCode =
+      property === "textFormat" && written !== "code"
+        ? drawnFormats(
+            withoutOwnFormat(effectiveTheme(analysis, view), diagram, names),
+            diagram,
+            names,
+          )
+        : undefined;
+    for (const [i, { target, targetKind }] of resolved.targets.entries()) {
       ops.push({
         kind: "setStyleProperty",
         diagram: d,
         target,
         targetKind,
         property,
-        value: written,
+        value: inheritedCode ? (inheritedCode[i] === "code" ? "plain" : null) : written,
       });
     }
     const notice = namedNotice(resolved.named);

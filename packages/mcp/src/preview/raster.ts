@@ -4,6 +4,7 @@
 // hold is drawn with Inter, the default of every generic family but `monospace` (Cascadia Mono).
 
 import { Resvg, initWasm, type InitInput } from "@resvg/resvg-wasm";
+import { RASTER_FAMILIES } from "./fonts.js";
 import { MAX_PNG_PIXELS } from "./protocol.js";
 
 let started: Promise<void> | undefined;
@@ -36,16 +37,45 @@ export function fittedWidth(width: number, sceneWidth: number, sceneHeight: numb
   return Math.max(1, Math.floor(Math.sqrt((MAX_PNG_PIXELS * sceneWidth) / sceneHeight)));
 }
 
-/** Draws an SVG as a PNG `width` pixels wide (or narrower, `fitted`), with `fonts` (TTF or OTF). */
+/** Unquotes one name of an escaped `font-family` list. */
+function familyName(name: string): string {
+  return name.trim().replace(/^(&quot;|"|')|(&quot;|"|')$/g, "");
+}
+
+/**
+ * resvg draws a text with the first family of its `font-family` list, never one after it: a list
+ * that starts with a family it does not hold (the themes' monospace stack starts with
+ * `ui-monospace`) would be drawn with Inter, code and tags included. Each list is made to start with
+ * the first family of it that `held` names, or with Cascadia Mono when it names `monospace` or
+ * `ui-monospace`; a list it holds nothing of is left to the fallback. Only the picture changes: the
+ * SVG of an export keeps its lists.
+ */
+export function rasterFamilies(svg: string, held: ReadonlySet<string>): string {
+  const known = new Set([...held].map((family) => family.toLowerCase()));
+  return svg.replace(/ font-family="([^"]*)"/g, (whole, list: string) => {
+    const names = list.split(",").map(familyName);
+    const chosen =
+      names.find((name) => known.has(name.toLowerCase())) ??
+      (names.some((name) => /^(ui-)?monospace$/i.test(name)) ? "Cascadia Mono" : undefined);
+    if (chosen === undefined || names[0]!.toLowerCase() === chosen.toLowerCase()) return whole;
+    return ` font-family="&quot;${chosen}&quot;, ${list}"`;
+  });
+}
+
+/**
+ * Draws an SVG as a PNG `width` pixels wide (or narrower, `fitted`), with `fonts` (TTF or OTF) whose
+ * families are `families`: the raster faces and a project's own.
+ */
 export function rasterise(
   svg: string,
   width: number,
   scene: { readonly width: number; readonly height: number },
   fonts: readonly Uint8Array[],
+  families: ReadonlySet<string> = RASTER_FAMILIES,
 ): Raster {
   if (started === undefined) throw new Error("the rasteriser was not started");
   const drawn = fittedWidth(width, scene.width, scene.height);
-  const resvg = new Resvg(svg, {
+  const resvg = new Resvg(rasterFamilies(svg, families), {
     fitTo: { mode: "width", value: drawn },
     font: {
       fontBuffers: [...fonts],

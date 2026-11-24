@@ -160,6 +160,15 @@ Las dos últimas filas piden cosas distintas. Animar una flecha o un diagrama a�
 no necesitan una historia. Un recorrido es una [historia](language/stories.md), un bloque aparte
 con escenas y tiempos. El skill indica al agente que escriba solo lo que pediste.
 
+### Código en un diagrama
+
+Para mostrar un fragmento de código junto al componente que explica, pídele al agente que lo ponga
+en una nota de código. La skill le enseña a escribir el fragmento como texto de la nota, con saltos
+`\n` y su sangría tal como está, y `style <nota> { textFormat code }`; se dibuja un bloque de código
+en una fuente monoespaciada que conserva cada espacio, en el lienzo, las exportaciones y el `preview`
+del MCP. No escribe vallas de Markdown ni espacios no separables, que un diagrama dibujaría tal cual
+([free.md](language/free.md#notas-de-código)).
+
 ## A través del endpoint MCP
 
 El servicio alojado tiene un endpoint MCP, `https://diagrams.meltemi.dev/mcp`, a través del cual un

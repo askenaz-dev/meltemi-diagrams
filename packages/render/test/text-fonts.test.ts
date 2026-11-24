@@ -62,3 +62,53 @@ describe("written fonts in SVG", () => {
     );
   });
 });
+
+describe("white space under the three font policies", () => {
+  const sheet = String.raw`language "0.2"
+diagram d: free {
+  layout manual
+  note n "if (a) {\n  return;\n}"
+  placement { place n at (100, 100) }
+  style n { font "Cascadia Mono" }
+}
+`;
+  const draw = (policy: FontPolicy) => {
+    const compilation = compile(sheet);
+    const result = layoutDiagram(compilation, compilation.document.diagrams[0]!, {
+      measurer: fonts,
+    });
+    return renderSvg(result.scene!, { fonts: policy, provider: fonts });
+  };
+  const size = LIGHT.noteSize;
+
+  it("puts every line at the same x and keeps the indent for the viewer to draw", () => {
+    for (const policy of ["system", "embedded"] as const) {
+      const svg = draw(policy);
+      const first = /<text x="([\d.]+)"[^>]*>if \(a\) \{<\/text>/.exec(svg);
+      const indented = /<text x="([\d.]+)"[^>]*xml:space="preserve"> {2}return;<\/text>/.exec(svg);
+      expect(first, policy).not.toBeNull();
+      expect(indented, policy).not.toBeNull();
+      expect(indented![1]).toBe(first![1]);
+    }
+  });
+
+  it("outlines the indented line two space advances after the line's x", () => {
+    const svg = draw("outlined");
+    const paths = [
+      ...svg.matchAll(
+        /<path transform="translate\(([\d.]+) [\d.]+\)" d="([^"]*)"[^>]*aria-label="([^"]*)"/g,
+      ),
+    ];
+    const at = (label: string) => paths.find((m) => m[3] === label);
+    const first = at("if (a) {");
+    const indented = at("  return;");
+    expect(first).toBeDefined();
+    expect(indented).toBeDefined();
+    // The same x as the other lines, and the glyphs of the outline start after the two spaces.
+    expect(indented![1]).toBe(first![1]);
+    const alone = fonts.outline("return;", "Cascadia Mono", 400, size);
+    const spaces = fonts.width("  ", "Cascadia Mono", 400, size);
+    const startOf = (d: string) => Number(/^M(-?[\d.]+)/.exec(d)![1]);
+    expect(startOf(indented![2])).toBeCloseTo(startOf(alone.d) + spaces, 1);
+  });
+});

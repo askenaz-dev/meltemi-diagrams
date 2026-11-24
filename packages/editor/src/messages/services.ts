@@ -185,6 +185,11 @@ const en = {
       "How opaque an element, group, line or pen of a free diagram is, 0 to 1: `opacity 0.35`.",
     highlight: "In a theme, the colour of the highlighter: `stroke highlight` on a pen.",
     stickyText: "In a theme, the colour of the text of stickies.",
+    textFormat:
+      "How a note's text is drawn, in every profile with notes: `plain` (the default) or `code`, a code block in the theme's monospace font on a panel that keeps the text's spaces, tabs and line breaks. Notes only.",
+    plain: "`textFormat plain`: a note drawn as text, as a note without `textFormat` is.",
+    code: "`textFormat code`: a note drawn as a code block, in the theme's `mono` font on a panel. In a theme, the fill of the panel of code notes.",
+    codeText: "In a theme, the colour of the text of code notes.",
     pattern: "`none`, `hatch`, `dots` or `cross` over the shape; elements only.",
     arrowhead:
       "The head at a relation's target: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, or the crow's-foot ends `many`, `oneOrMany`, `onlyOne`, `zeroOrOne`, `zeroOrMany`; relations only.",
@@ -869,6 +874,11 @@ const es: typeof en = {
       "Cuán opaco es un elemento, un grupo, una línea o un lápiz de un diagrama libre, de 0 a 1: `opacity 0.35`.",
     highlight: "En un tema, el color del marcador: `stroke highlight` en un lápiz.",
     stickyText: "En un tema, el color del texto de las notas adhesivas.",
+    textFormat:
+      "Cómo se dibuja el texto de una nota, en todo perfil con notas: `plain` (lo predeterminado) o `code`, un bloque de código en la fuente monoespaciada del tema sobre un panel que conserva los espacios, las tabulaciones y los saltos de línea del texto. Solo notas.",
+    plain: "`textFormat plain`: una nota dibujada como texto, como una nota sin `textFormat`.",
+    code: "`textFormat code`: una nota dibujada como bloque de código, en la fuente `mono` del tema sobre un panel. En un tema, el relleno del panel de las notas de código.",
+    codeText: "En un tema, el color del texto de las notas de código.",
     pattern: "`none`, `hatch`, `dots` o `cross` sobre la forma; solo elementos.",
     arrowhead:
       "La punta en el destino de una relación: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, o los extremos de pata de gallo `many`, `oneOrMany`, `onlyOne`, `zeroOrOne`, `zeroOrMany`; solo relaciones.",

@@ -101,7 +101,13 @@ export class RendererCore {
     } else {
       const own = await projectFaces(request, drawing.projectFonts);
       const fonts = [...(await this.ports.rasterFonts()), ...own.faces];
-      const raster = rasterise(drawing.svg, request.width!, drawing, fonts);
+      const raster = rasterise(
+        drawing.svg,
+        request.width!,
+        drawing,
+        fonts,
+        new Set([...RASTER_FAMILIES, ...own.drawn]),
+      );
       preview = {
         contentType: "image/png",
         bytes: raster.png,

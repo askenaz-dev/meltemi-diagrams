@@ -266,10 +266,10 @@ export function textPlaces(
         area = { ...area, y: top, height: last.y + last.size / 2 - top };
       }
     }
-    elements.set(
-      owner.id,
-      place(lines, area, !single, owner.kind === "note" ? scale.noteLine : undefined),
-    );
+    const drawn = place(lines, area, !single, owner.kind === "note" ? scale.noteLine : undefined);
+    // A code note's text is typed as code (decision 0078).
+    const code = owner.kind === "note" && styles.element(owner).textFormat === "code";
+    elements.set(owner.id, code ? { ...drawn, format: "code" } : drawn);
   };
 
   /**
@@ -409,10 +409,9 @@ export function textPlaces(
         if (group.role !== "event" || !bounds) return;
         const lines = texts.slice(0, splitLines(found.text).length);
         if (lines.length === 0) return;
-        events.set(
-          found.key,
-          place(lines, around(bounds, lines[0]!.x, "left"), true, scale.noteLine),
-        );
+        const drawn = place(lines, around(bounds, lines[0]!.x, "left"), true, scale.noteLine);
+        const code = styles.event(found.id ?? found.key, "note").textFormat === "code";
+        events.set(found.key, code ? { ...drawn, format: "code" } : drawn);
         return;
       }
       case "fragment": {

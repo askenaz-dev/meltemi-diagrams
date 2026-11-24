@@ -8,6 +8,7 @@ import {
   THEME_COLOR_TOKENS,
   THEME_TOKENS,
   THEME_WHITEBOARD_TOKENS,
+  THEME_CODE_TOKENS,
   type ThemeDefinition,
 } from "@meltemi/diagrams-model";
 import type { DiagramView, DocumentAnalysis } from "./analysis.js";
@@ -73,8 +74,10 @@ function baseTheme(definition: ThemeDefinition, themes: readonly ThemeDefinition
 
 type ThemeWords = ReturnType<typeof messages>["themePanel"];
 
-/** The colour tokens the panel shows in its Whiteboard group rather than with the others. */
-const WHITEBOARD: ReadonlySet<string> = new Set(THEME_WHITEBOARD_TOKENS);
+/**
+ * The colour tokens the panel shows in its Whiteboard and Code groups rather than with the others.
+ */
+const APART: ReadonlySet<string> = new Set([...THEME_WHITEBOARD_TOKENS, ...THEME_CODE_TOKENS]);
 
 /**
  * The token groups of the theme panel, in the order the language reference lists them; their
@@ -87,11 +90,13 @@ const GROUPS: readonly {
   { group: "base", tokens: ["extends"] },
   {
     group: "colours",
-    tokens: THEME_COLOR_TOKENS.filter((token) => !WHITEBOARD.has(token)),
+    tokens: THEME_COLOR_TOKENS.filter((token) => !APART.has(token)),
   },
   // The highlighter's colour and the stickies' fill and text, apart from the surfaces and lines.
   { group: "whiteboard", tokens: [...THEME_WHITEBOARD_TOKENS] },
   { group: "fonts", tokens: ["font", "mono"] },
+  // The panel and text of code notes, beside the fonts their text is drawn in.
+  { group: "code", tokens: [...THEME_CODE_TOKENS] },
   {
     group: "type",
     tokens: [

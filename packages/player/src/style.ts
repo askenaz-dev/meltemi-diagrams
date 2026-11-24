@@ -146,6 +146,10 @@ details ul { margin: 2px 0 6px; padding-left: 1.2em; }
   letter-spacing: 0.04em; padding-top: 2px; }
 .details dd { margin: 0; overflow-wrap: anywhere; }
 .details .description { margin: 8px 0; white-space: pre-line; overflow-wrap: anywhere; }
+.details pre.code { margin: 4px 0 8px; padding: 8px 10px; overflow-x: auto; white-space: pre;
+  tab-size: 4; font: 12px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  border: 1px solid ButtonBorder; border-radius: 6px; user-select: text; }
+.details pre.code:focus-visible { outline: 2px solid var(--meltemi-accent); outline-offset: 1px; }
 .details h4 { margin: 12px 0 4px; font-size: 12px; font-weight: 600; color: GrayText;
   text-transform: uppercase; letter-spacing: 0.04em; }
 .details ul { margin: 0; padding: 0; list-style: none; }

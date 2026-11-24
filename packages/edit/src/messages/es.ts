@@ -192,6 +192,10 @@ export const es: typeof en = {
         `${code(shape)} no es una forma; las formas son ${shapes.join(", ")}.`,
       shapeKinds: (kind) =>
         `Las formas son para las cajas libres y los nodos de flujo; ${pick(A_KIND, kind)} no admite forma.`,
+      textFormatKinds: (kind) =>
+        `Los formatos de texto son para las notas; ${pick(A_KIND, kind)} no admite ${code("textFormat")}.`,
+      notTextFormat: (value, formats) =>
+        `${code(value)} no es un formato de texto; los formatos son ${formats.join(", ")}.`,
       needsSource: (kind) =>
         kind === "icon"
           ? "Un icono nuevo necesita su icono."

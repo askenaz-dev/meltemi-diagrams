@@ -64,6 +64,13 @@ export interface ElementDetails {
   readonly opens: OpenTarget | null;
   /** Gantt charts: the schedule of a task, milestone, marker or section; absent elsewhere. */
   readonly schedule?: ScheduleDetails;
+  /**
+   * A code note's text as written, with its spaces, tabs and line breaks (decision 0078): the
+   * detail panel shows it preformatted with Copy code. Absent on everything else.
+   */
+  readonly code?: string;
+  /** A code note of a sequence diagram, drawn as an event of the drawing; absent on elements. */
+  readonly event?: true;
 }
 
 /** What hover cards and the detail panel say of a relation (its ends are the view's `ends`). */

@@ -125,6 +125,12 @@ navegador o la página que lo aloja no lo admite, el botón deshabilitado explic
   y salientes (cada una la selecciona) y lo que añade quien aloja el reproductor (las historias, la
   entidad y las vistas del catálogo). Un clic en un elemento con `url` lo selecciona; Ctrl o Cmd y
   un clic siguen el enlace. Esc o Cerrar cierran el panel.
+- **Notas de código.** El panel de una nota de código ([free.md](language/free.md#notas-de-código))
+  muestra su texto tal como está en un bloque monoespaciado, con sus espacios, tabulaciones y saltos
+  de línea, y las líneas largas se desplazan de lado, bajo **Copiar código**, que pone el texto en el
+  portapapeles y lo dice. Donde la página no puede escribir en el portapapeles, el botón selecciona el
+  texto para copiarlo con el teclado. Una nota de código de un diagrama de secuencia también se
+  selecciona con un clic y con las flechas; una nota normal no.
 - **Diagramas de Gantt.** En un diagrama de Gantt ([gantt.md](language/gantt.md#en-el-reproductor)) la
   tarjeta de una tarea muestra su etiqueta, su sección, su estado (no cuando solo está planificada)
   y "Crítica", sus fechas (`8 jun 2026 → 19 jun 2026`) y sus días hábiles, `Después de: …` con las

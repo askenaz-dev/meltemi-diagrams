@@ -1,0 +1,458 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "code_notes",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 171,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 761,
+          "line": 24,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": "Code notes",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": null
+      },
+      "classes": [
+        {
+          "id": "snippet",
+          "properties": {
+            "fontSize": 12,
+            "textFormat": "code"
+          },
+          "range": {
+            "start": {
+              "offset": 641,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 687,
+              "line": 21,
+              "column": 49
+            }
+          }
+        }
+      ],
+      "rules": [],
+      "elements": [
+        {
+          "id": "api",
+          "kind": "box",
+          "label": "Orders API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 238,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 258,
+              "line": 9,
+              "column": 23
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 242,
+              "line": 9,
+              "column": 7
+            },
+            "end": {
+              "offset": 245,
+              "line": 9,
+              "column": 10
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "handler",
+          "kind": "note",
+          "label": "app.post(\"/orders\", async (req, res) => {\n  const order = await save(req.body);\n\n  res.status(201).json(order);\n});",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": "api",
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 261,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 404,
+              "line": 10,
+              "column": 146
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 266,
+              "line": 10,
+              "column": 8
+            },
+            "end": {
+              "offset": 273,
+              "line": 10,
+              "column": 15
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "go",
+          "kind": "note",
+          "label": "func ok() bool {\n\treturn true\n}",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "snippet"
+          ],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 407,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 469,
+              "line": 11,
+              "column": 65
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 412,
+              "line": 11,
+              "column": 8
+            },
+            "end": {
+              "offset": 414,
+              "line": 11,
+              "column": 10
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "remark",
+          "kind": "note",
+          "label": "Plain text again",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 472,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 502,
+              "line": 12,
+              "column": 33
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 477,
+              "line": 12,
+              "column": 8
+            },
+            "end": {
+              "offset": 483,
+              "line": 12,
+              "column": 14
+            }
+          },
+          "task": null
+        }
+      ],
+      "relations": [],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 140,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 522,
+              "line": 15,
+              "column": 5
+            },
+            "end": {
+              "offset": 544,
+              "line": 15,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 528,
+              "line": 15,
+              "column": 11
+            },
+            "end": {
+              "offset": 531,
+              "line": 15,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "handler",
+          "x": 460,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 549,
+              "line": 16,
+              "column": 5
+            },
+            "end": {
+              "offset": 575,
+              "line": 16,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 555,
+              "line": 16,
+              "column": 11
+            },
+            "end": {
+              "offset": 562,
+              "line": 16,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "go",
+          "x": 140,
+          "y": 240,
+          "range": {
+            "start": {
+              "offset": 580,
+              "line": 17,
+              "column": 5
+            },
+            "end": {
+              "offset": 602,
+              "line": 17,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 586,
+              "line": 17,
+              "column": 11
+            },
+            "end": {
+              "offset": 588,
+              "line": 17,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "remark",
+          "x": 460,
+          "y": 240,
+          "range": {
+            "start": {
+              "offset": 607,
+              "line": 18,
+              "column": 5
+            },
+            "end": {
+              "offset": 633,
+              "line": 18,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 613,
+              "line": 18,
+              "column": 11
+            },
+            "end": {
+              "offset": 619,
+              "line": 18,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "handler",
+          "targetKind": "element",
+          "properties": {
+            "textFormat": "code"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 690,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 723,
+              "line": 22,
+              "column": 36
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 696,
+              "line": 22,
+              "column": 9
+            },
+            "end": {
+              "offset": 703,
+              "line": 22,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "remark",
+          "targetKind": "element",
+          "properties": {
+            "textFormat": "plain"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 726,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 759,
+              "line": 23,
+              "column": 36
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 732,
+              "line": 23,
+              "column": 9
+            },
+            "end": {
+              "offset": 738,
+              "line": 23,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null,
+      "gantt": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

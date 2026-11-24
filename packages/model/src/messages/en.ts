@@ -840,6 +840,9 @@ export const en = {
       /** A text property on an icon, an image or a pen. */
       textTargets:
         "`font`, `fontSize` and `fontWeight` apply to what draws text: boxes, nodes, groups, notes, tags, stickies, texts, participants, entities, relations and lines, not icons, images or pens.",
+      /** `textFormat` on something that is not a note. */
+      noteTargets:
+        "`textFormat` applies to notes: `note` elements of flow diagrams, free compositions and C4 views, and the notes of sequence diagrams. `textFormat code` draws a note as a code block.",
       /** `opacity` in a flow, sequence or C4 diagram. */
       freeOpacity:
         "Flow, sequence and C4 diagrams draw every element opaque; free diagrams fade elements, groups, lines and pens with `opacity`.",
