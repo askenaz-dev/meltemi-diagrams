@@ -1,7 +1,7 @@
 language "0.2"
 
 // A checkout flow and the story that walks through a purchase. Export any instant with
-// pnpm mdg export story.meltemi --story purchase --at 2.4s
+// mdg export story.meltemi --story purchase --at 2.4s
 diagram checkout: flow {
   title "Checkout"
   layout manual

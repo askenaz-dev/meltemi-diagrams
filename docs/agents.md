@@ -36,6 +36,55 @@ access.
 For a repository, start with the setup prompt below. For a project already open in the local
 Docker editor, use **Set up my agent** there: it keeps the agent connected to that project.
 
+## Ways to install
+
+| Way                                          | For                                                                 | What it brings                                                                    | How it updates                                                                              | What it sends                                                                      |
+| -------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [The plugin for Claude Code](#claude-code)   | Claude Code                                                         | The skill, and MCP tools that check and preview the files of the project's folder | Each commit of the plugin is an update: turn on the marketplace's auto-update, or update it | Nothing of ours; the MCP server downloads the command line from npm the first time |
+| [The plugin for Codex](#codex)               | Codex                                                               | The skill; one more line adds the MCP server                                      | Codex follows the repository's branch                                                       | Nothing of ours                                                                    |
+| [The `skills` command](#the-skills-command)  | Cursor, GitHub Copilot, Gemini CLI, Windsurf and any agent it knows | The skill                                                                         | `npx skills update`                                                                         | Anonymous install counts to skills.sh, unless `DISABLE_TELEMETRY=1`                |
+| [`mdg skill install`](#installing-the-skill) | Any agent, with the command line you have                           | The skill of your command line's version                                          | Run it again with `--force`                                                                 | Nothing                                                                            |
+| [The prompt](#the-prompt)                    | Any agent with a terminal                                           | Installs the skill with `skill install` and proves it draws                       | Paste it again                                                                              | Nothing                                                                            |
+
+Every way gives the same files: the skill names the commands as an installed command line runs
+them. Your agent supplies the model; none of them configures one.
+
+### Claude Code
+
+```text
+/plugin marketplace add askenaz-dev/meltemi-diagrams
+/plugin install meltemi-diagrams@meltemi
+```
+
+The plugin's MCP server runs `mdg mcp --stdio --folder <project>` on your machine, with the
+project's own `@meltemi/diagrams-cli` when it has one and the latest published one otherwise, so it
+needs Node 22.12 or later and no account. Claude Code turns auto-update off for marketplaces other
+than its own: under `/plugin`, **Marketplaces**, choose **meltemi** and turn it on.
+
+### Codex
+
+```bash
+codex plugin marketplace add askenaz-dev/meltemi-diagrams
+codex plugin add meltemi-diagrams@meltemi
+```
+
+Start a new session to use it. To let Codex check and
+preview the project's files too, add the MCP server in the project's folder:
+
+```bash
+codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folder .
+```
+
+### The `skills` command
+
+```bash
+npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams
+```
+
+It asks which agents to install for and writes the skill into their folders. `--skill` matters:
+this repository also keeps skills for its own work. The command and skills.sh are a third party's;
+set `DISABLE_TELEMETRY=1` to send nothing.
+
 ## The prompt
 
 Paste this into your coding agent, in your project:
@@ -98,8 +147,9 @@ project. Without the command line installed, in the project's folder:
 npx @meltemi/diagrams-cli@latest skill install --agent <names>
 ```
 
-The installed skill names the commands as they are installed (`mdg validate`, `mdg export`,
-`mdg preview`), so the agent runs what your project has. By hand: copy `skills/meltemi-diagrams/`
+The skill names the commands as an installed command line runs them (`mdg validate`,
+`mdg export`, `mdg preview`), so the agent runs what your project has, and every way of installing
+it gives the same files. By hand: copy `skills/meltemi-diagrams/`
 from the package (`node_modules/@meltemi/diagrams-cli/skills/`) to the folder your agent reads
 skills from, or point the agent's instructions (an `AGENTS.md`, for instance) at its `SKILL.md`.
 

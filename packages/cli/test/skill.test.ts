@@ -12,7 +12,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import { run } from "../src/index.js";
-import { SKILL_AGENTS, installedText, skillCommand, skillFolders } from "../src/skill-command.js";
+import { SKILL_AGENTS, skillCommand, skillFolders } from "../src/skill-command.js";
 
 const SKILL = fileURLToPath(new URL("../skills/meltemi-diagrams/", import.meta.url));
 const PROMPT = fileURLToPath(new URL("../agent-setup/prompt.md", import.meta.url));
@@ -78,11 +78,9 @@ describe("skill install", () => {
       const cloud = readFileSync(join(installed, "reference", "cloud.md"), "utf8");
       expect(cloud).toContain("`mdg login`");
       expect(cloud).toContain("`mdg push <folder> --create`");
-      // The examples keep their diagrams; only the commands their comments name change.
-      for (const file of tree(join(SKILL, "examples"))) {
-        expect(readFileSync(join(installed, "examples", file), "utf8")).toBe(
-          installedText(readFileSync(join(SKILL, "examples", file), "utf8")),
-        );
+      // Every file is the package's own, byte for byte.
+      for (const file of skillFiles) {
+        expect(readFileSync(join(installed, file)), file).toEqual(readFileSync(join(SKILL, file)));
       }
     }
   });
@@ -138,15 +136,19 @@ describe("skill install", () => {
     expect(skillFolders(["claude", ""])).toEqual({ unknown: "" });
   });
 
-  it("leaves no repository command in any installed file", () => {
+  it("names the repository's command only in the one sentence about the repository", () => {
     const project = fresh("rewritten");
     expect(mdg(scratch, "skill", "install", "rewritten", "--agent", "codex").code).toBe(0);
     const installed = join(project, ".agents", "skills", "meltemi-diagrams");
-    for (const file of tree(installed)) {
-      const lines = readFileSync(join(installed, file), "utf8").split("\n");
-      const left = lines.filter((line) => line.includes("pnpm"));
-      expect(left, `${file} still names pnpm`).toEqual([]);
-    }
+    const left = tree(installed).flatMap((file) =>
+      readFileSync(join(installed, file), "utf8")
+        .split("\n")
+        .filter((line) => line.includes("pnpm"))
+        .map((line) => `${file}: ${line.trim()}`),
+    );
+    expect(left).toEqual([
+      "SKILL.md: inside the Meltemi Diagrams repository `pnpm mdg <command>` runs it from the sources. New",
+    ]);
     expect(existsSync(join(project, ".claude"))).toBe(false);
   });
 
@@ -225,17 +227,5 @@ describe("skill prompt", () => {
       expect(refused.stdout).toBe("");
       expect(refused.stderr).toContain("skill prompt takes no argument");
     }
-  });
-});
-
-describe("the installed text", () => {
-  it("names the installed command", () => {
-    expect(
-      installedText("3. Validate: `pnpm mdg validate x.meltemi` (from the repository root)."),
-    ).toBe("3. Validate: `mdg validate x.meltemi` (from the project's folder).");
-  });
-
-  it("catches a repository command no rule covers", () => {
-    expect(installedText("Run `pnpm gallery`.")).toContain("pnpm");
   });
 });

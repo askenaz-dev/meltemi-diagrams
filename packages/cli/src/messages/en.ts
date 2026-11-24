@@ -44,6 +44,7 @@ Commands:
   skill install [folder] Give a project's coding agents the skill that draws Meltemi diagrams
   skill prompt           Print the prompt a coding agent follows to install the skill and prove it
   mcp                    Serve the MCP tools on this machine for a coding agent (--folder, --port)
+  doctor [folder]        Check Node, the browser and FFmpeg of exports, the skill and the sign-in
 
 Every command takes --lang en|es: the language of its messages and of the words it adds to the
 files it writes (the project's "locale" otherwise; messages follow MELTEMI_LANG or LANG).
@@ -194,6 +195,18 @@ Options:
 Exit codes: 0 no errors, 1 errors found, 2 usage error or unreadable path. For import: 0
 complete, 1 partial, 2 usage error, unsupported input or an existing sheet. For the cloud
 commands: 3 not signed in, or the service refused the token (run login).
+`,
+    doctor: `Usage: doctor [folder] [options]
+
+Checks what this machine and the folder (the working one by default) have for Meltemi Diagrams,
+reading only: Node 22.12 or later, the browser that PNG, PDF and video exports use, FFmpeg for
+video, the copies of the agents' skill with their version, and whether a sign-in is stored. It
+installs nothing, writes nothing and makes no request.
+
+Options:
+  --json         Print one JSON object: version, and checks with id, status, detail and fix
+
+Exit codes: 0 nothing failed (warnings included), 1 a check failed, 2 usage error.
 `,
     /** `init --help`: the template names, joined. */
     skill: `Usage: skill install [folder] [options]
@@ -420,6 +433,8 @@ Options:
   --port <n>       The port, 7373 by default; 0 picks a free one
   --folder <dir>   Validate and preview the files of this folder instead of cloud projects
   --host <url>     The service: MELTEMI_HOST, else https://diagrams.meltemi.dev
+  --stdio          Serve over standard input and output, for a client that starts the server
+                   itself (a plugin): no port, no key; it ends when its input closes
 
 Exit codes: 0 stopped, 2 usage error, a port in use or a folder that does not exist.
 `,
@@ -657,6 +672,41 @@ token was refused.
     promptArguments: "skill prompt takes no argument; it prints the agent setup prompt.",
     exists: (path: string) =>
       `${path} already holds the skill; add --force to replace it (only that folder).`,
+  },
+  /** `doctor`: each check's finding and fix, and the summary line. */
+  doctor: {
+    node: (version: string) => `Node ${version}`,
+    nodeOld: (version: string) => `Node ${version}, older than the 22.12 the command line needs`,
+    nodeFix: "Install Node 22.12 or later.",
+    browser: (path: string) => `${path}, for PNG, PDF and video exports`,
+    noBrowser: "No Edge or Chrome: PNG, PDF and video exports are unavailable",
+    browserFix: "Install Edge or Chrome, or set MELTEMI_BROWSER to the browser's executable.",
+    ffmpeg: (path: string, version: string, browser: boolean) =>
+      `${path}${version ? ` (${version})` : ""}, for video exports${browser ? "" : ", which also need a browser"}`,
+    noFfmpeg: "No FFmpeg: MP4, WebM and GIF exports are unavailable",
+    ffmpegFix: "Install FFmpeg, or set MELTEMI_FFMPEG to the ffmpeg executable.",
+    skillCopy: (path: string, version: string | null) => `${path} (${version ?? "no version"})`,
+    noSkill: "No copy of the agents' skill here or in your folders; skill install writes one",
+    skillCurrent: (copies: readonly string[]) => `The skill: ${copies.join("; ")}`,
+    skillOlder: (copies: readonly string[], tool: string) =>
+      `The skill: ${copies.join("; ")}; one is older than the command line, ${tool}`,
+    skillOlderFix:
+      "Update it the way it was installed: skill install --force, the plugin's update, or npx skills update.",
+    skillNewer: (copies: readonly string[], tool: string) =>
+      `The skill: ${copies.join("; ")}; one is newer than the command line, ${tool}`,
+    skillNewerFix: "Update the command line: npm install --global @meltemi/diagrams-cli@latest.",
+    signedIn: (host: string) => `Signed in to ${host}`,
+    notSignedIn: (host: string) =>
+      `Not signed in to ${host}; login signs in, which only cloud commands need`,
+    tokenInEnvironment: (host: string) => `A token is set in MELTEMI_TOKEN for ${host}`,
+    hostFix: "Set MELTEMI_HOST to the origin of a service, or unset it.",
+    credentialsUnreadable: (path: string) => `The credentials file ${path} cannot be read`,
+    credentialsFix: "Run logout, or delete the file, then login again.",
+    summary: (ok: number, warnings: number, failures: number) =>
+      `${ok} ok, ${warnings} ${warnings === 1 ? "warning" : "warnings"}, ${failures} ${failures === 1 ? "failure" : "failures"}.`,
+    seeHelp: (name: string) => `Run "${name} doctor --help".`,
+    oneFolder: "Give one folder at most.",
+    notAFolder: (folder: string) => `${folder} is not a folder that exists.`,
   },
 
   init: {
@@ -1054,6 +1104,12 @@ token was refused.
         `mcp.port-in-use: 127.0.0.1:${port} is in use (another mdg mcp?); choose another with --port.`,
       notAFolder: (folder: string) => `${folder} is not a folder that exists.`,
       folderAndHost: "--folder serves the files of a folder and talks to no service: drop --host.",
+      /** On standard error once `--stdio` serves: what it serves; standard output is the protocol's. */
+      stdioServing: (folder: string | undefined) =>
+        folder === undefined
+          ? "Meltemi Diagrams MCP server on standard input and output, for the cloud projects of your sign-in."
+          : `Meltemi Diagrams MCP server on standard input and output, for the files of ${folder}.`,
+      stdioPort: "--stdio opens no port: drop --port.",
     },
     projects: {
       none: (name: string) =>

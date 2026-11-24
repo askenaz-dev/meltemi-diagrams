@@ -10,7 +10,7 @@
 
 - ELK keeps the source order within each column, so declare boxes in reading order.
 - Primary arrows (`->`) are kept straighter than secondary ones (`-->`).
-- `pnpm mdg layout sheet.meltemi` writes the arranged positions into the file and switches `auto`
+- `mdg layout sheet.meltemi` writes the arranged positions into the file and switches `auto`
   to `assisted`; `--all` arranges everything anew and writes the bends ELK draws as waypoints with
   free ends, so the connectors look as they did in `auto`; `--check` only reports.
 

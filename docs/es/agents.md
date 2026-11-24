@@ -37,6 +37,56 @@ Para un repositorio, empieza por el prompt de configuración de abajo. Para un p
 en el editor Docker local, usa **Configurar mi agente** allí: mantiene al agente conectado a ese
 proyecto.
 
+## Formas de instalar
+
+| Forma                                      | Para                                                                        | Qué trae                                                                                            | Cómo se actualiza                                                                                              | Qué envía                                                                         |
+| ------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [El plugin para Claude Code](#claude-code) | Claude Code                                                                 | La skill, y herramientas MCP que comprueban y previsualizan los archivos de la carpeta del proyecto | Cada commit del plugin es una actualización: activa la actualización automática del marketplace, o actualízalo | Nada nuestro; el servidor MCP descarga la línea de comandos de npm la primera vez |
+| [El plugin para Codex](#codex)             | Codex                                                                       | La skill; una línea más agrega el servidor MCP                                                      | Codex sigue la rama del repositorio                                                                            | Nada nuestro                                                                      |
+| [El comando `skills`](#el-comando-skills)  | Cursor, GitHub Copilot, Gemini CLI, Windsurf y cualquier agente que conozca | La skill                                                                                            | `npx skills update`                                                                                            | Recuentos anónimos de instalaciones a skills.sh, salvo con `DISABLE_TELEMETRY=1`  |
+| [`mdg skill install`](#instalar-la-skill)  | Cualquier agente, con la línea de comandos que tengas                       | La skill de la versión de tu línea de comandos                                                      | Vuelve a ejecutarlo con `--force`                                                                              | Nada                                                                              |
+| [El prompt](#el-prompt)                    | Cualquier agente con terminal                                               | Instala la skill con `skill install` y demuestra que dibuja                                         | Pégalo de nuevo                                                                                                | Nada                                                                              |
+
+Todas las formas dan los mismos archivos: la skill nombra los comandos como los ejecuta una línea de
+comandos instalada. Tu agente pone el modelo; ninguna de ellas configura uno.
+
+### Claude Code
+
+```text
+/plugin marketplace add askenaz-dev/meltemi-diagrams
+/plugin install meltemi-diagrams@meltemi
+```
+
+El servidor MCP del plugin ejecuta `mdg mcp --stdio --folder <proyecto>` en tu máquina, con el
+`@meltemi/diagrams-cli` del propio proyecto cuando lo tiene y el último publicado si no, así que
+necesita Node 22.12 o posterior y ninguna cuenta. Claude Code desactiva la actualización automática
+de los marketplaces que no son el suyo: en `/plugin`, **Marketplaces**, elige **meltemi** y actívala.
+
+### Codex
+
+```bash
+codex plugin marketplace add askenaz-dev/meltemi-diagrams
+codex plugin add meltemi-diagrams@meltemi
+```
+
+Empieza una sesión nueva para usarlo. Para que Codex
+también compruebe y previsualice los archivos del proyecto, agrega el servidor MCP en la carpeta del
+proyecto:
+
+```bash
+codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folder .
+```
+
+### El comando `skills`
+
+```bash
+npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams
+```
+
+Pregunta para qué agentes instalar y escribe la skill en sus carpetas. `--skill` importa: este
+repositorio también guarda skills para su propio trabajo. El comando y skills.sh son de terceros;
+define `DISABLE_TELEMETRY=1` para no enviar nada.
+
 ## El prompt
 
 Pega esto en tu agente de programación, en tu proyecto. El prompt está en inglés, el idioma en que
@@ -102,8 +152,9 @@ otro archivo del proyecto. Sin la línea de comandos instalada, en la carpeta de
 npx @meltemi/diagrams-cli@latest skill install --agent <names>
 ```
 
-La skill instalada nombra los comandos tal como están instalados (`mdg validate`, `mdg export`,
-`mdg preview`), así que el agente ejecuta lo que tiene tu proyecto. A mano: copia
+La skill nombra los comandos como los ejecuta una línea de comandos instalada (`mdg validate`,
+`mdg export`, `mdg preview`), así que el agente ejecuta lo que tiene tu proyecto, y cualquier forma
+de instalarla da los mismos archivos. A mano: copia
 `skills/meltemi-diagrams/` del paquete (`node_modules/@meltemi/diagrams-cli/skills/`) a la carpeta
 de la que tu agente lee las skills, o haz que las instrucciones del agente (un `AGENTS.md`, por
 ejemplo) remitan a su `SKILL.md`.

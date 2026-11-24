@@ -1,0 +1,33 @@
+{
+  "name": "meltemi-diagrams",
+  "description": "Diagrams as code for coding agents: write, validate and export Meltemi diagrams (flow sheets, sequence diagrams, C4 models, free compositions and whiteboards, and gantt charts) as reviewable .meltemi text that opens on a canvas. Imports Mermaid and PlantUML; exports SVG, PNG, PDF and an HTML player. Teaches the agent to choose the profile, keep a sheet readable and look at the picture before delivering.",
+  "author": {
+    "name": "Meltemi"
+  },
+  "homepage": "https://diagrams.meltemi.dev",
+  "repository": "https://github.com/askenaz-dev/meltemi-diagrams",
+  "license": "MIT",
+  "keywords": [
+    "diagrams",
+    "diagrams-as-code",
+    "architecture",
+    "c4",
+    "sequence",
+    "flowchart",
+    "gantt",
+    "mermaid",
+    "plantuml",
+    "svg",
+    "mcp"
+  ],
+  "version": "1.11.0",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Meltemi Diagrams",
+    "shortDescription": "Draw diagrams as code your team can review",
+    "longDescription": "Meltemi Diagrams turns a description, your code or an existing Mermaid or PlantUML diagram into a .meltemi file: text you review in Git that opens on a canvas in VS Code or the web app. The skill teaches your agent the five profiles (flow, sequence, C4, free and gantt), how to keep a sheet readable, and to validate it and look at the picture before it delivers. Add the MCP server with codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folder . to let it check and preview the files of your project.",
+    "developerName": "Meltemi",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"]
+  }
+}

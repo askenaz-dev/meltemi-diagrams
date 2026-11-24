@@ -318,7 +318,7 @@ describe("mdg mcp's refusals before it listens", () => {
 
   it("exits 2 with the usage for an unknown option and a bad port", async () => {
     const first = io();
-    expect(await run(["mcp", "--stdio"], first.io)).toBe(2);
+    expect(await run(["mcp", "--sse"], first.io)).toBe(2);
     expect(first.stderr()).toContain("Usage: mcp");
     const second = io();
     expect(await run(["mcp", "--port", "70000"], second.io)).toBe(2);

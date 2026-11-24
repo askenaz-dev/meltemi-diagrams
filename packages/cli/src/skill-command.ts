@@ -1,12 +1,4 @@
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -59,39 +51,12 @@ const EXIT_OK = 0;
 const EXIT_USAGE = 2;
 
 /**
- * The skill's text as an installed project reads it: the repository's `pnpm mdg <command>` becomes
- * the installed command's `mdg <command>`, the repository's preview server the command's own, and
- * the repository root the project's folder.
- */
-export function installedText(text: string): string {
-  return text
-    .replaceAll(
-      "`pnpm preview` serves the repository at `http://localhost:4173`",
-      "`mdg preview` serves the folder at `http://localhost:4173`",
-    )
-    .replaceAll("`pnpm preview`", "`mdg preview`")
-    .replaceAll("(from the repository root)", "(from the project's folder)")
-    .replaceAll("pnpm mdg ", "mdg ");
-}
-
-/**
- * Copies the shipped skill to `destination`, rewriting its text for an installed project: the
- * Markdown and the commands the examples' comments name.
+ * Copies the shipped skill to `destination` as it is: its text names the installed command
+ * (`mdg <command>`), so every way of installing it gives the same files (decision 0080).
  */
 function writeSkill(destination: string): void {
-  const source = join(SKILL_ROOT, SKILL_NAME);
   mkdirSync(destination, { recursive: true });
-  cpSync(source, destination, { recursive: true });
-  const rewrite = (dir: string) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const path = join(dir, entry.name);
-      if (entry.isDirectory()) rewrite(path);
-      else if (entry.name.endsWith(".md") || entry.name.endsWith(".meltemi")) {
-        writeFileSync(path, installedText(readFileSync(path, "utf8")));
-      }
-    }
-  };
-  rewrite(destination);
+  cpSync(join(SKILL_ROOT, SKILL_NAME), destination, { recursive: true });
 }
 
 /**

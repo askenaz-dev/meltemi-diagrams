@@ -156,11 +156,11 @@ inspect again. Do not silently extract parallel children, move transitions or in
 ## Checking a story
 
 ```bash
-pnpm mdg validate path/to/sheet.meltemi
+mdg validate path/to/sheet.meltemi
 ```
 
 ```bash
-pnpm mdg export path/to/sheet.meltemi --story purchase --at 2.4s
+mdg export path/to/sheet.meltemi --story purchase --at 2.4s
 ```
 
 `--story` writes `<stem>.<story>.svg`: the end of the story, or the frame at `--at`. Export a few
@@ -172,5 +172,5 @@ motion, a static view, a text summary, zoom, hover cards and a detail panel (`--
 fragment for an existing page):
 
 ```bash
-pnpm mdg export path/to/sheet.meltemi --story purchase --format html
+mdg export path/to/sheet.meltemi --story purchase --format html
 ```

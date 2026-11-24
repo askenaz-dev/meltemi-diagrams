@@ -36,7 +36,7 @@ function tree(dir: string): string[] {
 const skillsRoot = join(REPO_ROOT, "skills");
 const syncScript = join(REPO_ROOT, "scripts", "sync-skills.mjs");
 // The agent folders, and the command line's package, which installs the skills elsewhere.
-const agentDirs = [".claude", ".agents", "packages/cli"];
+const agentDirs = [".claude", ".agents", "packages/cli", "plugins/meltemi-diagrams"];
 const skills = readdirSync(skillsRoot).filter((name) =>
   statSync(join(skillsRoot, name)).isDirectory(),
 );
@@ -78,7 +78,42 @@ describe("agent skills", () => {
     expect(text).toContain("`Checked 1 file: 0 errors, 0 warnings.`");
     // The cloud commands live in their reference, which only a person's request leads to.
     expect(existsSync(join(skillsRoot, "meltemi-diagrams", "reference", "cloud.md"))).toBe(true);
-    expect(text).not.toMatch(/pnpm mdg (login|logout|whoami|push|pull|publish|projects)\b/);
+    expect(text).not.toMatch(/\bmdg (login|logout|whoami|push|pull|publish|projects)\b/);
+    // The bytes every use loads, as committed, with LF line ends.
+    const bytes = Buffer.byteLength(text.replace(/\r\n/g, "\n"), "utf8");
+    expect(bytes, `SKILL.md is ${bytes} bytes; the limit is 32,000`).toBeLessThanOrEqual(32_000);
+    // The description is what an agent reads before choosing the skill.
+    for (const word of [...DIAGRAM_TYPES, "Mermaid", "PlantUML"]) {
+      expect(description.toLowerCase(), `the description names ${word}`).toContain(
+        word.toLowerCase(),
+      );
+    }
+  });
+
+  // `agent-skill`, "The installed skill names the installed command": one text for every copy.
+  // `cli-doctor`, "The doctor in the skill and the guides".
+  it("sends an export that fails for a missing tool to mdg doctor", () => {
+    const text = readFileSync(join(skillsRoot, "meltemi-diagrams", "SKILL.md"), "utf8");
+    const table = text.split("## When the result looks wrong")[1]?.split("\n## ")[0] ?? "";
+    const row = table.split("\n").find((line) => line.includes("`mdg doctor`"));
+    expect(row, "a row of the symptom table names mdg doctor").toBeDefined();
+    expect(row).toMatch(/PNG, PDF or video export fails for a missing tool/);
+  });
+
+  it("names the installed command everywhere but the sentence about this repository", () => {
+    const root = join(skillsRoot, "meltemi-diagrams");
+    const left = tree(root).flatMap((file) =>
+      readFileSync(join(root, file), "utf8")
+        .split("\n")
+        .map((line, i) => ({ file, line: i + 1, text: line.trim() }))
+        .filter((entry) => entry.text.includes("pnpm"))
+        .map((entry) => `${entry.file}:${entry.line}: ${entry.text}`),
+    );
+    const sentence =
+      /^SKILL\.md:\d+: inside the Meltemi Diagrams repository `pnpm mdg <command>` runs it/;
+    // Any other line names a command an installed project does not have.
+    expect(left.filter((line) => !sentence.test(line))).toEqual([]);
+    expect(left).toHaveLength(1);
   });
 
   // `agent-skill`, "Effects on a diagram or a story": the request's words decide between `animate`
@@ -248,7 +283,7 @@ describe("agent skills", () => {
         "name each defect you found and how you fixed it, or say why it does not apply",
         "stop after two rounds",
         "say that the sheet was validated and not looked at",
-        "`pnpm preview` serves the repository",
+        "`mdg preview` serves the folder",
       ]) {
         expect(review, phrase).toContain(phrase);
       }

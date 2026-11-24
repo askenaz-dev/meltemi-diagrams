@@ -242,8 +242,17 @@ describe("publication safeguards", () => {
       '"but this is version 1.10.0."\n',
     );
     f.write("skills/meltemi-diagrams/SKILL.md", "metadata:\n  version: 1.10.0\n");
+    f.write(
+      "plugins/meltemi-diagrams/.codex-plugin/plugin.json",
+      '{ "name": "meltemi-diagrams", "version": "1.10.0" }\n',
+    );
     const sha = f.commit();
     setVersion("1.10.99", f.repo);
+    expect(
+      JSON.parse(
+        readFileSync(join(f.repo, "plugins/meltemi-diagrams/.codex-plugin/plugin.json"), "utf8"),
+      ).version,
+    ).toBe("1.10.99");
     expect(
       JSON.parse(readFileSync(join(f.repo, "packages/cli/package.json"), "utf8")).version,
     ).toBe("1.10.99");

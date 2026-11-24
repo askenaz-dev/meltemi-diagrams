@@ -1,0 +1,327 @@
+---
+name: meltemi-diagrams
+description: Use when asked to draw, document or convert a system or software architecture, plan a project or roadmap, sketch a whiteboard or kanban board, turn a diagram or screenshot into code, or change a `.meltemi` file. Creates, edits, converts and exports Meltemi diagrams as code - flow sheets (groups, containers, data stores, decisions, notes, tags, boxes in 24 shapes with icons) laid out by ELK, assisted or by hand, with ports, constraints and themes; free compositions (slides with text, icons, images, layers and links, and whiteboards with pens, stickies and kanban lists); sequence diagrams (calls, replies, activations, notes, fragments, scenarios); gantt charts and roadmaps (tasks scheduled from dates, `after` dependencies and working days, milestones, markers); C4 models with context, container and component views; motion effects and stories; SVG, PNG, PDF and HTML-player exports with export profiles. Imports Mermaid and PlantUML instead of retyping them, and turns draw.io, HTML or SVG pictures into sheets.
+license: MIT
+metadata:
+  version: 1.11.0
+---
+
+# Meltemi Diagrams
+
+Diagrams as code for the Meltemi family. A sheet is a `.meltemi` text file; the `meltemi-diagrams` command
+compiles it, validates it and exports SVG. The text is the source of truth: when a `.meltemi` file
+can produce the image, never draw the image by hand and never edit the exported SVG.
+
+## Workflow
+
+Before you start: `mdg --version` says which version of the command line is there; where
+`mdg` is not on the path, `npx @meltemi/diagrams-cli@latest <command>` runs the same command, and
+inside the Meltemi Diagrams repository `pnpm mdg <command>` runs it from the sources. New
+sheets go under `diagrams/`, or where the project keeps them (the `sources` of its
+`project.json`). Cloud commands run only when the person asks
+([reference/cloud.md](reference/cloud.md)), and a token (`mdg_…`) is never printed, read, copied
+or committed. Connected to the hosted service's MCP endpoint or to the local server `mdg mcp` instead (tools such
+as `write_files` and `preview` act on the person's projects), follow
+[reference/mcp.md](reference/mcp.md): the same steps, through the tools.
+
+1. Collect the pieces from the request or the source material: elements (boxes, data stores,
+   decisions), bands (groups), arrows with their labels, annotations (notes, tags), what is
+   proposed versus in use, and the numbered steps of the main path. Choose the profile by what the
+   person wants to show:
+
+   | The person wants to show                                                       | Profile                   | Read                                                                                  |
+   | ------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------------------------------------------------- |
+   | parts of a system and how requests or data move between them; a process        | `flow`                    | [reference/layout.md](reference/layout.md), [platform](examples/platform.meltemi)     |
+   | messages over time between participants: calls, replies, a protocol, its cases | `sequence`                | [reference/sequence.md](reference/sequence.md), [sequence](examples/sequence.meltemi) |
+   | one architecture at several levels: context, containers, components            | a `model` with `c4` views | [reference/c4.md](reference/c4.md), [architecture](examples/architecture.meltemi)     |
+   | tasks and milestones over dates: a plan, a roadmap                             | `gantt`                   | [reference/gantt.md](reference/gantt.md), [gantt](examples/gantt.meltemi)             |
+   | a slide or a picture composed by hand; a whiteboard or a kanban board          | `free`                    | [reference/free.md](reference/free.md), [slide](examples/slide.meltemi)               |
+
+   Do not draw what a table or a sentence says as well: items with attributes and no relation
+   between them are a table, a single relation is a sentence; answer with it and offer the diagram
+   of how the items relate. Before writing, say the plan in one line (profile, layout mode, theme,
+   and what you leave out to keep it readable) and continue without waiting for an answer. How
+   much a sheet holds and where colour goes are in [reference/design.md](reference/design.md).
+   Motion has two forms; choose by what the person asked
+   ([Motion: effects or a story](#motion-effects-or-a-story)). "Animate this arrow" or "animate
+   the diagram" is `animate` on the diagram that exists, and no story. "Show me the flow step by
+   step" is a `story` after the diagram: read the agent authoring workflow for creating, timing,
+   reordering and deleting scenes while preserving other stories; MCP's `inspect_story` reports
+   compiled timing before previewing each scene ([reference/stories.md](reference/stories.md)).
+   A Mermaid or PlantUML source is imported, never retyped: `mdg import source.mmd` writes
+   `source.meltemi` and reports what it approximated or dropped
+   ([reference/converting.md](reference/converting.md)).
+   A flow sheet becomes a slide with `mdg convert sheet.meltemi --to free`. Sequence and
+   gantt diagrams have no layout modes or positions: skip step 2's layout choice and write the
+   events, or the tasks with their dates, in order.
+
+2. Write the file from the template below. Pick the layout mode:
+   - `layout auto` (the default) for a new sheet: write no positions; ELK arranges the boxes in the
+     `direction` (`LR`, `TB`, ...). Add constraints such as `row a, b` when you need alignment.
+   - `layout assisted` to pin some boxes with `place` and let ELK arrange the rest around them.
+   - `layout manual` when converting a picture or matching an original exactly: give every element
+     a `place`, and a `size` to any box whose width matters.
+
+   `mdg layout path/to/sheet.meltemi` writes ELK's positions into the file as `place`
+   statements (and turns `auto` into `assisted`) when you want to fine-tune them by hand. Keep the
+   labels in the language of the source.
+   For icons, find names with `mdg assets icons <words>` (for example `database`) and set
+   them with `style <id> { icon "tabler:database" }`; never invent an icon name. The icon goes
+   beside the text by default; `iconPosition right|top|bottom|center` moves it (`center` makes it
+   the picture of the box) and `iconSize 32` (8 to 128, or `auto`) sizes it. Architecture icons
+   with their label below, as provider diagrams draw them, are `shape icon`:
+   `style fn { icon "aws:lambda"; shape icon }` ([reference/free.md](reference/free.md)).
+
+3. Validate: `mdg validate path/to/sheet.meltemi` (from the project's folder). Fix every
+   diagnostic, each code explained in [reference/language.md](reference/language.md), until the
+   last line reads `Checked 1 file: 0 errors, 0 warnings.`, which is what success prints.
+4. Export: `mdg export path/to/sheet.meltemi` writes `sheet.svg` beside the source.
+   `--stdout` prints it, `--theme editorial.light` gives a neutral sheet without the brand frame
+   and `--theme stage.light` a presentation sheet. `--format png` (with `--scale`, `--size 1920x1080`,
+   `--background transparent`) and `--format pdf` use the installed Edge or Chrome; an `export`
+   block in the file makes a delivery repeatable with `--profile <id>` or `--profiles`
+   ([reference/language.md](reference/language.md)).
+5. Look at the drawing, never at the text of the SVG. Export a picture into a temporary folder,
+   outside the project, with `--format png --scale 1 --out <temporary folder>/look.png`, or
+   through MCP call `preview`. Check the picture for these six, and in your report take them one
+   by one: name each defect you found and how you fixed it, or say why it does not apply.
+   - cut or overlapping text
+   - a label away from its arrow
+   - an arrow through a box it does not join
+   - uneven gaps between peers
+   - a crowded part beside an empty one
+   - text too small to read
+
+   Fix the structure first (the direction, the groups, shorter labels, merged arrows), then
+   coordinates; stop after two rounds. With no browser and no MCP, say that the sheet was
+   validated and not looked at. Run the removal test of
+   [reference/design.md](reference/design.md#before-you-deliver) before you deliver. The export
+   prints composition warnings (`layout.overlap`, `layout.label-under-connector`,
+   `layout.container-margin`, `layout.connector-overlap`, `layout.low-contrast`); fix every one.
+   When the person wants to look at it in a browser, start a server:
+   `mdg preview` serves the folder at `http://localhost:4173` until stopped with Ctrl+C, and
+   tell them how to stop it.
+
+6. Iterate with small edits. Keep ids stable and keep the author's comments. Finish with
+   `mdg format path/to/sheet.meltemi` so the file has the canonical layout.
+
+People who prefer a visual tool open the same file in VS Code with the Meltemi Diagrams extension
+(`docs/editor.md`). It shows a canvas beside the code, and each drag, resize or inspector change is
+a small edit of the text. A sheet you write stays editable there, and their changes come back as
+ordinary text edits that you can review.
+
+## Template
+
+```text
+language "0.2"
+
+diagram checkout: flow {
+  title "Checkout"
+  description "One sentence that becomes the <desc> of the SVG."
+  layout manual
+
+  group backend "Backend" {
+    api["Order API"] { description "REST · validates input" }
+    data orders "Orders DB" { description "PostgreSQL" }
+  }
+  client["Client app"] { description "web & mobile" }
+  tag jwt "JWT"
+  note limits "Limits to confirm\n500 rps per tenant"
+
+  client -> api: "1" as request
+  api -> orders: "2" as persist
+
+  placement {
+    place client at (120, 60); size client (160, 56)
+    place api at (420, 60); size api (200, 56)
+    place orders at (420, 200)
+    place jwt at (500, 32)
+    place limits at (700, 60)
+    label request at 50% offset (0, -16)
+    label persist at 50% offset (16, 0)
+  }
+
+  style request, persist { fill "#0B1830"; color "#FFFFFF" }
+}
+```
+
+## Motion: effects or a story
+
+Two different things move a diagram. Choose by the words of the request and write only the one
+that was asked: no story for a request to animate, no effects for a request to walk through.
+
+| The person says                                                         | Write                                                       | Check                                        |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------- |
+| "Animate this arrow", "animate the arrows", "animate the diagram"       | `animate` on the relations of the diagram that exists       | the diagram's ordinary view, at two instants |
+| "Show me the flow step by step", "walk me through it", a talk or a demo | a `story` after the diagram, with scenes, times and actions | its compiled timeline and each scene's frame |
+
+Effects belong to the diagram and loop wherever it is shown: the canvas, the animated SVG, the
+player. An arrow needs an id to take one: name an anonymous relation with `as <id>` and change
+nothing else of it.
+
+```text
+client -> api: "HTTPS" as request
+api -> orders: "Create order" as create
+
+animate request, create { effect flow }
+```
+
+Check effects on the diagram itself, never through a story. `mdg export sheet.meltemi --at
+300ms` and again `--at 900ms` write two frames, and the particle has moved along each arrow;
+through MCP, `preview` with `at` and no `story` draws the same frames and its report's `motion`
+says where each mark is ([reference/mcp.md](reference/mcp.md#effects-in-motion)). The effects,
+their targets and properties are in [reference/language.md](reference/language.md#animate).
+
+A story is a separate block that walks an audience through the diagram on one clock, and never
+changes it:
+
+```text
+story purchase for checkout {
+  scene request "The request" {
+    trace request over 1200ms
+    hold 1s
+  }
+  scene order "The order" {
+    trace create over 1200ms
+    hold 1s
+  }
+}
+```
+
+Scenes, actions and timing are in [reference/stories.md](reference/stories.md). When the request
+does not say which ("add some motion"), effects are the smaller change: write them, and offer the
+story.
+
+## Rules that save iterations
+
+- Ids match `[A-Za-z_][A-Za-z0-9_]*` and are unique per diagram across elements and relations.
+  Labels carry the human text (`\n` breaks a label into lines); `description` is the smaller text
+  under the label, inside the box.
+- Name every relation you need to route, position a label on, or style: `a -> b: "text" as id`.
+- `place` is the centre of the box in pixels; y grows downwards. Groups fit their children unless
+  you give them both `place` and `size`.
+- Default sizes: `node` 160 x 56, `decision` 160 x 80, `data` 160 x 64, widened automatically to
+  fit their text; a `shape` has its own default size ([reference/free.md](reference/free.md));
+  tags and notes size themselves from their text. Use `size` only to make boxes larger or equal;
+  if `layout.text-overflow` appears, use the width its hint gives.
+- Shapes go on flow nodes and free boxes: `style api { shape hexagon }`, one of `rounded`,
+  `rectangle`, `square`, `ellipse`, `circle`, `diamond`, `cylinder`, `pill`, `triangle`,
+  `parallelogram`, `trapezoid`, `pentagon`, `hexagon`, `octagon`, `star`, `cloud`, `document`,
+  `callout`, `arrow`, `framed`, `flag`, `person`, `agent` (an AI agent: a robot head over a body
+  that holds the text), `icon` (the element drawn as its `icon` alone, 64 x 64, with the label
+  outside at `labelPosition`, `bottom` by default). Decisions, data stores, notes, tags and groups
+  draw their own shape and refuse it, and so do free texts, icons and images. Text stays inside
+  the shape and arrows end on its outline (on the icon's square for `shape icon`). `radius <n>`
+  (0 to 64) sets the corner radius of a node, box, decision, note or group, and rounds every
+  shape with corners: `rectangle` and `square` (square by default), the polygons' vertices (sharp
+  by default: `style h { shape hexagon; radius 10 }`); `radius 0` squares a rounded box,
+  `rule group { radius 0 }` squares every group. Circles, ellipses, pills, cylinders, clouds and
+  documents ignore it.
+- `rotation <degrees>` (0 to 360, clockwise) turns an element of a flow or free diagram about the
+  centre of its box, text and icon included (`style label { rotation 270 }` for text up a side);
+  `place` and `size` stay those of the unturned box, and arrows meet the turned outline. Groups,
+  sequence diagrams and C4 views refuse it.
+- Nested plain rectangles (a visual editor's containers) are untitled groups: `group g "" { ... }`
+  with `style g { fill "#dae8fc"; stroke "#6c8ebf"; radius 0 }`. They draw no title and reserve no
+  title band: their interior starts 16 px below the top edge instead of 40 px. A box meant to hold
+  others is such a group, never a `node` or `box` with boxes stacked on it: a stack is only drawn
+  on top, so the engine separates it and moving the outer box leaves the inner ones behind. A
+  group's `size` is the least the engine gives it in `layout auto`, its children centred.
+- Boxes stacked on purpose, each strictly inside the one before, are declared outer first; give
+  the outer boxes empty labels (`box outer ""`) or labels away from the inner ones
+  (`textAlign left`, a separate `text`). A stack declared inner first, or two boxes of the same
+  size at the same place, is `layout.overlap`.
+- A band behind boxes is an untitled group with `place`, `size` and `layer back` (with
+  `layers back, main`); boxes and groups on different layers are not checked against each other,
+  and the engine arranges boxes over the band, in `layout assisted` and, at the top level, in
+  `layout auto`.
+- Arrows need no `route`: facing sides meet at the centre of their overlap, so boxes aligned in a
+  column get straight vertical arrows. Add `route id from a.east to b.north via [(x, y)]` only for
+  a bend.
+- `place` is ignored in `layout auto` (`layout.placement-ignored`): write `layout manual` or
+  `layout assisted` whenever a sheet has positions.
+- A box with named ports (`bus["Bus"] { port in west 30% }`) is entered at that exact point with
+  `route r from a.east to bus.in`. `routing orthogonal|polyline|bezier` changes the connector
+  shape for the diagram or, in a `style`, for one relation.
+- Text takes a font, size and weight in every profile: `style api { font "Roboto"; fontSize 16;
+fontWeight 600 }`, also in classes and rules (`rule note { font "Caveat" }`); icons, images and
+  pens refuse them. Name a bundled family, never a system one: Inter, IBM Plex Sans, Roboto, Open
+  Sans, Lato, Montserrat, Poppins, Nunito, Merriweather, Lora, Playfair Display, Cascadia Mono,
+  Roboto Mono, Source Code Pro, Patrick Hand, Caveat, Comic Neue (`mdg assets list` prints
+  them). A family nobody has is `layout.unmeasured-font` and measured with estimates.
+- Dashed means proposed: one statement, `style a, b, c { line dashed }`.
+- Numbered steps are relation labels `"1"`, `"2"` with `label r1 at 50% offset (16, 0)` and a
+  dark style; the narrative goes in comments next to the relations.
+- A legend is a row of `tag` elements under the sheet with the category colours, plus a dashed
+  white tag for "proposed".
+- One diagram per file unless they share a model; the SVG is named after the file.
+- In `gantt` charts, dates and `after` place everything: never write `place` or `layout`, never
+  draw dependencies as `a -> b`, and give the first task a `from <date>`. A task with no start
+  follows the previous one, `exclude weekends` makes `d` count working days, and a `today` line
+  shows only when its day is inside the chart.
+- In `free` diagrams, a child's `place` is relative to its group's interior, every group has a
+  `place`, and the paint order is the source order within each layer: declare on-top objects last
+  or give them `layer front` (with `layers main, front`). A group with `layout column` or
+  `layout row` places its children itself, in source order: give them no `place`
+  (`layout.place-ignored`). Strokes are `pen` statements with their points, never lines with many
+  bends.
+
+## When the result looks wrong
+
+| Symptom                                             | Fix                                                                                        |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `layout.missing-placement`                          | add `place <id> at (x, y)`; groups need `place` and `size` together or neither             |
+| `layout.placement-ignored`                          | the sheet has positions but no `layout`: add `layout manual` or `assisted`                 |
+| `layout.constraint-conflict`                        | two placed boxes cannot satisfy the constraint; move one or drop the constraint            |
+| `layout.overlap` after `auto` or `assisted`         | add `distance a, b 40` or pin one box with `place`                                         |
+| `layout.overlap` on boxes stacked on purpose        | declaration order: declare the outer box before the boxes inside it                        |
+| `layout.label-overlap` on a stack                   | the stacked labels coincide; leave the outer labels empty or move them                     |
+| `prop.invalid-value` on `shape`                     | only `node` and `box` take `shape`; a decision is already a diamond                        |
+| `layout.icon-missing`, a dashed square              | `shape icon` needs an `icon` style on the element (or a rule or class)                     |
+| `layout.label-position-ignored`                     | `labelPosition` needs `iconPosition center` or `shape icon`; remove it otherwise           |
+| a band pushes boxes or warns                        | make it an untitled group with `place`, `size` and `layer back`                            |
+| `ref.unknown-relation` on `route`/`label`           | the relation is anonymous: add `as <id>` to it                                             |
+| `prop.duplicate` in a style                         | the property is already set for that target in an earlier `style`                          |
+| arrow crosses a box                                 | add a waypoint with `route ... via [(x, y)]` or move the box                               |
+| text wider than its box                             | add `size <id> (w, h)` or shorten the description                                          |
+| diagonal arrow where a straight one was expected    | the two boxes do not overlap on that axis; align them or use a waypoint                    |
+| a PNG, PDF or video export fails for a missing tool | run `mdg doctor`: it names the missing browser or FFmpeg and how to install or point to it |
+
+## Reference
+
+- [reference/language.md](reference/language.md): grammar, vocabulary, diagnostics and fixes.
+- [reference/layout.md](reference/layout.md): layout modes, constraints, ports, coordinates, sizes,
+  anchors, routes, groups, frame.
+- [reference/design.md](reference/design.md): what makes a sheet read well: focus, how much it
+  holds, colour, text, arrangement, what to avoid, and the checks before delivering.
+- [reference/themes.md](reference/themes.md): built-in themes, theme blocks, the brand frame, and
+  a theme made from a brand's website or colours.
+- [reference/converting.md](reference/converting.md): importing Mermaid and PlantUML, turning any
+  other diagram or a screenshot into a sheet, with the checks that prove the conversion.
+- [reference/free.md](reference/free.md): free compositions, the twenty-four shapes, icons in
+  boxes and as shapes, interior coordinates, plain containers, stacks and bands, layers, links,
+  images, the conversion from flow, and whiteboards: pen strokes, stickies and lists (kanban
+  boards).
+- [reference/sequence.md](reference/sequence.md): sequence diagrams, fragments, scenarios,
+  spacing, their diagnostics and the mapping from Mermaid and PlantUML.
+- [reference/c4.md](reference/c4.md): models, C4 views, levels and scopes, lifted and combined
+  relations, local labels, imported models and their diagnostics.
+- [reference/gantt.md](reference/gantt.md): gantt charts and roadmaps: sections, tasks, milestones
+  and markers, dates, durations and the calendar, the schedule rules, the chart's settings,
+  styles, effects, their diagnostics and importing Mermaid.
+- [reference/stories.md](reference/stories.md): stories, scenes, actions, transitions, timing,
+  their diagnostics and frame exports.
+- [reference/cloud.md](reference/cloud.md): sharing a project in the optional cloud service, only
+  when the person asks, and where its token lives.
+- [reference/mcp.md](reference/mcp.md): the MCP tools on the person's projects, how to connect to
+  the endpoint or the local server `mdg mcp`, and the workflow of read, write with `ifRevision`,
+  validate, preview and `open_url`.
+- [examples/platform.meltemi](examples/platform.meltemi): a complete sheet using every construct.
+- [examples/slide.meltemi](examples/slide.meltemi): a flow view and a free slide linked to it.
+- [examples/sequence.meltemi](examples/sequence.meltemi): a payment sequence with a group, an
+  alternative, a loop, a note, an async message and two scenarios.
+- [examples/architecture.meltemi](examples/architecture.meltemi): a model with a context, a
+  container and a component view.
+- [examples/gantt.meltemi](examples/gantt.meltemi): a launch plan with three sections, tasks of
+  every status, a critical chain, a milestone, a marker, a holiday and the story of the plan.
+- [examples/story.meltemi](examples/story.meltemi): a checkout flow and the story of a purchase.

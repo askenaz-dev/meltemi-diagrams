@@ -280,3 +280,27 @@ describe("documentation tracks", () => {
     }
   });
 });
+
+// `agent-skill`, "The ways to install in the agents guide": each command in a fenced block, in
+// both languages.
+describe("ways to install for agents", () => {
+  const COMMANDS = [
+    "/plugin marketplace add askenaz-dev/meltemi-diagrams",
+    "/plugin install meltemi-diagrams@meltemi",
+    "codex plugin marketplace add askenaz-dev/meltemi-diagrams",
+    "codex plugin add meltemi-diagrams@meltemi",
+    "codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folder .",
+    "npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams",
+    "mdg skill install",
+  ];
+  /** The lines of a Markdown file's fenced blocks. */
+  const fenced = (file: string) =>
+    [...readFileSync(join(REPO_ROOT, file), "utf8").matchAll(/```[a-z]*\n([\s\S]*?)```/g)]
+      .flatMap((m) => m[1]!.split("\n"))
+      .map((line) => line.trim());
+
+  it.each(["docs/agents.md", "docs/es/agents.md"])("%s holds every command in a block", (file) => {
+    const lines = fenced(file);
+    for (const command of COMMANDS) expect(lines, `${command} in ${file}`).toContain(command);
+  });
+});

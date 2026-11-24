@@ -2,10 +2,14 @@
 
 [Español](README.es.md)
 
-Professional diagrams written as code, adjusted on a canvas, animated and exported, part of the
-Meltemi family. You write `.meltemi` text files; the editor draws them beside the code, and every
-drag, resize or label change on the canvas becomes a small edit of the same text. Code, layout and
-motion live in files you review and version like the rest of your work.
+Diagrams as code for the Meltemi family: you or your coding agent write `.meltemi` text, you review
+it in Git like the rest of your work, adjust it on a canvas, animate it and export it.
+
+[![CI](https://github.com/askenaz-dev/meltemi-diagrams/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/askenaz-dev/meltemi-diagrams/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@meltemi/diagrams-cli?label=npm)](https://www.npmjs.com/package/@meltemi/diagrams-cli)
+[![MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+
+**[Web app](https://diagrams.meltemi.dev) · [Documentation](docs/README.md) · [Gallery](gallery/README.md) · [Changelog](CHANGELOG.md)**
 
 ![Editing a diagram: code and canvas side by side](docs/media/editing-demo.gif)
 
@@ -20,7 +24,40 @@ motion live in files you review and version like the rest of your work.
 - **Local and open**: MIT licensed, no account, nothing leaves your machine; AI assistance is
   optional.
 
-## Install
+## With your coding agent
+
+Claude Code:
+
+```text
+/plugin marketplace add askenaz-dev/meltemi-diagrams
+/plugin install meltemi-diagrams@meltemi
+```
+
+Codex:
+
+```bash
+codex plugin marketplace add askenaz-dev/meltemi-diagrams
+codex plugin add meltemi-diagrams@meltemi
+```
+
+Cursor, GitHub Copilot, Gemini CLI, Windsurf and other agents:
+
+```bash
+npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams
+```
+
+Then ask in plain words:
+
+- "Draw the calls between our app, the API and the bank when a payment is declined."
+- "Make a C4 container view from docs/architecture.md and mark what you inferred."
+- "Convert diagrams/billing.mmd to Meltemi and keep its layout."
+- "Plan the launch in docs/plan.md as a gantt chart."
+
+The agent chooses the profile, writes a `.meltemi` file, validates it and looks at the picture
+before handing it over. What each way installs, how it updates and the MCP tools:
+[drawing with coding agents](docs/agents.md).
+
+## Without an agent
 
 ```bash
 npm install --global @meltemi/diagrams-cli
@@ -32,7 +69,7 @@ extension for VS Code, and the web app, at
 [diagrams.meltemi.dev](https://diagrams.meltemi.dev), needs no installation at all
 ([the web app](docs/web-app.md), [getting started](docs/getting-started.md)).
 
-## A first diagram
+### A first diagram
 
 ```bash
 meltemi-diagrams init shop
@@ -60,6 +97,37 @@ meltemi-diagrams export shop --format png
 
 Open the file in VS Code to drag the boxes on the canvas, or run
 `meltemi-diagrams preview shop --open` to see every change as you save.
+
+## Gallery
+
+| Flow                                                                                                                      | Sequence                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| [![A delivery pipeline](gallery/flow/delivery-pipeline.svg)](gallery/README.md#flow-a-delivery-pipeline)                  | [![Sign-in with a passkey](gallery/sequence/passkey-sign-in.svg)](gallery/README.md#sequence-sign-in-with-a-passkey) |
+| **C4**                                                                                                                    | **Gantt**                                                                                                            |
+| [![A ride-sharing platform](gallery/c4/ride-sharing.svg)](gallery/README.md#c4-the-containers-of-a-ride-sharing-platform) | [![A mobile app launch](gallery/gantt/launch-plan.svg)](gallery/README.md#gantt-a-mobile-app-launch)                 |
+| **Free**                                                                                                                  | **Whiteboard**                                                                                                       |
+| [![A roadmap slide](gallery/free/roadmap.svg)](gallery/README.md#free-a-roadmap-slide)                                    | [![A whiteboard](gallery/free/whiteboard.svg)](gallery/README.md#free-a-whiteboard)                                  |
+
+Each picture links to its source and its SVG, PNG and PDF exports. The
+[purchase example](examples/purchase/README.md) draws one purchase in four profiles, with a story,
+a video and a catalog.
+
+## How it compares
+
+|                               | Mermaid, PlantUML                | draw.io, Excalidraw | An agent's HTML or SVG           | Meltemi Diagrams                                 |
+| ----------------------------- | -------------------------------- | ------------------- | -------------------------------- | ------------------------------------------------ |
+| How a diagram is made         | Text                             | Dragging shapes     | Asking an agent                  | Text, by you or an agent, and a canvas           |
+| Who arranges it               | The renderer                     | You                 | The agent, again at each request | ELK or you, kept in the file                     |
+| What is reviewed in Git       | The text                         | An XML or JSON file | A drawn file, hard to diff       | The text, positions included                     |
+| Changing it by hand           | Edit the text                    | Drag on the canvas  | Edit the SVG, or ask again       | Edit the text or drag: both change the text      |
+| Motion                        | None                             | None                | Written by hand                  | Effects and stories, as video and an HTML player |
+| Where it shows without a tool | GitHub draws Mermaid in Markdown | An exported picture | The file itself                  | An exported picture, PDF or HTML page            |
+
+Each has its place. GitHub draws Mermaid in Markdown with nothing installed, which suits notes that
+change every sprint. draw.io and Excalidraw need no language at all, which suits a quick sketch. An
+agent's HTML needs no tool and can take any form, which suits a picture made once. Meltemi Diagrams
+is for the diagrams a team keeps: reviewed as text, adjusted by hand on a canvas, kept readable by
+its checks, and delivered as pictures, video or a catalog.
 
 ## Trying it from this repository
 
@@ -185,18 +253,6 @@ twelve minutes and records the results in [docs/quality/results.md](docs/quality
 into an empty folder, never from the registry, and runs it there: the closest thing to a published release
 ([releasing](RELEASING.md)).
 
-## Gallery
-
-| Flow                                                                                                                      | Sequence                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| [![A delivery pipeline](gallery/flow/delivery-pipeline.svg)](gallery/README.md#flow-a-delivery-pipeline)                  | [![Sign-in with a passkey](gallery/sequence/passkey-sign-in.svg)](gallery/README.md#sequence-sign-in-with-a-passkey) |
-| **C4**                                                                                                                    | **Free**                                                                                                             |
-| [![A ride-sharing platform](gallery/c4/ride-sharing.svg)](gallery/README.md#c4-the-containers-of-a-ride-sharing-platform) | [![A roadmap slide](gallery/free/roadmap.svg)](gallery/README.md#free-a-roadmap-slide)                               |
-
-Each picture links to its source and its SVG, PNG and PDF exports. The
-[purchase example](examples/purchase/README.md) draws one purchase in four profiles, with a story,
-a video and a catalog.
-
 ## Documentation
 
 - [Getting started](docs/getting-started.md), [features](docs/features.md) and
@@ -273,6 +329,7 @@ checked, and the latest results, are in [docs/quality.md](docs/quality.md) and
 | `schemas/`            | JSON schemas, such as `project.schema.json` for `project.json`                                                                      |
 | `examples/`           | the purchase reference example with every export, and real sheets converted to `.meltemi`                                           |
 | `skills/`             | the `meltemi-diagrams` Agent Skill for Claude Code, Codex and other agents                                                          |
+| `plugins/`            | the plugin for Claude Code and Codex: the skill and the MCP server of the project's folder                                          |
 | `scripts/`            | development helpers such as the preview server                                                                                      |
 | `docs/language/`      | grammar, diagnostics, styles, assets, fonts, projects and model JSON references                                                     |
 | `docs/import/`        | what the Mermaid and PlantUML importers map, approximate and drop, generated from the coverage tables                               |
@@ -325,8 +382,9 @@ Copilot, Gemini CLI or Devin Desktop has the agent read
 prompt and the agents are on [the agent setup page](https://diagrams.meltemi.dev/agent-setup/)
 and in [drawing with coding agents](docs/agents.md). In your project, `mdg skill install` writes
 the skill into `.claude/skills/` and `.agents/skills/`. In this repository it lives in `skills/`,
-`pnpm skills:sync` copies it to `.claude/skills/`, `.agents/skills/` and the command line's
-package, and `AGENTS.md` points other agents to it. Through MCP, an agent acts on the projects of
+`pnpm skills:sync` copies it to `.claude/skills/`, `.agents/skills/`, the command line's package and
+the plugin in `plugins/meltemi-diagrams/`, which `.claude-plugin/` and `.agents/plugins/` list as
+marketplaces, and `AGENTS.md` points other agents to it. Through MCP, an agent acts on the projects of
 your account: by the hosted endpoint `https://diagrams.meltemi.dev/mcp`, or by `mdg mcp`, a local
 server at `http://127.0.0.1:7373/mcp` that draws the previews on your machine
 ([agents](docs/agents.md#through-the-local-server)).

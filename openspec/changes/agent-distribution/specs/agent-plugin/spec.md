@@ -28,7 +28,8 @@ and a test SHALL fail naming the file when one is missing or the skill differs.
 The repository's root SHALL hold `.claude-plugin/marketplace.json`, a marketplace named `meltemi`
 whose one plugin `meltemi-diagrams` has the source `./plugins/meltemi-diagrams`, and
 `.agents/plugins/marketplace.json`, the same for Codex with a local source of that path. Both
-SHALL parse, name an owner, and list no other plugin.
+SHALL parse and list no other plugin, and Claude Code's SHALL name an owner, which its format
+requires.
 
 #### Scenario: Claude Code's marketplace
 - **WHEN** the plugin test reads `.claude-plugin/marketplace.json`
@@ -109,8 +110,8 @@ no MCP server. The agents guide SHALL give the one line that adds the stdio serv
 Before the guide names a client, the plugin SHALL be installed in that client from the
 repository's marketplace and found active: the skill listed and, in Claude Code, the three tools
 of the folder answering. The trial's record SHALL be a dated note under `docs/quality/` with the
-client's version and what each check returned, and `claude plugin validate --strict` SHALL pass
-for the marketplace and for the plugin's folder.
+client's version and what each check returned, and `claude plugin validate` SHALL pass for the
+marketplace and the plugin's folder with no warning but the missing `version`.
 
 #### Scenario: Claude Code
 - **WHEN** the plugin is installed with `/plugin marketplace add` and `/plugin install meltemi-diagrams@meltemi` in an empty project

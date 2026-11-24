@@ -25,7 +25,7 @@ import each other with relative paths (`./`, `../`, ending in `.meltemi`, never 
 `import "<path>" as <ns>` makes `<ns>.<id>` available; `import <id> [as <alias>] from "<path>"`
 binds ids directly. Use imported themes by name: `theme "corporate"`, `theme "company.base"`,
 `extends "company.base"`. Import cycles are errors (`module.cycle`). Validate a whole project with
-`pnpm mdg validate <project folder>`; the full rules are in the repository's
+`mdg validate <project folder>`; the full rules are in the repository's
 `docs/language/projects.md`.
 
 Every block compiles: `flow`, `free`, `sequence`, `c4` and `gantt` diagrams render, `story` blocks play
@@ -171,7 +171,7 @@ Flow and trace run on relations (and free lines and pens) only; dash on relation
 pens, boxes with an outline and notes or texts that style an outline (`fill`, `stroke` or
 `pattern`); pulse on elements, relations, notes and fragments. One effect of each kind per target
 (`animate.conflict`). Exports are static unless you ask:
-`pnpm mdg export sheet.meltemi --motion animated` writes an animated SVG (CSS keyframes, static
+`mdg export sheet.meltemi --motion animated` writes an animated SVG (CSS keyframes, static
 fallback), `--at 1.5s` the frame at that time. Use the static export for documents and slides.
 
 Check an effect on the diagram itself, at two instants of its cycle: `--at 300ms` and `--at 900ms`
@@ -188,7 +188,7 @@ A story answers "show me the flow step by step"; a request to animate an arrow o
 `story <id> for <diagram> { scene ... }` walks through a diagram: `reveal`, `hide`, `highlight`,
 `focus`, `camera`, `trace`, `draw` (pens, lines and relations drawn again) and `hold` on one
 clock, `parallel` blocks, and `view` with a `transition` to change diagram.
-`pnpm mdg export sheet.meltemi --story <id> --at 2s` writes a frame. See [stories.md](stories.md).
+`mdg export sheet.meltemi --story <id> --at 2s` writes a frame. See [stories.md](stories.md).
 
 ## Export profiles and links
 
@@ -203,26 +203,26 @@ export slide for checkout {
 ```
 
 Plugins installed in `project.json` may declare diagram types (`diagram s: erd { entity a "A" }`):
-their kinds are boxes with the type's style and properties; `pnpm mdg plugins <project>` lists them.
-`pnpm mdg convert <file> --to json` writes the file's model JSON for other tools.
-`pnpm mdg init <folder> --template flow|c4|sequence|roadmap|free|kanban|whiteboard|purchase` starts a project;
-`pnpm mdg preview <project>` serves its catalog and reloads it as files change;
-`pnpm mdg review <project> --base main` lists what changed by id (renames included).
-`pnpm mdg build catalog <project>` writes one offline HTML catalog of the project (settings in
+their kinds are boxes with the type's style and properties; `mdg plugins <project>` lists them.
+`mdg convert <file> --to json` writes the file's model JSON for other tools.
+`mdg init <folder> --template flow|c4|sequence|roadmap|free|kanban|whiteboard|purchase` starts a project;
+`mdg preview <project>` serves its catalog and reloads it as files change;
+`mdg review <project> --base main` lists what changed by id (renames included).
+`mdg build catalog <project>` writes one offline HTML catalog of the project (settings in
 `project.json` `catalog`; comments and source stay out unless `--source`). In the catalog and in
 `--format html` pages, a double click (or the plus sign) on a system opens its container view, on
 a container its component view, on an element with `link` the diagram it names: write those
 views (`level` + `scope`) and links so readers can drill down; descriptions show on hover.
-`pnpm mdg export sheet.meltemi --profiles` writes every profile; `--profile slide` one.
+`mdg export sheet.meltemi --profiles` writes every profile; `--profile slide` one.
 `--format mp4|webm|gif` records a story (`--story`) or effects with the installed browser and
 FFmpeg: 1080p at 30 fps, GIF 960 × 540 at 15 fps. Effects that repeat forever last one loop of their
 cycles (6 s with the defaults) unless `--duration` or a profile's `duration` says otherwise, and the
 export notes the length it chose; a transparent MP4 takes the theme's background. Options of
 another format are `export.invalid-option`. Elements, groups and model entities take
 `url "https://…"`: SVG, PDF and HTML exports keep the link.
-`pnpm mdg login`, `push`, `pull`, `publish` and `projects` keep a project in step with its copy in
+`mdg login`, `push`, `pull`, `publish` and `projects` keep a project in step with its copy in
 the optional cloud service, which `project.json` records in `cloud`, and
-`pnpm mdg review <project> --base cloud` compares with it; run them only when asked (see SKILL.md).
+`mdg review <project> --base cloud` compares with it; run them only when asked (see SKILL.md).
 
 ## Diagnostics and fixes
 
@@ -252,7 +252,7 @@ the optional cloud service, which `project.json` records in `cloud`, and
 | `layout.unknown-theme`                                           | theme name is neither built in nor in the file; warning, renders with the default                                                                        |
 | `theme.unknown-base`, `theme.cycle`                              | `extends` names a missing theme or loops; point it at a built-in theme                                                                                   |
 | `theme.unknown-class`                                            | a class is not in the diagram, its theme or the built-in ones; declare it or fix the name                                                                |
-| `asset.unknown-icon`, `asset.unknown-pack`                       | the icon name or pack does not exist; search with `pnpm mdg assets icons <words>`                                                                        |
+| `asset.unknown-icon`, `asset.unknown-pack`                       | the icon name or pack does not exist; search with `mdg assets icons <words>`                                                                             |
 | `layout.too-large`                                               | the sheet exceeds its `preset` or `canvas`; split it into views instead of shrinking, or write `preset board` for a whiteboard                           |
 | `layout.low-contrast`                                            | a text cannot be read on the fill behind it; write the `color` of the hint, or a fill it can be read on; with a brand, keep its fill and change the text |
 | `layout.text-overflow`                                           | an explicit `size` is too narrow for its text; use the width in the hint                                                                                 |

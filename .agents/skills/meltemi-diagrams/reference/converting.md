@@ -8,9 +8,9 @@ Work from the source's own geometry whenever it has one.
 Never retype a Mermaid or PlantUML diagram; import it:
 
 ````bash
-pnpm mdg import docs/checkout.mmd            # writes docs/checkout.meltemi
-pnpm mdg import design.puml --out sheets/design.meltemi
-pnpm mdg import README.md                    # every ```mermaid and ```plantuml block
+mdg import docs/checkout.mmd            # writes docs/checkout.meltemi
+mdg import design.puml --out sheets/design.meltemi
+mdg import README.md                    # every ```mermaid and ```plantuml block
 ````
 
 - Mermaid `flowchart`/`graph`, `sequenceDiagram`, `C4Context`/`C4Container`/`C4Component`/
@@ -21,7 +21,7 @@ pnpm mdg import README.md                    # every ```mermaid and ```plantuml 
   (dropped) and `import.syntax` (a line it could not read, kept as a `// Not imported:` comment).
   Exit 1 means something essential is missing: add it by hand from the comment and the source.
 - Flow imports use `layout auto`; adjust them on the canvas or with `layout assisted` and `place`.
-  When the source changes, run `pnpm mdg import <source> --merge`: placement, styles, classes,
+  When the source changes, run `mdg import <source> --merge`: placement, styles, classes,
   animations, scenarios and local labels are kept for everything still in the source.
 - C4 macros become a `model` and a view; check the level, the scope and the `include` list.
 - A Mermaid `gantt` becomes a gantt chart with the dates Mermaid draws ([gantt.md](gantt.md)):
@@ -90,8 +90,8 @@ the style block by palette, with one shared statement for "dashed".
 
 ## 4. Prove it
 
-1. `pnpm mdg validate file.meltemi` until no diagnostics remain.
-2. `pnpm mdg export file.meltemi`, open the SVG beside the original (`pnpm preview`).
+1. `mdg validate file.meltemi` until no diagnostics remain.
+2. `mdg export file.meltemi`, open the SVG beside the original (`mdg preview`).
 3. Compare arrow by arrow: in the original the arrows usually join boxes where they overlap, which
    is what the exporter does without routes; only arrows that bend need waypoints.
 4. Write down the intended differences (cylinders for stores, left-aligned band titles, legend inside

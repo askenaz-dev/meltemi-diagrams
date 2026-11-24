@@ -105,3 +105,5 @@ export function nodeRenderer(options: NodeRendererOptions = {}): RendererCore {
     },
   });
 }
+
+export { serveOverStdio, type StdioStreams } from "./stdio.js";

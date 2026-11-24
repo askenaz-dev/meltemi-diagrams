@@ -27,6 +27,8 @@ const targets = [
   join(root, ".claude", "skills"),
   join(root, ".agents", "skills"),
   join(root, "packages", "cli", "skills"),
+  // The public plugin's copy, which marketplaces install (decision 0080).
+  join(root, "plugins", "meltemi-diagrams", "skills"),
 ];
 
 if (!existsSync(source)) {

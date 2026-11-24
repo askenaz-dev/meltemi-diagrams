@@ -236,12 +236,32 @@ default), several as a comma-separated list or repeated, and writes each folder 
 or empty name is a usage error listing them. `--user` installs into your own folders instead
 (`~/.claude/skills`, `~/.agents/skills`), and `--force` replaces a copy already there (only the
 skill's own folder; without it the command refuses with exit code 2 and writes nothing). The
-command writes skill folders only, never an instruction file of the project, and the installed
-text names this command line (`mdg validate`, `mdg preview`).
+command writes skill folders only, never an instruction file of the project, and the skill names
+this command line as it is installed (`mdg validate`, `mdg preview`); the files are copied unchanged.
 
 `skill prompt` prints the agent setup prompt, the text a coding agent reads and follows to install
 the skill and prove it draws, which `https://diagrams.meltemi.dev/agent-setup/prompt.md` serves
 too; it takes no argument. See [agents.md](agents.md).
+
+## Checking the machine: `doctor`
+
+`doctor [folder]` reports, one line each, what this machine and the folder (the working one by
+default) have for Meltemi Diagrams, and changes nothing: it installs nothing, writes no file and
+makes no request.
+
+| Check     | `ok`                                                                | Otherwise                                                                 |
+| --------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `node`    | Node 22.12 or later                                                 | `fail`: the version found, and to install a newer one                     |
+| `browser` | the Edge or Chrome that PNG, PDF and video use                      | `warn`: those exports are unavailable; `MELTEMI_BROWSER` names one        |
+| `ffmpeg`  | FFmpeg and its version, for video                                   | `warn`: video is unavailable; `MELTEMI_FFMPEG` names one                  |
+| `skill`   | each copy of the agents' skill, with its version, or none           | `warn`: a copy of an earlier or later minor version than the command line |
+| `sign-in` | whether a sign-in is stored for the host, or `MELTEMI_TOKEN` is set | `warn`: `MELTEMI_HOST` or the credentials file cannot be used             |
+
+A last line counts the checks: `5 ok, 0 warnings, 0 failures.`. `--json` prints one object instead,
+`{ "version": "…", "checks": [{ "id", "status", "detail", "fix" }] }` in the order above, with the
+same keys and statuses in both languages and `fix` only when a check is not `ok`. The exit code is 0
+when nothing failed, warnings included, 1 when a check failed and 2 for a usage error. It never
+prints a token.
 
 ## The local MCP server: `mcp`
 
@@ -260,6 +280,7 @@ milliseconds and its code, never its arguments). The command runs until Ctrl+C (
 | `--port <n>`     | The port, 7373 by default; 0 picks a free one                                          |
 | `--folder <dir>` | Serves `validate` and `preview` over the files of a folder, with no account or network |
 | `--host <url>`   | The service, as for `login`                                                            |
+| `--stdio`        | Serves over standard input and output instead of a port                                |
 
 It starts without a sign-in: each tool then answers `auth.required`, and a `login` made meanwhile is
 used by the next call. It listens on `127.0.0.1` only, and refuses (before reading anything) a `Host`
@@ -269,6 +290,17 @@ than `POST` (`405`), another path (`404`) and a body over 24 MiB (`413`). With `
 computer other people sign in to. A port in use (`mcp.port-in-use`), a folder that does not exist,
 an `http:` host that is not the loopback (`cloud.insecure-host`), a short key and an unknown option
 exit 2 before anything listens.
+
+With `--stdio` the same tools are served over standard input and output, for a client that starts
+the server itself, such as a plugin: nothing listens, no port is taken and no key is read, standard
+output carries the protocol's messages only (the calls' lines go to standard error), and the command
+exits 0 when its input closes. `--port` with `--stdio` is a usage error. A `--folder` value that a
+client left unexpanded, such as `${CLAUDE_PROJECT_DIR}`, is read as the working folder. Add it to a
+client in the project's folder, for example:
+
+```bash
+codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folder .
+```
 
 ## The cloud commands
 

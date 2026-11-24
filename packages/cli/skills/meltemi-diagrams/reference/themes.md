@@ -190,11 +190,11 @@ diagram platform: flow {
 - `style api { icon "tabler:server" }` draws a Tabler icon; classes and rules carry icons too
   (`rule data { icon "tabler:database" }`). Provider sets are built in: `aws:lambda`,
   `azure:virtual-machine`, `gcp:cloud-run`, `kubernetes:pod`, `logos:postgresql`; find names with
-  `pnpm mdg assets icons <word>`.
-- Search names with `pnpm mdg assets icons <words>`. An unknown name is `asset.unknown-icon` in
+  `mdg assets icons <word>`.
+- Search names with `mdg assets icons <words>`. An unknown name is `asset.unknown-icon` in
   `validate`, with close names in the hint.
 - Project packs live in `assets/icons/` (Iconify JSON or a folder of SVG files) and need a licence
-  in `assets/licenses.json`. `pnpm mdg assets list` shows every pack and its licence.
+  in `assets/licenses.json`. `mdg assets list` shows every pack and its licence.
 - `iconSize` and `iconPosition` are theme tokens; the stage themes put icons above the label.
   `iconColor accent` colours monochrome icons; provider icons keep their colours.
 - Per element, `iconPosition left|right|top|bottom|center` places the icon (`center`: the picture

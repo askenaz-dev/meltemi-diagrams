@@ -99,7 +99,7 @@ scenario approved "Payment approved" {
 }
 ```
 
-`pnpm mdg export sheet.meltemi --scenario approved` writes `sheet.approved.svg` with only that
+`mdg export sheet.meltemi --scenario approved` writes `sheet.approved.svg` with only that
 path; without `--scenario` every branch is drawn.
 
 ## Spacing and styles
@@ -137,7 +137,7 @@ fragment; the first branch's state continues after it. Activations open at the e
 
 ## Converting
 
-Import Mermaid and PlantUML sequences with `pnpm mdg import`, which maps them one to one: `participant`/`actor` (and the
+Import Mermaid and PlantUML sequences with `mdg import`, which maps them one to one: `participant`/`actor` (and the
 PlantUML kinds), `->>` and `->` to `->`, `-->>` and `-->` to `-->`, `-)` to `-> … { kind async }`,
 `+`/`-` suffixes to `activate`/`deactivate`, `Note over A,B: text` to `note over a, b "text"`,
 `rect`/`group` to `region`, `box` to `group`, `== x ==` to `divider "x"`, `...` to `delay`.

@@ -79,6 +79,19 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
   text, arrangement and a removal test. Its review step has the agent look at a picture (a PNG in a
   temporary folder, or MCP's `preview`), name the defects it found and fixed, and say so when it
   could not look. `reference/themes.md` makes a theme from a brand's website or colours.
+- A plugin for Claude Code and Codex, installed from this repository's marketplace `meltemi`:
+  `/plugin marketplace add askenaz-dev/meltemi-diagrams` and `/plugin install
+meltemi-diagrams@meltemi`, or `codex plugin marketplace add` and `codex plugin add`. It brings the
+  skill and, in Claude Code, MCP tools that check and preview the project's files. The skill also
+  installs with `npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams`.
+- The skill names the installed command (`mdg validate`) in every copy, so every way of installing
+  gives the same files; `skill install` copies them unchanged.
+- `mdg mcp --stdio` serves the local MCP tools over standard input and output, for a client that
+  starts the server itself: no port, no key, it ends when its input closes.
+- `mdg doctor` checks Node, the browser and FFmpeg of the exports, the copies of the skill and the
+  sign-in, without writing or sending anything; `--json` prints the same as one object.
+- The README opens with the install for coding agents, the gallery of the five profiles and a
+  comparison with Mermaid, draw.io and an agent's HTML that says where each is better.
 
 ### Drawing and export
 
