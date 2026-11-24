@@ -2664,6 +2664,7 @@ const tests: Test[] = [
         .fill("flowchart LR\n  a[Shop] --> b[(Orders)]\n  b --> c{Paid?}\n");
       await dialog.getByLabel("Name of the new file").fill("shop");
       await dialog.getByRole("button", { name: "Import", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
       await analysed(page);
       await expectOpen(page, "diagrams/shop.meltemi");
       assert.match(await code(page), /diagram shop: flow/);
@@ -2672,6 +2673,46 @@ const tests: Test[] = [
         /Imported mermaid into diagrams\/shop\.meltemi: complete/,
       );
       assert.equal(await page.locator("#problems-title").textContent(), "No problems");
+    },
+  },
+  {
+    name: "closes a partial Mermaid import and keeps its findings available after a failed attempt",
+    async run({ page }) {
+      await page.getByRole("button", { name: "Import", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Import Mermaid or PlantUML" });
+      const source = dialog.getByLabel("Source");
+      const submit = dialog.getByRole("button", { name: "Import", exact: true });
+      await source.fill("classDiagram\n  A <|-- B\n");
+      await submit.click();
+      await dialog.getByText("Nothing could be imported.").waitFor();
+      assert.match((await dialog.locator(".import-findings").textContent()) ?? "", /unsupported/);
+      await expectOpen(page, "diagrams/overview.meltemi");
+
+      await source.fill("flowchart LR\n  a --> b\n  A --=> B\n");
+      await submit.evaluate((button: HTMLButtonElement) => {
+        button.click();
+        button.click();
+      });
+      await dialog.waitFor({ state: "hidden" });
+      await analysed(page);
+      await expectOpen(page, "diagrams/imported.meltemi");
+      assert.match(await code(page), /diagram imported: flow/);
+      assert.match(
+        (await page.locator(".status-text").textContent()) ?? "",
+        /partial, \d+ findings/,
+      );
+
+      await page.getByRole("button", { name: "Import report" }).click();
+      const report = page.getByRole("dialog", { name: "Import report" });
+      assert.match(
+        (await report.locator(".import-findings").textContent()) ?? "",
+        /Line 3: .*import\.syntax/,
+      );
+      const downloaded = page.waitForEvent("download");
+      await report.getByRole("button", { name: "Download the report" }).click();
+      const file = await downloaded;
+      assert.equal(file.suggestedFilename(), "imported.import.md");
+      assert.match(readFileSync((await file.path())!, "utf8"), /line 3: warning `import\.syntax`/);
     },
   },
   {

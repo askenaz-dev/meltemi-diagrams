@@ -162,6 +162,7 @@ export class Playground {
   private readonly problemList = h("ul", { class: "problem-list" });
   private readonly others = h("ul", { class: "problem-list others" });
   private readonly statusText = h("span", { class: "status-text" });
+  private statusAction?: HTMLButtonElement;
   /** The status line's note that the work stays in the browser: not true of a cloud project. */
   private privacy!: HTMLElement;
   /** The open cloud project's connection: saved, saving, offline, reconnecting. */
@@ -1796,8 +1797,16 @@ export class Playground {
     }
   }
 
-  status(message: string): void {
+  status(message: string, action?: { label: string; run: () => void }): void {
     this.statusText.textContent = message;
+    this.statusAction?.remove();
+    this.statusAction = undefined;
+    if (action) {
+      const button = iconButton("info", action.label, { text: true });
+      button.addEventListener("click", action.run);
+      this.statusText.after(button);
+      this.statusAction = button;
+    }
     announce(message);
   }
 }
