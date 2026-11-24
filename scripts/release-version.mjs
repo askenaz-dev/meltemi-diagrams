@@ -32,6 +32,12 @@ export const VERSION_MENTIONS = [
     path: join(root, "skills", "meltemi-diagrams", "SKILL.md"),
     pattern: /(^ {2}version: )\d+\.\d+\.\d+(\r?)$/m,
   },
+  // The Codex plugin's manifest carries the product version; Claude Code's carries none, so each
+  // commit of the plugin is an update there (decision 0080).
+  {
+    path: join(root, "plugins", "meltemi-diagrams", ".codex-plugin", "plugin.json"),
+    pattern: /("version":\s*")\d+\.\d+\.\d+(")/,
+  },
 ];
 
 /** The manifests whose version is the product's. */

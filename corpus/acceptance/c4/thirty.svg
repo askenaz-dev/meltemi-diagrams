@@ -13,14 +13,14 @@
   <g data-id="shopper" data-role="element">
     <rect x="20" y="197.07" width="160" height="78.4" rx="24" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
     <path d="M84 187.47 A16 16 0 1 0 116 187.47 A16 16 0 1 0 84 187.47 Z" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
-    <text x="100" y="237.8" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Shopper</text>
-    <text x="100" y="255.07" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Person]</text>
+    <text x="100" y="237.8" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Shopper</text>
+    <text x="100" y="255.07" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">[Person]</text>
   </g>
   <g data-id="agent" data-role="element">
     <rect x="20" y="514.27" width="160" height="78.4" rx="24" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
     <path d="M84 504.67 A16 16 0 1 0 116 504.67 A16 16 0 1 0 84 504.67 Z" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
-    <text x="100" y="555" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Support agent</text>
-    <text x="100" y="572.27" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Person]</text>
+    <text x="100" y="555" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Support agent</text>
+    <text x="100" y="572.27" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">[Person]</text>
   </g>
   <g data-id="store.web" data-role="element">
     <rect x="402" y="86.8" width="170" height="76" rx="8" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>

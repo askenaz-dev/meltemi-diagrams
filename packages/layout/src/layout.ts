@@ -33,6 +33,7 @@ import type {
   ThemeDefinition,
 } from "@meltemi/diagrams-model";
 import { auditLabels } from "./audit.js";
+import { auditContrast, passingColour } from "./contrast.js";
 import { drawingWords, messages, type LabelObstacle, type LayoutWords } from "./messages/index.js";
 import { checkComposition } from "./checks.js";
 import { solveConstraints, type SolverBox } from "./constraints.js";
@@ -1137,7 +1138,8 @@ const LABEL_CODES: ReadonlySet<string> = new Set([
 
 /**
  * Lays out one compiled diagram into a scene, then checks that no label is cut or overlaps
- * another label, a box or a connector (`layout.label-cut`, `layout.label-overlap`).
+ * another label, a box or a connector (`layout.label-cut`, `layout.label-overlap`), and that every
+ * text can be read against the fill behind it (`layout.low-contrast`).
  */
 export function layoutDiagram(
   compilation: Compilation,
@@ -1156,8 +1158,72 @@ export function layoutDiagram(
         options.measurer ?? estimateMeasurer,
         result.diagnostics,
       ),
+      ...contrastDiagnostics(
+        diagram,
+        result.scene,
+        themeChoice(compilation, diagram, options).theme.ink,
+      ),
     ],
   };
+}
+
+/** Where a text's owner is written: its element, relation or event, else the diagram's name. */
+function ownerRange(diagram: FlowDiagram, owner: string): Range {
+  return (
+    diagram.elementsById.get(owner)?.range ??
+    diagram.relationsByKey.get(owner)?.range ??
+    diagram.eventsByKey.get(owner)?.range ??
+    diagram.idRange
+  );
+}
+
+/**
+ * The contrast audit of a scene as warnings, one for each pair of colours, on the first statement
+ * in source order that draws it, with a colour that passes as the hint (`layout.low-contrast`).
+ */
+function contrastDiagnostics(diagram: FlowDiagram, scene: Scene, ink: string): Diagnostic[] {
+  const words = messages();
+  const subject = (owner: string) => (owner === "frame" || owner === "scene" ? null : owner);
+  const problems = auditContrast(scene, {
+    order: (owner) => ownerRange(diagram, owner).start.offset,
+  });
+  return problems.map((problem) => {
+    const text = problem.text.length > 40 ? `${problem.text.slice(0, 39)}…` : problem.text;
+    // Two decimals, never rounded up to the least it needs.
+    let shown = Math.round(problem.ratio * 100) / 100;
+    if (shown >= problem.needed) shown = Math.floor(problem.ratio * 100) / 100;
+    const owner = subject(problem.owner);
+    return {
+      code: "layout.low-contrast",
+      severity: "warning" as const,
+      message: words.diagnostics.lowContrast(
+        text,
+        owner,
+        problem.color,
+        problem.fill,
+        shown,
+        problem.needed,
+        problem.others.length,
+      ),
+      range: ownerRange(diagram, problem.owner),
+      hints: [
+        words.hints.lowContrast(problem.fill, passingColour(problem.fill, ink, problem.needed)),
+      ],
+      ...(owner === null ? {} : { data: { ids: [owner] } }),
+    };
+  });
+}
+
+/** The theme a diagram is drawn in, as `layoutDrawing` resolves it. */
+function themeChoice(compilation: Compilation, diagram: FlowDiagram, options: LayoutOptions) {
+  const written = options.theme ?? diagram.properties.theme;
+  const definitions = options.themes ?? compilation.document.themes;
+  const resolved = resolveTheme(written ?? options.defaultTheme ?? null, definitions);
+  // A default theme that does not resolve is reported where it is configured.
+  const known = resolved.known || written !== null ? resolved : resolveTheme(null, definitions);
+  // An export without the branding keeps the theme and leaves its frame out.
+  const theme = options.frame === "none" ? { ...known.theme, frame: "none" as const } : known.theme;
+  return { written, definitions, resolved, theme };
 }
 
 /** The label audit of a scene as warnings on the declarations that draw the labels. */
@@ -1171,11 +1237,7 @@ function labelDiagnostics(
     diagram.elements.filter((e) => ANNOTATION_KINDS.has(e.kind)).map((e) => e.id),
   );
   const layers = new Map(diagram.elements.map((e) => [e.id, e.layer ?? "main"]));
-  const rangeOf = (owner: string): Range =>
-    diagram.elementsById.get(owner)?.range ??
-    diagram.relationsByKey.get(owner)?.range ??
-    diagram.eventsByKey.get(owner)?.range ??
-    diagram.idRange;
+  const rangeOf = (owner: string): Range => ownerRange(diagram, owner);
   // Elements and relations other checks already name (an overflowing size, a label on a
   // connector, overlapping boxes): their labels are part of that problem.
   const named = new Set(
@@ -1437,13 +1499,7 @@ function layoutDrawing(
   // Diagnostics are written in the interface language of the moment they are made.
   const words = messages();
 
-  const written = options.theme ?? diagram.properties.theme;
-  const definitions = options.themes ?? compilation.document.themes;
-  const resolved = resolveTheme(written ?? options.defaultTheme ?? null, definitions);
-  // A default theme that does not resolve is reported where it is configured.
-  const known = resolved.known || written !== null ? resolved : resolveTheme(null, definitions);
-  // An export without the branding keeps the theme and leaves its frame out.
-  const theme = options.frame === "none" ? { ...known.theme, frame: "none" as const } : known.theme;
+  const { written, definitions, resolved, theme } = themeChoice(compilation, diagram, options);
   if (!resolved.known && written !== null) {
     const fileThemes = definitions.map((t) => t.id).filter((id) => !id.includes("#"));
     diagnostics.push({

@@ -19,6 +19,7 @@
  */
 
 import type { Locale } from "@meltemi/diagrams-i18n";
+import type { StdioStreams } from "@meltemi/diagrams-mcp/node";
 import { formatSize } from "./build-command.js";
 import { argumentsError, messages } from "./messages/index.js";
 import { CloudClient, type Fetch } from "./cloud-client.js";
@@ -45,6 +46,8 @@ export interface CloudHooks {
   readonly home?: string;
   /** Told the local MCP server once it listens, so that a test can call it and stop it. */
   readonly mcpStarted?: (server: LocalServer) => void;
+  /** The streams `mcp --stdio` serves on; the process's standard input and output by default. */
+  readonly stdio?: StdioStreams;
 }
 
 export interface CloudContext {

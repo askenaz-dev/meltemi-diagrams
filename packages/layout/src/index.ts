@@ -95,3 +95,17 @@ export {
 } from "./routing.js";
 
 export { drawingWords } from "./messages/index.js";
+export {
+  LARGE_TEXT_CONTRAST,
+  TEXT_CONTRAST,
+  auditContrast,
+  contrastRatio,
+  hexOf,
+  isLargeText,
+  luminance,
+  parseColour,
+  passingColour,
+  type ContrastOptions,
+  type ContrastProblem,
+  type Rgb,
+} from "./contrast.js";

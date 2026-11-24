@@ -68,7 +68,7 @@ today                  // a line at the day the picture is made; today 2026-06-1
 
 `today` draws only when the day is inside the chart's span. For a picture that does not change with
 the day (CI, a committed SVG), write `today <date>` or export with
-`pnpm mdg export plan.meltemi --today 2026-07-15`.
+`mdg export plan.meltemi --today 2026-07-15`.
 
 ## Styles, effects and stories
 
@@ -104,7 +104,7 @@ A loop or an unscheduled task has no dates and is not drawn: fix the error first
 
 ## Converting
 
-`pnpm mdg import plan.mmd` converts a Mermaid `gantt` and writes the dates Mermaid draws: exclusive
+`mdg import plan.mmd` converts a Mermaid `gantt` and writes the dates Mermaid draws: exclusive
 end dates become inclusive `to`, `1w` under excluded weekdays becomes `7d`, months and years become
 days, `crit`, `done` and `active` become `critical`, `done` and `active`, the `milestone` and `vert`
 tags become a `milestone` and a `marker`, `click … href` becomes `url`, and a chart with no

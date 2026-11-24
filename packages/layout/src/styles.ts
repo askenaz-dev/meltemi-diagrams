@@ -1,4 +1,5 @@
 import {
+  BUILT_IN_CLASSES,
   ELEMENT_ONLY_PROPERTIES,
   NOTE_ONLY_PROPERTIES,
   TEXTLESS_KINDS,
@@ -16,6 +17,7 @@ import {
   type Routing,
   type StyleProperties,
 } from "@meltemi/diagrams-model";
+import { TEXT_CONTRAST, contrastRatio, parseColour, passingColour } from "./contrast.js";
 import type { BoxShape } from "./shapes.js";
 import type { ArrowheadKind, CornerKind, IconPosition, LabelPosition, Theme } from "./theme.js";
 
@@ -214,6 +216,23 @@ export class StyleResolver {
           : value;
     }
     if (style.pattern === "none") delete style.pattern;
+    // The built-in C4 classes pair a fill with a text colour by token; a theme where the pair
+    // cannot be read (white on the light themes' cyan persons) takes its ink, or black or white,
+    // unless the person wrote the fill or the colour, here or in a class that shadows the built-in.
+    const builtIn = base ? BUILT_IN_CLASSES[base] : undefined;
+    if (
+      builtIn &&
+      typeof style.fill === "string" &&
+      typeof style.color === "string" &&
+      merged.fill === builtIn.fill &&
+      merged.color === builtIn.color
+    ) {
+      const fill = parseColour(style.fill);
+      const color = parseColour(style.color);
+      if (fill && color && contrastRatio(color, fill) < TEXT_CONTRAST) {
+        style.color = passingColour(style.fill, this.theme.ink, TEXT_CONTRAST);
+      }
+    }
     const resolved = style as ResolvedStyle;
     this.cache.set(target, resolved);
     return resolved;

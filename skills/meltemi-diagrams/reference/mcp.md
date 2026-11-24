@@ -82,10 +82,14 @@ code. Ids are never guessed: take a project's id from `list_projects` or `create
 5. `validate` the project, then `preview` what you changed: a PNG 1280 pixels wide by default
    (`width` from 16 to 2048), or `format: "svg"` for the SVG as text. The report beside the picture
    gives the revision drawn, the size, the elements and relations, the warnings
-   (`layout.text-overflow`, `layout.overlap`, …) and the fonts the server estimated. Look at the
-   picture when you can, read the report always, and fix what it shows as you would after an
-   export. After writing `animate`, preview two instants with `at`
-   ([Effects in motion](#effects-in-motion)).
+   (`layout.text-overflow`, `layout.overlap`, `layout.low-contrast`, …) and the fonts the server
+   estimated. Look at the PNG, never at the SVG's text, as the review step of `SKILL.md` says: look
+   for cut or overlapping text, a label away from its arrow, an arrow through a box it does not
+   join, uneven gaps between peers, a crowded part beside an empty one and text too small to read;
+   name what you found and fixed, or why each does not apply; fix the structure before
+   coordinates, two rounds at most. Read the report always. When no picture comes back, say that
+   the sheet was validated and not looked at. After writing `animate`, preview two instants with
+   `at` ([Effects in motion](#effects-in-motion)).
 6. Give the person `open_url`'s address. An open page shows every write at once, without a reload.
 
 A preview that fails (`request.invalid`, `rate.limited`) never undoes a write that succeeded: say

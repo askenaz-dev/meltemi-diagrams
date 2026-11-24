@@ -29,7 +29,14 @@ meltemi-diagrams --version
 
 El comando también está disponible como `mdg`. Las exportaciones PNG, PDF y de video usan un Edge,
 un Chrome o un Chromium instalado, y el video, además, un FFmpeg instalado
-([compatibilidad](compatibility.md)).
+([compatibilidad](compatibility.md)). Para ver qué tiene tu máquina, ejecuta:
+
+```bash
+meltemi-diagrams doctor
+```
+
+Comprueba Node, el navegador, FFmpeg, la skill de los agentes y la sesión, y dice qué instalar para
+cada cosa que falta, sin cambiar nada ([línea de comandos](cli.md#comprobar-la-máquina-doctor)).
 
 El editor es la extensión **Meltemi Diagrams** para Visual Studio Code 1.95 o posterior, desde
 Visual Studio Marketplace u Open VSX, o desde un archivo `.vsix`:

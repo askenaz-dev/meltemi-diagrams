@@ -248,13 +248,33 @@ carpeta una vez; un nombre desconocido o vacío es un error de uso que los enume
 instala en tus propias carpetas (`~/.claude/skills`, `~/.agents/skills`), y `--force` reemplaza
 una copia que ya está (solo la carpeta de la skill; sin él, el comando se niega con el código de
 salida 2 y no escribe nada). El comando escribe solo carpetas de skills, nunca un archivo de
-instrucciones del proyecto, y el texto instalado nombra esta línea de comandos (`mdg validate`,
-`mdg preview`).
+instrucciones del proyecto, y la skill nombra esta línea de comandos tal como se instala
+(`mdg validate`, `mdg preview`); los archivos se copian sin cambios.
 
 `skill prompt` imprime el prompt de configuración para agentes, el texto que un agente de
 programación lee y sigue para instalar la skill y demostrar que dibuja, que también sirve
 `https://diagrams.meltemi.dev/agent-setup/prompt.md`; no recibe argumentos. Consulta
 [agents.md](agents.md).
+
+## Comprobar la máquina: `doctor`
+
+`doctor [carpeta]` informa, una línea por cosa, lo que esta máquina y la carpeta (la de trabajo por
+defecto) tienen para Meltemi Diagrams, y no cambia nada: no instala nada, no escribe ningún archivo
+y no hace ninguna petición.
+
+| Comprobación | `ok`                                                                | Si no                                                                                    |
+| ------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `node`       | Node 22.12 o posterior                                              | `fail`: la versión encontrada, y que instales una más nueva                              |
+| `browser`    | el Edge o Chrome que usan PNG, PDF y video                          | `warn`: esas exportaciones no están disponibles; `MELTEMI_BROWSER` nombra uno            |
+| `ffmpeg`     | FFmpeg y su versión, para el video                                  | `warn`: el video no está disponible; `MELTEMI_FFMPEG` nombra uno                         |
+| `skill`      | cada copia de la skill de los agentes, con su versión, o ninguna    | `warn`: una copia de una versión menor anterior o posterior a la de la línea de comandos |
+| `sign-in`    | si hay una sesión guardada para el host, o `MELTEMI_TOKEN` definida | `warn`: no se puede usar `MELTEMI_HOST` o el archivo de credenciales                     |
+
+Una última línea cuenta las comprobaciones: `5 correctas, 0 avisos, 0 fallos.`. `--json` imprime en
+cambio un objeto, `{ "version": "…", "checks": [{ "id", "status", "detail", "fix" }] }` en el orden de
+arriba, con las mismas claves y estados en los dos idiomas y `fix` solo cuando una comprobación no es
+`ok`. El código de salida es 0 cuando nada falló, avisos incluidos, 1 cuando falló una comprobación
+y 2 ante un error de uso. Nunca imprime un token.
 
 ## El servidor MCP local: `mcp`
 
@@ -273,6 +293,7 @@ sus argumentos). El comando sigue hasta Ctrl+C (`SIGINT`) o `SIGTERM`, y termina
 | `--port <n>`     | El puerto, 7373 por defecto; 0 elige uno libre                                    |
 | `--folder <dir>` | Sirve `validate` y `preview` sobre los archivos de una carpeta, sin cuenta ni red |
 | `--host <url>`   | El servicio, como en `login`                                                      |
+| `--stdio`        | Sirve por la entrada y la salida estándar en vez de un puerto                     |
 
 Arranca sin sesión iniciada: cada herramienta responde entonces `auth.required`, y un `login` hecho
 mientras tanto lo usa la llamada siguiente. Escucha solo en `127.0.0.1`, y rechaza (antes de leer
@@ -282,6 +303,17 @@ un método que no es `POST` (`405`), otra ruta (`404`) y un cuerpo de más de 24
 (`401` si no), para una computadora donde otras personas inician sesión. Un puerto en uso
 (`mcp.port-in-use`), una carpeta que no existe, un host `http:` que no es la dirección local
 (`cloud.insecure-host`), una clave corta y una opción desconocida terminan con 2 antes de escuchar.
+
+Con `--stdio` las mismas herramientas se sirven por la entrada y la salida estándar, para un cliente
+que inicia el servidor, como un plugin: nada escucha, no se toma ningún puerto ni se lee ninguna
+clave, la salida estándar lleva solo los mensajes del protocolo (las líneas de las llamadas van a la
+salida de error) y el comando termina con 0 cuando se cierra su entrada. `--port` con `--stdio` es un
+error de uso. Un valor de `--folder` que un cliente dejó sin expandir, como `${CLAUDE_PROJECT_DIR}`,
+se lee como la carpeta de trabajo. Agrégalo a un cliente en la carpeta del proyecto, por ejemplo:
+
+```bash
+codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folder .
+```
 
 ## Los comandos de la nube
 

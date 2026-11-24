@@ -36,6 +36,56 @@ access.
 For a repository, start with the setup prompt below. For a project already open in the local
 Docker editor, use **Set up my agent** there: it keeps the agent connected to that project.
 
+## Ways to install
+
+| Way                                          | For                                                                 | What it brings                                                                    | How it updates                                                                              | What it sends                                                                      |
+| -------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [The plugin for Claude Code](#claude-code)   | Claude Code                                                         | The skill, and MCP tools that check and preview the files of the project's folder | Each commit of the plugin is an update: turn on the marketplace's auto-update, or update it | Nothing of ours; the MCP server downloads the command line from npm the first time |
+| [The plugin for Codex](#codex)               | Codex                                                               | The skill; one more line adds the MCP server                                      | Codex follows the repository's branch                                                       | Nothing of ours                                                                    |
+| [The `skills` command](#the-skills-command)  | Cursor, GitHub Copilot, Gemini CLI, Windsurf and any agent it knows | The skill                                                                         | `npx skills update`                                                                         | Anonymous install counts to skills.sh, unless `DISABLE_TELEMETRY=1`                |
+| [`mdg skill install`](#installing-the-skill) | Any agent, with the command line you have                           | The skill of your command line's version                                          | Run it again with `--force`                                                                 | Nothing                                                                            |
+| [The prompt](#the-prompt)                    | Any agent with a terminal                                           | Installs the skill with `skill install` and proves it draws                       | Paste it again                                                                              | Nothing                                                                            |
+
+Every way gives the same files: the skill names the commands as an installed command line runs
+them. Your agent supplies the model; none of them configures one.
+
+### Claude Code
+
+```text
+/plugin marketplace add askenaz-dev/meltemi-diagrams
+/plugin install meltemi-diagrams@meltemi
+```
+
+The plugin's MCP server runs `mdg mcp --stdio --folder <project>` on your machine, with the
+project's own `@meltemi/diagrams-cli` when it has one and the latest published one otherwise, so it
+needs Node 22.12 or later and no account. Claude Code turns auto-update off for marketplaces other
+than its own: under `/plugin`, **Marketplaces**, choose **meltemi** and turn it on.
+
+### Codex
+
+```bash
+codex plugin marketplace add askenaz-dev/meltemi-diagrams
+codex plugin add meltemi-diagrams@meltemi
+```
+
+Start a new session to use it. To let Codex check and
+preview the project's files too, add the MCP server in the project's folder:
+
+```bash
+codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folder .
+```
+
+### The `skills` command
+
+```bash
+npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams
+```
+
+It asks which agents to install for (`--agent` names them), writes the skill into their folders
+and records it in a `skills-lock.json` of the project, which `npx skills update` reads. `--skill`
+matters: this repository also keeps skills for its own work. The command and skills.sh are a third party's;
+set `DISABLE_TELEMETRY=1` to send nothing.
+
 ## The prompt
 
 Paste this into your coding agent, in your project:
@@ -98,8 +148,9 @@ project. Without the command line installed, in the project's folder:
 npx @meltemi/diagrams-cli@latest skill install --agent <names>
 ```
 
-The installed skill names the commands as they are installed (`mdg validate`, `mdg export`,
-`mdg preview`), so the agent runs what your project has. By hand: copy `skills/meltemi-diagrams/`
+The skill names the commands as an installed command line runs them (`mdg validate`,
+`mdg export`, `mdg preview`), so the agent runs what your project has, and every way of installing
+it gives the same files. By hand: copy `skills/meltemi-diagrams/`
 from the package (`node_modules/@meltemi/diagrams-cli/skills/`) to the folder your agent reads
 skills from, or point the agent's instructions (an `AGENTS.md`, for instance) at its `SKILL.md`.
 
@@ -142,6 +193,8 @@ existing diagram rather than asking it to guess how your system works.
 | "Plan the launch from `docs/plan.md` as a Gantt chart"                                              | Tasks and dependencies you can adjust on the canvas                    |
 | "Animate the arrows of the sign-in diagram"                                                         | Effects on the diagram you have, moving in its ordinary view           |
 | "Show me the sign-in flow step by step"                                                             | A story with scenes you can play, beside the diagram it explains       |
+| "Draw our platform's thirty-four services so a new engineer can follow it"                          | An overview of the groups and a detail sheet for each, linked          |
+| "Make the checkout diagram in the colours of https://example.com"                                   | A theme of your brand, and which colours and fonts it took or replaced |
 
 Ask it to validate the result, inspect the preview and tell you where to open it. With the CLI,
 that means a source file and SVG, with `mdg preview` when you want a browser preview. With a
@@ -151,6 +204,17 @@ The last two rows ask for different things. Animating an arrow or a diagram adds
 [effects](language/motion.md) (`animate`) to the diagram itself: they loop wherever it is shown
 and need no story. A walkthrough is a [story](language/stories.md), a separate block with scenes
 and times. The skill tells the agent to write only the one you asked for.
+
+The skill also teaches the agent to design the sheet, not only to write valid source. It chooses
+the profile from what you want to show and says its plan in one line before writing; it keeps the
+accent on one or two elements, groups a sheet past twelve boxes and splits one past thirty, gives
+colours a legend, and answers with a table when a table says it better. Before delivering, it looks
+at a picture of the drawing (a PNG exported to a temporary folder, or MCP's `preview`), names the
+defects it found and fixed, and runs a removal test; without a browser or MCP it says that it
+validated the sheet without looking at it. Asked for your brand, it writes a `theme` block from
+your website or your colours with the nearest bundled fonts, uses it in the sheet you asked for,
+and reports what it took and what it approximated. Texts that cannot be read on their fill are
+reported as `layout.low-contrast`, with a colour that can.
 
 ### Code in a diagram
 

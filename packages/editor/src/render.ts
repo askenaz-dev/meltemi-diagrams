@@ -54,6 +54,8 @@ export function renderDiagram(
     readonly scenario?: string;
     /** Effects: none (the default), the animated profile, or the frame at a time in ms. */
     readonly motion?: "static" | "animated" | { readonly at: number };
+    /** `none` for a host that makes the parts of the drawing selectable (the canvas). */
+    readonly role?: "image" | "none";
   } = {},
 ): RenderedDiagram | undefined {
   const view = diagramView(analysis, id);
@@ -79,6 +81,8 @@ export function renderLayout(
   options: {
     readonly fonts?: FontPolicy;
     readonly motion?: "static" | "animated" | { readonly at: number };
+    /** `none` for a host that makes the parts of the drawing selectable (the canvas). */
+    readonly role?: "image" | "none";
   } = {},
 ): RenderedDiagram | undefined {
   const drawn = layout.scene;
@@ -92,6 +96,7 @@ export function renderLayout(
   const svg = renderSvg(scene, {
     fonts: options.fonts ?? (fonts ? "embedded" : "system"),
     ...(fonts ? { provider: fonts } : {}),
+    ...(options.role ? { role: options.role } : {}),
   });
   const offset = layout.offset ?? { x: 0, y: 0 };
   const connectors = layout.connectors ?? new Map<string, ConnectorGeometry>();

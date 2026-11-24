@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1899" height="295" viewBox="0 0 1899 295" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" width="1899" height="295" viewBox="0 0 1899 295" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
   <title>Delivery pipeline</title>
   <desc>Every change is built, tested in parallel, packaged and released after an approval.</desc>
   <defs>

@@ -1,0 +1,16 @@
+{
+  "name": "meltemi",
+  "owner": {
+    "name": "Meltemi"
+  },
+  "metadata": {
+    "description": "The Meltemi family's plugins for coding agents."
+  },
+  "plugins": [
+    {
+      "name": "meltemi-diagrams",
+      "source": "./plugins/meltemi-diagrams",
+      "description": "Diagrams as code: the skill, and MCP tools that check and preview the project's diagrams."
+    }
+  ]
+}

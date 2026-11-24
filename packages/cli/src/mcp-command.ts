@@ -38,6 +38,7 @@ import {
 } from "./cloud-context.js";
 import { CloudError, EXIT_OK, EXIT_USAGE } from "./cloud-errors.js";
 import { cloudHandlers, cloudRefusal } from "./mcp-cloud.js";
+import { serveOverStdio } from "@meltemi/diagrams-mcp/node";
 import { LocalEngine } from "./mcp-engine.js";
 import { folderHandlers, realFolder } from "./mcp-folder.js";
 import {
@@ -48,6 +49,9 @@ import {
   type LocalServer,
 } from "./mcp-http.js";
 import { messages } from "./messages/index.js";
+
+/** A variable a client left unexpanded in `--folder`, such as `${CLAUDE_PROJECT_DIR}`. */
+const PLACEHOLDER = /^\$\{[A-Za-z_][A-Za-z0-9_]*\}$/;
 
 /** A port as `--port` gives it: a whole number from 0 to 65535, or undefined. */
 function parsePort(text: string): number | undefined {
@@ -100,7 +104,13 @@ function cloudServed(
 export const mcpCommand: CloudCommand = async (args, context) => {
   const help = messages().help.mcp;
   const t = messages().cloud.mcp;
-  let values: { folder?: string; host?: string; port?: string; help?: boolean };
+  let values: {
+    folder?: string;
+    host?: string;
+    port?: string;
+    stdio?: boolean;
+    help?: boolean;
+  };
   try {
     ({ values } = parseArgs({
       args: [...args],
@@ -108,6 +118,7 @@ export const mcpCommand: CloudCommand = async (args, context) => {
         folder: { type: "string" },
         host: { type: "string" },
         port: { type: "string" },
+        stdio: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
       allowPositionals: false,
@@ -120,9 +131,12 @@ export const mcpCommand: CloudCommand = async (args, context) => {
     context.stdout(help);
     return EXIT_OK;
   }
+  // Over standard input and output there is no listener: no port to take and no key to carry.
+  const stdio = values.stdio === true;
+  if (stdio && values.port !== undefined) return usage(context, t.stdioPort, help);
   const port = values.port === undefined ? DEFAULT_MCP_PORT : parsePort(values.port);
   if (port === undefined) return usage(context, t.badPort(values.port ?? ""), help);
-  const key = context.env["MELTEMI_MCP_KEY"];
+  const key = stdio ? undefined : context.env["MELTEMI_MCP_KEY"];
   if (key !== undefined && key !== "" && key.length < MIN_KEY_LENGTH) {
     return usage(context, t.shortKey(MIN_KEY_LENGTH), help);
   }
@@ -131,7 +145,10 @@ export const mcpCommand: CloudCommand = async (args, context) => {
   let served: Served;
   if (values.folder !== undefined) {
     if (values.host !== undefined) return usage(context, t.folderAndHost, help);
-    const root = realFolder(resolve(context.cwd, values.folder));
+    // A client that expands no variables passes `${CLAUDE_PROJECT_DIR}` as written: the working
+    // folder it starts the server in is that folder.
+    const written = PLACEHOLDER.test(values.folder) ? "." : values.folder;
+    const root = realFolder(resolve(context.cwd, written));
     if (root === undefined) {
       context.stderr(`${context.name} ${context.command}: ${t.notAFolder(values.folder)}\n`);
       return EXIT_USAGE;
@@ -141,7 +158,7 @@ export const mcpCommand: CloudCommand = async (args, context) => {
       handlers: folderHandlers(root, engine, context.toolVersion),
       instructions: folderInstructions(),
       // As the person wrote it: a folder far from the working one reads better so than relative.
-      folder: values.folder,
+      folder: written,
     };
   } else {
     const cloud = cloudServed(context, values.host, engine);
@@ -159,15 +176,25 @@ export const mcpCommand: CloudCommand = async (args, context) => {
         `mcp: unexpected error: ${error instanceof Error ? error.message : "unknown"}\n`,
       ),
   };
-  const handler = statelessHandler(() =>
+  const factory = () =>
     buildServer(
       { name: SERVER_NAME, title: SERVER_TITLE, version: context.toolVersion },
       served.instructions,
       served.catalogue,
       served.handlers,
       hooks,
-    ),
-  );
+    );
+  if (stdio) {
+    // Standard output carries the protocol's messages only; everything else goes to stderr.
+    context.stderr(`${t.stdioServing(served.folder)}
+`);
+    await serveOverStdio(
+      factory,
+      context.hooks.stdio ?? { input: process.stdin, output: process.stdout },
+    );
+    return EXIT_OK;
+  }
+  const handler = statelessHandler(factory);
 
   let server: LocalServer;
   try {

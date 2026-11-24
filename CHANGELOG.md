@@ -94,6 +94,34 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
   marks are (a flow's particles, a trace's head), so two frames prove an arrow is animated with
   the tools alone. Without `at` the picture is still, as before. An effect-frame journey extends
   the hosted acceptance gate to 36 steps.
+- The agent skill teaches design: a table from what the person wants to show to the profile, a
+  plan said in one line, and a new reference, `reference/design.md`, on focus, density, colour,
+  text, arrangement and a removal test. Its review step has the agent look at a picture (a PNG in a
+  temporary folder, or MCP's `preview`), name the defects it found and fixed, and say so when it
+  could not look. `reference/themes.md` makes a theme from a brand's website or colours.
+- A plugin for Claude Code and Codex, installed from this repository's marketplace `meltemi`:
+  `/plugin marketplace add askenaz-dev/meltemi-diagrams` and `/plugin install
+meltemi-diagrams@meltemi`, or `codex plugin marketplace add` and `codex plugin add`. It brings the
+  skill and, in Claude Code, MCP tools that check and preview the project's files. The skill also
+  installs with `npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams`.
+- The skill names the installed command (`mdg validate`) in every copy, so every way of installing
+  gives the same files; `skill install` copies them unchanged.
+- `mdg mcp --stdio` serves the local MCP tools over standard input and output, for a client that
+  starts the server itself: no port, no key, it ends when its input closes.
+- `mdg doctor` checks Node, the browser and FFmpeg of the exports, the copies of the skill and the
+  sign-in, without writing or sending anything; `--json` prints the same as one object.
+- The README opens with the install for coding agents, the gallery of the five profiles and a
+  comparison with Mermaid, draw.io and an agent's HTML that says where each is better.
+
+### Drawing and export
+
+- A new warning, `layout.low-contrast`, reports a text that cannot be read on the fill painted
+  behind it (WCAG 2: 4.5 to 1, 3 to 1 for large text), in every profile, once for each pair of
+  colours, with a colour that passes as the hint.
+- C4 persons in the light themes draw their texts in the theme's `ink`: the built-in class's white
+  on cyan measured 3.68 to 1. A colour written in a style is kept, and reported.
+- An exported SVG with a title and no link carries `role="img"`, so assistive technology names it
+  by its `<title>` and describes it by its `<desc>`. The canvas and the player draw without it.
 
 ### Local workspace
 

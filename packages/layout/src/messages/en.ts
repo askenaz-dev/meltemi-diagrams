@@ -266,9 +266,33 @@ export const en = {
     /** `layout.ticks-crowded`: the interval written, and how many ticks pass between two labels. */
     ticksCrowded: (ticks: string, every: number) =>
       `The labels of \`ticks ${ticks}\` would overlap; every ${every} ticks is labelled.`,
+    /**
+     * `layout.low-contrast`: a text (shortened), its owner, its colour and the fill behind it, the
+     * ratio (two decimals, never rounded up to the least), the least it needs, and how many other
+     * texts of the diagram have the same two colours.
+     */
+    lowContrast: (
+      text: string,
+      owner: string | null,
+      color: string,
+      fill: string,
+      ratio: number,
+      needed: number,
+      others: number,
+    ) =>
+      `The text "${text}" of ${subject(owner)} is ${color} on ${fill}: a contrast of ${ratio.toFixed(2)} to 1, under the ${needed} to 1 it needs.${
+        others === 0
+          ? ""
+          : others === 1
+            ? " 1 other text of the diagram has the same colours."
+            : ` ${others} other texts of the diagram have the same colours.`
+      }`,
   },
   /** The hints of the layout's diagnostics. */
   hints: {
+    /** `layout.low-contrast`: the fill and a colour that can be read on it. */
+    lowContrast: (fill: string, color: string) =>
+      `Give the text a colour that can be read on ${fill}, such as \`color "${color}"\`.`,
     /** `layout.ticks-crowded`. */
     ticksCrowded:
       "Write a longer interval in `ticks`, widen the chart with `dayWidth`, or remove `ticks` to let the axis choose.",

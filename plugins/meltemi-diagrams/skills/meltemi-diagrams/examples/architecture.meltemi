@@ -1,0 +1,73 @@
+language "0.2"
+
+// Shared model and views from the product proposal ("Modelos y vistas"), with a context view and
+// a component view that lift and combine the model's relations.
+model commerce {
+  person customer "Cliente" { description "Compra en línea" }
+
+  system shop "Commerce" {
+    description "Tienda en línea"
+    container web "Web" { technology "React" }
+    container api "API" {
+      technology "HTTP"
+      component orders "Pedidos" { technology "Kotlin" }
+      component payments "Pagos" { technology "Kotlin" }
+    }
+    datastore db "Pedidos" { technology "PostgreSQL" }
+    api.orders -> db: "Guarda" as store
+  }
+  system bank "Banco" {
+    description "Autoriza tarjetas"
+    external
+  }
+
+  customer -> shop.web: "Compra" as visit
+  shop.web -> shop.api: "HTTPS" as request { technology "JSON/HTTPS" }
+  shop.api -> shop.db: "SQL" as persist
+  shop.api.payments -> bank: "Autoriza" as authorize
+  shop.web -> shop.api.orders: "Pedidos" as orders
+}
+
+diagram context: c4 using commerce {
+  level context
+  layout assisted
+  title "Commerce en contexto"
+
+  placement {
+    place customer at (92, 64)
+    place shop at (456, 64)
+    place bank at (833, 64)
+  }
+}
+
+diagram containers: c4 using commerce {
+  level container
+  scope shop
+  include customer, shop.web, shop.api, shop.db
+  layout assisted
+  direction LR
+  theme "editorial.light"
+  label shop.api "API de pedidos"
+
+  placement {
+    place customer at (92, 93)
+    place shop.web at (473, 93)
+    place shop.api at (855, 93)
+    place shop.db at (1214, 94)
+  }
+}
+
+diagram components: c4 using commerce {
+  level component
+  scope shop.api
+  layout assisted
+  shop.web -> shop.api.orders: "Usa" as uses
+
+  placement {
+    place shop.web at (97, 88)
+    place shop.api.orders at (459, 88)
+    place shop.api.payments at (459, 200)
+    place shop.db at (845, 88)
+    place bank at (850, 210)
+  }
+}

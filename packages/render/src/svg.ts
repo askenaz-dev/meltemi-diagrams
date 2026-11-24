@@ -51,6 +51,20 @@ export interface RenderOptions {
   /** Defaults to `system`. */
   readonly fonts?: FontPolicy;
   readonly provider?: FontProvider;
+  /**
+   * `image` (the default) writes `role="img"` on a titled picture without links, so assistive
+   * technology names it by its `<title>` and describes it by its `<desc>`; `none` writes no role,
+   * for a host that makes the parts of the drawing selectable (the canvas, the player).
+   */
+  readonly role?: "image" | "none";
+}
+
+/** Whether the picture links somewhere: as a whole, or from one of its elements. */
+function hasLink(scene: Scene): boolean {
+  if (scene.link) return true;
+  const walk = (items: readonly SceneItem[]): boolean =>
+    items.some((item) => item.kind === "group" && (item.href !== undefined || walk(item.items)));
+  return walk(scene.items);
 }
 
 function n(value: number): string {
@@ -85,8 +99,13 @@ export function renderSvg(scene: Scene, options: RenderOptions = {}): string {
   const box = scene.viewBox
     ? `${n(scene.viewBox.x)} ${n(scene.viewBox.y)} ${n(scene.viewBox.width)} ${n(scene.viewBox.height)}`
     : `0 0 ${w} ${h}`;
+  // A titled picture without links is one image to assistive technology, named by its title.
+  const role =
+    (options.role ?? "image") === "image" && scene.title !== null && !hasLink(scene)
+      ? ' role="img"'
+      : "";
   out.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${box}" font-family="${escapeXml(scene.fonts.body)}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg"${role} width="${w}" height="${h}" viewBox="${box}" font-family="${escapeXml(scene.fonts.body)}">`,
   );
   if (scene.title !== null) out.push(`  <title>${escapeXml(scene.title)}</title>`);
   if (scene.description !== null) out.push(`  <desc>${escapeXml(scene.description)}</desc>`);

@@ -13,7 +13,7 @@ grows with its content and never reports `layout.too-large`.
 | `box <id> "Label"`, `id["L"]`     | a shape with a label and an optional `description`                                                           | its shape's size, widened to its text |
 | `id[("Label")]`                   | a box with the `cylinder` shape                                                                              | 160 × 64                              |
 | `text <id> "Text\nmore"`          | measured text without a frame                                                                                | its extent                            |
-| `icon <id> "tabler:server"`       | an icon of the packs; find names with `pnpm mdg assets icons <w>`                                            | 48 × 48                               |
+| `icon <id> "tabler:server"`       | an icon of the packs; find names with `mdg assets icons <w>`                                                 | 48 × 48                               |
 | `image <id> "img/logo.png"`       | a PNG, JPEG, GIF, WebP or SVG file of the project, relative to the file                                      | its pixel size, at most 640 wide      |
 | `note <id> "Text" [on <element>]` | an annotation: text with no frame until styled, and a dotted leader to the element it is attached to (below) | its text's extent                     |
 | `sticky <id> "Text"`              | a sticky note: a square card whose text wraps and shrinks to fit (below)                                     | 160 × 160, never grown                |
@@ -182,7 +182,7 @@ style arrow { width 4; arrowhead triangle }
 - Pens take no part in `layout.overlap` or the label checks, are never moved by the engine or a
   list, are not jittered by sketch themes, and run `flow`, `dash`, `pulse` and `trace` like a line.
   A story's `draw a, b over 2s` replays them ([stories.md](stories.md)).
-- `pnpm mdg format` prints a long point list filled to 100 columns, not one point per line.
+- `mdg format` prints a long point list filled to 100 columns, not one point per line.
 
 ## Icons in boxes and as shapes
 
@@ -301,7 +301,7 @@ diagram board: free {
 - A `place` on a child of a list is `layout.place-ignored` (warning): remove it. Lines and pens in a
   list keep their written points. A group that is not a list, inside a list, still places its own
   children with `place`.
-- The engine treats a list as one box in every mode; `pnpm mdg layout` writes a `place` for it and
+- The engine treats a list as one box in every mode; `mdg layout` writes a `place` for it and
   nothing for its children.
 - `spacing` or `align` without `layout` is `prop.invalid-value` (add `layout column`); `layout grid`
   lists `column, row`; `layout auto` belongs to the diagram, not to a group. Flow diagrams refuse
@@ -319,7 +319,7 @@ views.checkout.api` through `import "..." as views`. Identity only; nothing is k
 
 ## From a flow diagram
 
-`pnpm mdg convert sheet.meltemi --to free [--diagram <id>] [--id <new>]` adds a free copy of the
+`mdg convert sheet.meltemi --to free [--diagram <id>] [--id <new>]` adds a free copy of the
 flow diagram as drawn: every box with `place` and `size`, children inside their copied groups,
 layers, routes, labels, styles and animations, a `link` from each object to its source, and
 classes `from_decision`, `from_data`, `from_tag` for the drawing of the flow kinds; notes stay notes,

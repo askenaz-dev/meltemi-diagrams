@@ -49,6 +49,8 @@ Comandos:
                             la skill y demostrar que funciona
   mcp                       Servir las herramientas MCP en esta máquina para un agente de
                             programación (--folder, --port)
+  doctor [carpeta]          Comprobar Node, el navegador y FFmpeg de las exportaciones, la skill
+                            y la sesión
   whoami                    Imprimir el nombre y el handle con los que tienes la sesión iniciada
   publish [carpeta]         Publicar el catálogo como una página web del servicio de la nube
                             (--unpublish)
@@ -231,6 +233,18 @@ Opciones:
 Códigos de salida: 0 sin errores, 1 errores encontrados, 2 error de uso o ruta ilegible. Para
 import: 0 completa, 1 parcial, 2 error de uso, entrada no admitida o una hoja que existe. Para los
 comandos de la nube: 3 sin sesión iniciada, o el servicio rechazó el token (ejecuta login).
+`,
+    doctor: `Uso: doctor [carpeta] [opciones]
+
+Comprueba lo que esta máquina y la carpeta (la de trabajo por defecto) tienen para Meltemi
+Diagrams, solo leyendo: Node 22.12 o posterior, el navegador que usan las exportaciones PNG, PDF y
+de video, FFmpeg para el video, las copias de la skill de los agentes con su versión, y si hay una
+sesión guardada. No instala nada, no escribe nada y no hace ninguna petición.
+
+Opciones:
+  --json         Imprimir un objeto JSON: version, y checks con id, status, detail y fix
+
+Códigos de salida: 0 nada falló (avisos incluidos), 1 falló una comprobación, 2 error de uso.
 `,
     skill: `Uso: skill install [carpeta] [opciones]
      skill prompt
@@ -473,6 +487,8 @@ Opciones:
   --port <n>       El puerto, 7373 por defecto; 0 elige uno libre
   --folder <dir>   Validar y previsualizar los archivos de esta carpeta en vez de proyectos de la nube
   --host <url>     El servicio: MELTEMI_HOST, si no https://diagrams.meltemi.dev
+  --stdio          Servir por la entrada y la salida estándar, para un cliente que inicia el
+                   servidor (un plugin): sin puerto ni clave; termina cuando se cierra su entrada
 
 Códigos de salida: 0 detenido, 2 error de uso, un puerto en uso o una carpeta que no existe.
 `,
@@ -685,6 +701,42 @@ iniciada o el token fue rechazado.
       "skill prompt no recibe argumentos; imprime el prompt de configuración para agentes.",
     exists: (path) =>
       `${path} ya tiene la skill; agrega --force para reemplazarla (solo esa carpeta).`,
+  },
+  doctor: {
+    node: (version) => `Node ${version}`,
+    nodeOld: (version) => `Node ${version}, anterior a la 22.12 que necesita la línea de comandos`,
+    nodeFix: "Instala Node 22.12 o posterior.",
+    browser: (path) => `${path}, para las exportaciones PNG, PDF y de video`,
+    noBrowser: "Ni Edge ni Chrome: las exportaciones PNG, PDF y de video no están disponibles",
+    browserFix: "Instala Edge o Chrome, o define MELTEMI_BROWSER con el ejecutable del navegador.",
+    ffmpeg: (path, version, browser) =>
+      `${path}${version ? ` (${version})` : ""}, para las exportaciones de video${browser ? "" : ", que también necesitan un navegador"}`,
+    noFfmpeg: "Sin FFmpeg: las exportaciones MP4, WebM y GIF no están disponibles",
+    ffmpegFix: "Instala FFmpeg, o define MELTEMI_FFMPEG con el ejecutable de ffmpeg.",
+    skillCopy: (path, version) => `${path} (${version ?? "sin versión"})`,
+    noSkill:
+      "Ninguna copia de la skill de los agentes aquí ni en tus carpetas; skill install escribe una",
+    skillCurrent: (copies) => `La skill: ${copies.join("; ")}`,
+    skillOlder: (copies, tool) =>
+      `La skill: ${copies.join("; ")}; una es anterior a la línea de comandos, ${tool}`,
+    skillOlderFix:
+      "Actualízala como la instalaste: skill install --force, la actualización del plugin o npx skills update.",
+    skillNewer: (copies, tool) =>
+      `La skill: ${copies.join("; ")}; una es posterior a la línea de comandos, ${tool}`,
+    skillNewerFix:
+      "Actualiza la línea de comandos: npm install --global @meltemi/diagrams-cli@latest.",
+    signedIn: (host) => `Sesión iniciada en ${host}`,
+    notSignedIn: (host) =>
+      `Sin sesión en ${host}; login la inicia, y solo la necesitan los comandos de la nube`,
+    tokenInEnvironment: (host) => `Hay un token en MELTEMI_TOKEN para ${host}`,
+    hostFix: "Define MELTEMI_HOST con el origen de un servicio, o quítala.",
+    credentialsUnreadable: (path) => `No se puede leer el archivo de credenciales ${path}`,
+    credentialsFix: "Ejecuta logout, o borra el archivo, y vuelve a ejecutar login.",
+    summary: (ok, warnings, failures) =>
+      `${ok} ${ok === 1 ? "correcta" : "correctas"}, ${warnings} ${warnings === 1 ? "aviso" : "avisos"}, ${failures} ${failures === 1 ? "fallo" : "fallos"}.`,
+    seeHelp: (name) => `Ejecuta "${name} doctor --help".`,
+    oneFolder: "Indica una carpeta como mucho.",
+    notAFolder: (folder) => `${folder} no es una carpeta que exista.`,
   },
 
   init: {
@@ -1003,6 +1055,11 @@ iniciada o el token fue rechazado.
       notAFolder: (folder) => `${folder} no es una carpeta que exista.`,
       folderAndHost:
         "--folder sirve los archivos de una carpeta y no habla con ningún servicio: quita --host.",
+      stdioServing: (folder) =>
+        folder === undefined
+          ? "Servidor MCP de Meltemi Diagrams en la entrada y la salida estándar, para los proyectos de la nube de tu sesión."
+          : `Servidor MCP de Meltemi Diagrams en la entrada y la salida estándar, para los archivos de ${folder}.`,
+      stdioPort: "--stdio no abre ningún puerto: quita --port.",
     },
     projects: {
       none: (name) =>

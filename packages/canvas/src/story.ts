@@ -775,7 +775,12 @@ export class StoryPanel {
     const frame =
       storyFrame(p.timeline, (key) => p.views[key], this.time, { accent: p.accent }) ??
       (p.timeline.scenes.length === 0 ? Object.values(p.views)[0]?.scene : undefined);
-    if (frame) this.host.draw(renderSvg(frame, { fonts: "system" }), frame.width, frame.height);
+    if (frame)
+      this.host.draw(
+        renderSvg(frame, { fonts: "system", role: "none" }),
+        frame.width,
+        frame.height,
+      );
     const duration = p.timeline.durationMs;
     this.clock.textContent = `${formatTime(this.time)} / ${formatTime(duration)}`;
     this.clock.title = this.clock.textContent;

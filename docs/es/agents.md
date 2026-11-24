@@ -37,6 +37,57 @@ Para un repositorio, empieza por el prompt de configuración de abajo. Para un p
 en el editor Docker local, usa **Configurar mi agente** allí: mantiene al agente conectado a ese
 proyecto.
 
+## Formas de instalar
+
+| Forma                                      | Para                                                                        | Qué trae                                                                                            | Cómo se actualiza                                                                                              | Qué envía                                                                         |
+| ------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [El plugin para Claude Code](#claude-code) | Claude Code                                                                 | La skill, y herramientas MCP que comprueban y previsualizan los archivos de la carpeta del proyecto | Cada commit del plugin es una actualización: activa la actualización automática del marketplace, o actualízalo | Nada nuestro; el servidor MCP descarga la línea de comandos de npm la primera vez |
+| [El plugin para Codex](#codex)             | Codex                                                                       | La skill; una línea más agrega el servidor MCP                                                      | Codex sigue la rama del repositorio                                                                            | Nada nuestro                                                                      |
+| [El comando `skills`](#el-comando-skills)  | Cursor, GitHub Copilot, Gemini CLI, Windsurf y cualquier agente que conozca | La skill                                                                                            | `npx skills update`                                                                                            | Recuentos anónimos de instalaciones a skills.sh, salvo con `DISABLE_TELEMETRY=1`  |
+| [`mdg skill install`](#instalar-la-skill)  | Cualquier agente, con la línea de comandos que tengas                       | La skill de la versión de tu línea de comandos                                                      | Vuelve a ejecutarlo con `--force`                                                                              | Nada                                                                              |
+| [El prompt](#el-prompt)                    | Cualquier agente con terminal                                               | Instala la skill con `skill install` y demuestra que dibuja                                         | Pégalo de nuevo                                                                                                | Nada                                                                              |
+
+Todas las formas dan los mismos archivos: la skill nombra los comandos como los ejecuta una línea de
+comandos instalada. Tu agente pone el modelo; ninguna de ellas configura uno.
+
+### Claude Code
+
+```text
+/plugin marketplace add askenaz-dev/meltemi-diagrams
+/plugin install meltemi-diagrams@meltemi
+```
+
+El servidor MCP del plugin ejecuta `mdg mcp --stdio --folder <proyecto>` en tu máquina, con el
+`@meltemi/diagrams-cli` del propio proyecto cuando lo tiene y el último publicado si no, así que
+necesita Node 22.12 o posterior y ninguna cuenta. Claude Code desactiva la actualización automática
+de los marketplaces que no son el suyo: en `/plugin`, **Marketplaces**, elige **meltemi** y actívala.
+
+### Codex
+
+```bash
+codex plugin marketplace add askenaz-dev/meltemi-diagrams
+codex plugin add meltemi-diagrams@meltemi
+```
+
+Empieza una sesión nueva para usarlo. Para que Codex
+también compruebe y previsualice los archivos del proyecto, agrega el servidor MCP en la carpeta del
+proyecto:
+
+```bash
+codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folder .
+```
+
+### El comando `skills`
+
+```bash
+npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams
+```
+
+Pregunta para qué agentes instalar (`--agent` los nombra), escribe la skill en sus carpetas y la
+registra en un `skills-lock.json` del proyecto, que lee `npx skills update`. `--skill` importa: este
+repositorio también guarda skills para su propio trabajo. El comando y skills.sh son de terceros;
+define `DISABLE_TELEMETRY=1` para no enviar nada.
+
 ## El prompt
 
 Pega esto en tu agente de programación, en tu proyecto. El prompt está en inglés, el idioma en que
@@ -102,8 +153,9 @@ otro archivo del proyecto. Sin la línea de comandos instalada, en la carpeta de
 npx @meltemi/diagrams-cli@latest skill install --agent <names>
 ```
 
-La skill instalada nombra los comandos tal como están instalados (`mdg validate`, `mdg export`,
-`mdg preview`), así que el agente ejecuta lo que tiene tu proyecto. A mano: copia
+La skill nombra los comandos como los ejecuta una línea de comandos instalada (`mdg validate`,
+`mdg export`, `mdg preview`), así que el agente ejecuta lo que tiene tu proyecto, y cualquier forma
+de instalarla da los mismos archivos. A mano: copia
 `skills/meltemi-diagrams/` del paquete (`node_modules/@meltemi/diagrams-cli/skills/`) a la carpeta
 de la que tu agente lee las skills, o haz que las instrucciones del agente (un `AGENTS.md`, por
 ejemplo) remitan a su `SKILL.md`.
@@ -150,6 +202,8 @@ relevante para que pueda comprobar cómo funciona tu sistema.
 | «Planifica el lanzamiento de `docs/plan.md` como un diagrama de Gantt»                                      | Tareas y dependencias que puedes ajustar en el lienzo                       |
 | «Anima las flechas del diagrama de inicio de sesión»                                                        | Efectos en el diagrama que ya tienes, en movimiento en su vista normal      |
 | «Muéstrame el flujo de inicio de sesión paso a paso»                                                        | Una historia con escenas que puedes reproducir, junto al diagrama           |
+| «Dibuja los treinta y cuatro servicios de nuestra plataforma para que alguien nuevo pueda seguirla»         | Una vista general de los grupos y una hoja de detalle por grupo, enlazadas  |
+| «Haz el diagrama del pago con los colores de https://example.com»                                           | Un tema de tu marca, y qué colores y fuentes tomó o reemplazó               |
 
 Pídele validar el resultado, revisar la vista previa y decirte dónde abrirlo. Con la CLI, eso
 significa un archivo fuente y un SVG, con `mdg preview` cuando quieras verlo en un navegador.
@@ -159,6 +213,17 @@ Las dos últimas filas piden cosas distintas. Animar una flecha o un diagrama a�
 [efectos](language/motion.md) (`animate`) al propio diagrama: se repiten allí donde se muestre y
 no necesitan una historia. Un recorrido es una [historia](language/stories.md), un bloque aparte
 con escenas y tiempos. El skill indica al agente que escriba solo lo que pediste.
+
+El skill también enseña al agente a diseñar la hoja, no solo a escribir código válido. Elige el
+perfil según lo que quieres mostrar y dice su plan en una línea antes de escribir; deja el acento en
+uno o dos elementos, agrupa una hoja de más de doce cajas y divide una de más de treinta, da a los
+colores una leyenda y responde con una tabla cuando una tabla lo dice mejor. Antes de entregar,
+mira una imagen del dibujo (un PNG exportado a una carpeta temporal, o `preview` por MCP), nombra
+los defectos que encontró y corrigió, y aplica una prueba de quitar; sin navegador ni MCP dice que
+validó la hoja sin mirarla. Si le pides tu marca, escribe un bloque `theme` a partir de tu sitio
+web o tus colores con las fuentes incluidas más cercanas, lo usa en la hoja que pediste e informa
+qué tomó y qué aproximó. Los textos que no se leen sobre su relleno se informan como
+`layout.low-contrast`, con un color que sí se lee.
 
 ### Código en un diagrama
 

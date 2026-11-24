@@ -261,6 +261,7 @@ After every layout the scene is checked. Each finding is a warning on the later 
 | `layout.connector-crossing`    | a connector runs through a box of its layer that it does not join and that does not hold one of its ends; a shaped box by its outline                          |
 | `layout.label-cut`             | a text goes beyond its shape's text area, its label's background or the picture                                                                                |
 | `layout.label-overlap`         | a text overlaps another text, the box of an element it does not belong to, or another connector                                                                |
+| `layout.low-contrast`          | a text's colour against the fill painted behind it is under 4.5 to 1 (3 to 1 for large text), once for each pair of colours                                    |
 
 `layout.connector-overlap` also keeps the primary flow (`->`) apart from secondary dependencies
 (`-->`); ELK already routes primary relations straighter. Notes and tags are annotations that you
@@ -288,6 +289,13 @@ with the theme's fonts, against its own shape's text area, the other texts, the 
 connectors, in every profile. A text already named by another finding (an overflowing `size`,
 overlapping boxes, a label on a connector, a connector through a box) is not reported again. The
 acceptance corpus keeps every profile at zero (`docs/quality.md`).
+
+The contrast check (`low-contrast`) also looks at the drawing: each text against the fill painted
+behind its centre (its box, its label's pill, the group around it or the background), with the
+ratio of WCAG 2. A translucent fill, a gradient, a pattern or an image leaves the text unchecked.
+The built-in C4 classes take the theme's `ink` where their own text colour cannot be read on their
+fill; a colour you write is kept and reported. The built-in themes, the corpus, the templates, the
+gallery and the examples are kept at zero.
 
 `meltemi-diagrams validate` and `export` print the findings, as the editor shows them.
 

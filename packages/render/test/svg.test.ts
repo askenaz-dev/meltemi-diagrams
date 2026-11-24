@@ -147,6 +147,28 @@ describe("renderSvg", () => {
     expect(firstRect).toBeGreaterThan(desc);
   });
 
+  it("names a titled picture without links as one image, by its title", () => {
+    const svg = render(sheet);
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" role="img" width=/);
+    expect(svg).toContain("<title>Checkout</title>");
+    expect(svg).toContain("<desc>Purchase path</desc>");
+    expect(svg).not.toMatch(/<title id=|<desc id=|aria-labelledby/);
+  });
+
+  it("writes no role on a picture with a link, without a title, or when the host asks", () => {
+    const linked = render(
+      sheet.replace('  db[("DB")]', '  db[("DB")] { url "https://example.com" }'),
+    );
+    expect(linked).toContain('<a href="https://example.com">');
+    expect(linked).not.toContain('role="img"');
+    const untitled = render(sheet.replace('  title "Checkout"\n', ""));
+    expect(untitled).not.toContain('role="img"');
+    const compilation = compile(sheet);
+    const scene = layoutDiagram(compilation, compilation.document.diagrams[0]!).scene!;
+    expect(renderSvg(scene, { role: "none" })).not.toContain('role="img"');
+    expect(renderSvg({ ...scene, link: "player.html" })).not.toContain('role="img"');
+  });
+
   it("is deterministic", () => {
     expect(render(sheet)).toBe(render(sheet));
   });

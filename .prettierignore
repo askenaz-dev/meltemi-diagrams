@@ -9,6 +9,7 @@ openspec/
 .agents/
 # Copies of skills/, written by pnpm skills:sync.
 packages/cli/skills/
+plugins/meltemi-diagrams/skills/
 *.docx
 *.pdf
 

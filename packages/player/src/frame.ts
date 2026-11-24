@@ -67,7 +67,7 @@ export function frameScene(
  */
 export function frameSvg(data: PlayerDocument, t: number, options: FrameOptions = {}): string {
   const scene = frameScene(data, t, options);
-  return scene ? renderSvg(scene, { fonts: "system" }) : "";
+  return scene ? renderSvg(scene, { fonts: "system", role: "none" }) : "";
 }
 
 /**
@@ -91,5 +91,5 @@ export function drillSvg(
   extra: Readonly<Record<string, StoryViewData>> = {},
 ): string {
   const scene = drillScene(data, spec, t, extra);
-  return scene ? renderSvg(scene, { fonts: "system" }) : "";
+  return scene ? renderSvg(scene, { fonts: "system", role: "none" }) : "";
 }
