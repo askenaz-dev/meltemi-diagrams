@@ -414,6 +414,19 @@ Every pointer action SHALL have a keyboard alternative, as listed in decision 00
 - **WHEN** the stage has the focus and Ctrl+Alt+B is pressed
 - **THEN** the canvas handles nothing and does not prevent the event, which reaches the host's page; in the playground that page folds the properties
 
+#### Scenario: A selection announcement ends with its focus or diagram
+
+- **GIVEN** the canvas displays the announcement for a selected note
+- **WHEN** focus leaves the stage or the canvas shows a different diagram
+- **THEN** the previous selection announcement SHALL be cleared
+- **AND** selecting another element SHALL announce the new selection
+
+#### Scenario: A render drops the announced selection
+
+- **GIVEN** the canvas displays a selection announcement
+- **WHEN** a render replaces or drops the selection
+- **THEN** the previous selection announcement SHALL be cleared
+
 ### Requirement: Two-way selection
 Selecting on the canvas SHALL reveal the first selected id in the text without taking focus. Moving the text cursor SHALL highlight the element or relation of the statement under it on the canvas.
 
