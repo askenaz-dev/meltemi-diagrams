@@ -102,6 +102,9 @@ export const collaborationRoomScenarios: Scenario[] = [
       assert.ok(!(held.files[OVERVIEW] ?? "").includes("while her socket was cut"));
       assert.ok((await code(ana)).includes("while her socket was cut"), "Ana's page keeps working");
       assert.equal(await connection(ana), "reconnecting");
+      // The page tries again by itself, a second after the cut and then later each time: the door
+      // opens only once it has refused one of those tries.
+      await waitFor("Ana's page to try the shut door", () => door.refused > 0);
 
       // The connection returns: both lines are everywhere, and each sees the other again.
       door.open();

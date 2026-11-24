@@ -25,6 +25,7 @@ import {
   studioState,
   textHas,
   typeAtEnd,
+  waitFor,
 } from "./cloud.js";
 import { KIND, changeOf, join } from "./room-socket.js";
 import {
@@ -125,10 +126,17 @@ export const viewingScenarios: Scenario[] = [
       assert.equal(await page.locator(".view-hint").isHidden(), true);
       await statusHas(page, "Opened Viewed to view");
       assert.equal(await readOnly(page), true);
+      // The texts load first and each image is then fetched by its hash: the paths hold an image
+      // only once it has arrived, so they are read after every image of the project is there.
+      const images = Object.keys(before.binaries);
+      await waitFor("the project's images to arrive", async () => {
+        const { paths } = await studioState(page);
+        return images.every((path) => paths.includes(path));
+      });
       const state = await studioState(page);
       assert.deepEqual(
         state.paths,
-        [...Object.keys(before.files), ...Object.keys(before.binaries)].sort(),
+        [...Object.keys(before.files), ...images].sort(),
         "the whole project is here",
       );
       // The image came with it, read from the Worker by its hash as any viewer may read it.
