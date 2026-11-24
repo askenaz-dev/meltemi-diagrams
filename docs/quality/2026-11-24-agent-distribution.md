@@ -49,8 +49,20 @@ the project's own command line.
 
 ### The `skills` command
 
-Not run: it downloads and runs a third party's package from npm, which waits for the person's
-permission.
+Run with the person's permission, `skills` 1.9.0 from npm (vercel-labs/skills), with
+`DISABLE_TELEMETRY=1` and `DO_NOT_TRACK=1`, against the worktree's path, since the branch was not
+pushed.
+
+- `npx skills add <worktree> --list` found five skills: `meltemi-diagrams` once, though four copies
+  of it are in the repository, and the four OpenSpec skills. The guide's `--skill meltemi-diagrams`
+  is needed.
+- `npx skills add <worktree> --skill meltemi-diagrams --agent claude-code --agent codex --copy -y` in
+  an empty folder wrote `.claude/skills/meltemi-diagrams` and `.agents/skills/meltemi-diagrams`,
+  19 files each, byte for byte the canonical skill, and a `skills-lock.json` with the source, a hash
+  and the copy mode. The guide now names that file.
+- `mdg doctor` in that folder: five `ok`, the skill listed twice at 1.11.0.
+- Not tried: `npx skills add askenaz-dev/meltemi-diagrams` from GitHub, which needs the branch
+  pushed.
 
 ## Gates
 

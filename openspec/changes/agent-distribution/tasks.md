@@ -41,7 +41,7 @@
 
 - [x] 7.1 From a branch pushed to GitHub, install the plugin in Claude Code in an empty project with `/plugin marketplace add askenaz-dev/meltemi-diagrams#<branch>` and `/plugin install meltemi-diagrams@meltemi`; run `claude plugin validate --strict` on the repository and on `plugins/meltemi-diagrams`; record in `docs/quality/2026-11-agent-distribution.md` the client's version, the skill listed, the three tools answering, a cold and a warm start of the server in seconds, and the same on Windows and on one other system.
 - [x] 7.2 Install the plugin in Codex from the same branch and add the stdio server with the guide's line; record the client's version, the skill listed and `preview` answering for the project's folder; if the skill is not listed, replace the Codex plugin's row of the guide as design.md says and record it.
-- [ ] 7.3 Run `npx skills add askenaz-dev/meltemi-diagrams@<commit> --list`, with the branch's commit, and then with `--skill meltemi-diagrams` into an empty folder; record what is listed, that the installed files equal the canonical ones, and `mdg doctor` reporting the copy.
+- [x] 7.3 Run `npx skills add askenaz-dev/meltemi-diagrams@<commit> --list`, with the branch's commit, and then with `--skill meltemi-diagrams` into an empty folder; record what is listed, that the installed files equal the canonical ones, and `mdg doctor` reporting the copy.
 
 ## 8. Record and integration
 
@@ -57,7 +57,8 @@
   what was not tried are in `docs/quality/2026-11-24-agent-distribution.md`. `claude plugin validate
   --strict` fails on the missing `version` alone, which is on purpose; the spec now asks for no other
   warning. Codex has `codex plugin add`, which the guides now give.
-- 7.3 waits for the person's permission to download and run the third party's `skills` package.
+- 7.3 ran with the person's permission against the worktree's path, not a pushed commit; results in
+  the same note.
 
 ## Workflow follow-up
 

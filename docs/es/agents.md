@@ -83,7 +83,8 @@ codex mcp add meltemi -- npx -y @meltemi/diagrams-cli@latest mcp --stdio --folde
 npx skills add askenaz-dev/meltemi-diagrams --skill meltemi-diagrams
 ```
 
-Pregunta para qué agentes instalar y escribe la skill en sus carpetas. `--skill` importa: este
+Pregunta para qué agentes instalar (`--agent` los nombra), escribe la skill en sus carpetas y la
+registra en un `skills-lock.json` del proyecto, que lee `npx skills update`. `--skill` importa: este
 repositorio también guarda skills para su propio trabajo. El comando y skills.sh son de terceros;
 define `DISABLE_TELEMETRY=1` para no enviar nada.
 
