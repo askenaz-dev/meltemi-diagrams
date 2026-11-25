@@ -6604,6 +6604,57 @@ const tests: {
     },
   },
   {
+    name: "dismisses selection announcements on focus loss, diagram changes and removed elements",
+    text: TWO.replace('db[("DB")]', 'db[("DB")]\n  note memo "Remember this"').replace(
+      "place db at",
+      "place memo at (270, 240)\n    place db at",
+    ),
+    async run(h) {
+      const page = h.page;
+      const status = page.locator(".stage .status");
+      const picker = page.getByRole("combobox", { name: "Diagram", exact: true });
+      const click = async (id: string) => {
+        const { x, y } = await h.centre(id);
+        await page.mouse.click(x, y);
+        await h.settled();
+      };
+
+      await click("memo");
+      assert.match((await status.textContent()) ?? "", /note memo, Remember this, selected/);
+      await picker.focus();
+      assert.equal(await status.textContent(), "", "leaving the stage dismisses the message");
+      assert.deepEqual(h.session.selected, ["memo"], "the inspector can still edit the note");
+
+      await click("memo");
+      await click("api");
+      assert.equal(await status.textContent(), "node api, API, selected.");
+      const stageHasFocus = () =>
+        page.locator(".stage").evaluate((stage) => stage === document.activeElement);
+      assert.equal(await stageHasFocus(), true);
+      await picker.selectOption("d");
+      await h.settled();
+      assert.equal(h.session.current, "d");
+      assert.equal(await stageHasFocus(), true);
+      assert.equal(await status.textContent(), "", "switching with no focus change clears it");
+
+      await click("db");
+      await h.type(
+        h.text.slice(0, h.text.lastIndexOf("diagram d: flow")) +
+          'diagram d: flow {\n  api["API"]\n}\n',
+      );
+      assert.deepEqual(h.session.selected, []);
+      assert.equal(await status.textContent(), "", "a render can remove the selected element");
+
+      await click("api");
+      await page.keyboard.press("Shift+ArrowRight");
+      await h.settled();
+      const moved = await status.textContent();
+      assert.match(moved ?? "", /^Moved api/);
+      await picker.focus();
+      assert.equal(await status.textContent(), moved, "the move result remains available");
+    },
+  },
+  {
     name: "forgets the diagram picker, the properties, the minimap and the badges when the file is emptied",
     text: TWO,
     async run(h) {

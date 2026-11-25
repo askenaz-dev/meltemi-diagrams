@@ -2993,6 +2993,34 @@ const tests: Test[] = [
     },
   },
   {
+    name: "explorer: opening another diagram clears the previous note announcement",
+    async run({ page }) {
+      await page.evaluate(() => {
+        const { meltemiPlayground } = window as unknown as {
+          meltemiPlayground: { replaceProject(files: [string, string][], open: string): void };
+        };
+        meltemiPlayground.replaceProject(
+          [
+            ["first.meltemi", 'diagram d: flow {\n  note memo "First note"\n}\n'],
+            ["second.meltemi", 'diagram d: flow {\n  api["Next element"]\n}\n'],
+          ],
+          "first.meltemi",
+        );
+      });
+      await expectOpen(page, "first.meltemi");
+      const status = page.locator("#app .stage .status");
+      await page.locator('#app .content g[data-id="memo"][data-role="element"]').click();
+      assert.match((await status.textContent()) ?? "", /note memo, First note, selected/);
+
+      await openFile(page, "second.meltemi");
+      const next = page.locator('#app .content g[data-id="api"][data-role="element"]');
+      await next.waitFor();
+      assert.equal(await status.textContent(), "");
+      await next.click();
+      assert.equal(await status.textContent(), "node api, Next element, selected.");
+    },
+  },
+  {
     name: "explorer: makes a sequence diagram in a folder, moves a file into a new folder with its imports, and deletes a folder",
     async run({ page }) {
       await openTemplate(page, "c4");
