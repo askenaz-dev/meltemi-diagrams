@@ -87,6 +87,33 @@ function importReport(name: string, result: ImportResult): string {
   return `${lines.join("\n")}\n`;
 }
 
+function importFindings(result: ImportResult): HTMLUListElement {
+  const m = messages().import;
+  return h(
+    "ul",
+    { class: "import-findings" },
+    ...result.findings
+      .slice(0, 50)
+      .map((f) =>
+        h("li", { class: `is-${f.severity}` }, m.finding(f.range.start.line, f.message, f.code)),
+      ),
+  );
+}
+
+function showImportReport(name: string, path: string, result: ImportResult): void {
+  const m = messages().import;
+  const button = h("button", { type: "button", class: "button with-text" }, m.downloadReport);
+  button.addEventListener("click", () => {
+    download(`${name}.import.md`, importReport(name, result), "text/markdown");
+  });
+  openDialog(
+    m.viewReport,
+    [h("p", {}, m.importedInto(path, result.status)), importFindings(result), button],
+    [{ label: messages().dialog.close }],
+    { wide: true },
+  );
+}
+
 /** Imports Mermaid, PlantUML or Markdown text into a new `.meltemi` file of the project. */
 export function importDialog(playground: Playground): void {
   const m = messages().import;
@@ -108,8 +135,9 @@ export function importDialog(playground: Playground): void {
     source.value = await file.text();
     name.value = stemOf(file.name) || "imported";
   });
-  let report: string | undefined;
+  let added = false;
   const run = () => {
+    if (added) return true;
     // The dialog may have been open when the page turned read-only: nothing is added then, and
     // it must not say it was.
     if (playground.studio.readOnly) {
@@ -121,43 +149,29 @@ export function importDialog(playground: Playground): void {
       outcome.replaceChildren(h("p", { class: "field-problem" }, m.empty));
       return false;
     }
-    const result = importText(text, { fileName: `${name.value || "imported"}.txt` });
-    report = importReport(name.value || "imported", result);
-    const findings = h(
-      "ul",
-      { class: "import-findings" },
-      ...result.findings
-        .slice(0, 50)
-        .map((f) =>
-          h("li", { class: `is-${f.severity}` }, m.finding(f.range.start.line, f.message, f.code)),
-        ),
-    );
+    const reportName = name.value || "imported";
+    const result = importText(text, { fileName: `${reportName}.txt` });
     if (result.text === null) {
-      outcome.replaceChildren(h("p", { class: "field-problem" }, m.nothing), findings);
+      outcome.replaceChildren(
+        h("p", { class: "field-problem" }, m.nothing),
+        importFindings(result),
+      );
       return false;
     }
     const stem = cleanPath(name.value.replace(/\.meltemi$/, "")) ?? "imported";
     let path = `diagrams/${stem}.meltemi`;
     for (let n = 2; playground.studio.host.has(path); n++) path = `diagrams/${stem}-${n}.meltemi`;
     playground.studio.addFiles([[path, result.text]], path);
+    added = true;
     playground.keepNow();
     playground.status(
       m.imported(String(result.format), path, result.status, result.findings.length),
+      result.findings.length > 0
+        ? { label: m.viewReport, run: () => showImportReport(reportName, path, result) }
+        : undefined,
     );
-    if (result.findings.length > 0) {
-      outcome.replaceChildren(
-        h("p", {}, m.importedInto(path, result.status)),
-        findings,
-        saveReport,
-      );
-      return false;
-    }
     return true;
   };
-  const saveReport = h("button", { type: "button", class: "button with-text" }, m.downloadReport);
-  saveReport.addEventListener("click", () => {
-    if (report) download(`${name.value || "imported"}.import.md`, report, "text/markdown");
-  });
   openDialog(
     m.title,
     [

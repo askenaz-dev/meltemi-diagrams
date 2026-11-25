@@ -299,6 +299,7 @@ export const es: typeof en = {
     imported: (format, path, status, findings) =>
       `Se importó ${format} en ${path}: ${status}${findings ? `, ${findings} ${plural("es", findings, { one: "hallazgo", other: "hallazgos" })}` : ""}.`,
     importedInto: (path, status) => `Se importó en ${path} (${status}).`,
+    viewReport: "Informe de importación",
     downloadReport: "Descargar el informe",
     report: {
       title: (name) => `# Importación de ${name}`,
